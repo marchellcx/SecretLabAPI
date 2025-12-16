@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace SecretLabAPI.Textures
+namespace SecretLabAPI.Textures.API
 {
     /// <summary>
     /// The frame of a texture.

@@ -2,7 +2,7 @@
 
 using UnityEngine;
 
-namespace SecretLabAPI.Textures
+namespace SecretLabAPI.Textures.API
 {
     /// <summary>
     /// Configs for texture utilities.

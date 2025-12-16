@@ -12,7 +12,7 @@ namespace SecretLabAPI.Misc
     {
         private static void Internal_SnakeGameOver(PlayerSnakeGameOverEventArgs args)
         {
-            ExplosionEffects.Explode(args.Player, ItemType.GrenadeHE, "Game Over", true);
+            ExplosionEffects.Explode(args.Player, 1, ItemType.GrenadeHE, "Game Over", true, true);
         }
 
         internal static void Internal_Init()

@@ -26,6 +26,9 @@ namespace SecretLabAPI.Rays
         /// </summary>
         public static event Action<ExPlayer, RaycastHit> HitSuccess;
 
+        /// <summary>
+        /// Event triggered after all raycast operations and associated logic are completed for the current frame.
+        /// </summary>
         public static event Action? FrameFinished;
 
         /// <summary>
@@ -132,6 +135,58 @@ namespace SecretLabAPI.Rays
 
             if (hit.collider == null)
                 return false;
+
+            return true;
+        }
+
+        /// <summary>
+        /// Adds a specified <see cref="RayObject"/> to a <see cref="GameObject"/>, ensuring the object is associated
+        /// with a <see cref="RayComponent"/>. If the <see cref="GameObject"/> does not already have a <see cref="RayComponent"/>
+        /// attached, one is automatically added.
+        /// </summary>
+        /// <param name="gameObject">The <see cref="GameObject"/> to which the <see cref="RayObject"/> will be added.</param>
+        /// <param name="rayObject">The <see cref="RayObject"/> to associate with the <see cref="GameObject"/>.</param>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="gameObject"/> or <paramref name="rayObject"/> is null.</exception>
+        public static void AddObject(this GameObject gameObject, RayObject rayObject)
+        {
+            if (gameObject == null)
+                throw new ArgumentNullException(nameof(gameObject));
+
+            if (rayObject is null)
+                throw new ArgumentNullException(nameof(rayObject));
+
+            if (gameObject.TryGetComponent<RayComponent>(out var rayComponent))
+            {
+                rayComponent.AddObject(rayObject);
+                return;
+            }
+
+            rayComponent = gameObject.AddComponent<RayComponent>();
+            rayComponent.AddObject(rayObject);
+        }
+
+        /// <summary>
+        /// Removes a specified ray object from a game object's RayComponent and destroys the RayComponent if no objects remain.
+        /// </summary>
+        /// <param name="gameObject">The game object from which the specified ray object will be removed.</param>
+        /// <param name="rayObject">The ray object to be removed from the game object's RayComponent.</param>
+        /// <returns>true if the ray object was successfully removed; otherwise, false if the game object does not have a RayComponent or the component is invalid.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="gameObject"/> or <paramref name="rayObject"/> is null.</exception>
+        public static bool RemoveObject(this GameObject gameObject, RayObject rayObject)
+        {
+            if (gameObject == null)
+                throw new ArgumentNullException(nameof(gameObject));
+
+            if (rayObject is null)
+                throw new ArgumentNullException(nameof(rayObject));
+
+            if (!gameObject.TryGetComponent<RayComponent>(out var rayComponent))
+                return false;
+            
+            rayComponent.RemoveObject(rayObject);
+            
+            if (rayComponent.Objects.Count < 1)
+                UnityEngine.Object.Destroy(rayComponent);
 
             return true;
         }

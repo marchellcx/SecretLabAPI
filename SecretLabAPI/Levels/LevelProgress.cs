@@ -71,7 +71,7 @@ namespace SecretLabAPI.Levels
             level.Level = newLevel;
             level.RequiredExperience = GetExperienceForLevel(newLevel + 1);
 
-            LevelEvents.OnChangedLevel(new ChangedLevelEventArgs(level, userId, reason, changingLevelArgs.CurrentLevel, newLevel), changingLevelArgs.target);
+            LevelEvents.OnChangedLevel(new(level, userId, reason, changingLevelArgs.CurrentLevel, newLevel), changingLevelArgs.target);
         }
     }
 }

@@ -1,9 +1,8 @@
-﻿using LabExtended.API;
-
-using LabExtended.Commands;
+﻿using LabExtended.Commands;
 using LabExtended.Commands.Attributes;
 using LabExtended.Commands.Interfaces;
 using LabExtended.Commands.Parameters.Parsers;
+
 using LabExtended.Utilities;
 
 using UnityEngine;

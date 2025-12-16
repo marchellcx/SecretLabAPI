@@ -1,4 +1,4 @@
-﻿namespace SecretLabAPI.Textures
+﻿namespace SecretLabAPI.Textures.API
 {
     /// <summary>
     /// Settings for animated textures.

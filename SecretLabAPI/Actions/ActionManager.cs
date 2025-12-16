@@ -16,8 +16,9 @@ using SecretLabAPI.Actions.Extensions;
 using SecretLabAPI.Extensions;
 
 using System.Reflection;
-using ProjectMER.Commands.Utility;
+
 using SecretLabAPI.Actions.Enums;
+
 using Utils.NonAllocLINQ;
 
 namespace SecretLabAPI.Actions
@@ -27,6 +28,8 @@ namespace SecretLabAPI.Actions
     /// </summary>
     public static class ActionManager
     {
+        public delegate void ContextSetupHandler(ref ActionContext ctx);
+        
         /// <summary>
         /// Gets the action table.
         /// </summary>
@@ -161,13 +164,14 @@ namespace SecretLabAPI.Actions
         extension(CompiledAction action)
         {
             /// <summary>
-            /// Executes the specified compiled action for the given player and returns a value indicating whether the
-            /// execution was successful.
+            /// Executes the specified compiled action for the given player and optionally adjusts the action context using a
+            /// setup handler.
             /// </summary>
-            /// <param name="player">The player for whom the action is executed. Cannot be null.</param>
-            /// <returns>true if the action was executed successfully; otherwise, false.</returns>
-            /// <exception cref="ArgumentNullException">Thrown if <paramref name="action"/> or <paramref name="player"/> is null.</exception>
-            public bool ExecuteAction(ExPlayer? player)
+            /// <param name="player">The player for whom the action is executed. Can be null for actions that don't target a specific player.</param>
+            /// <param name="contextSetupHandler">An optional delegate for modifying the action context before execution. Can be null.</param>
+            /// <returns>True if the action is successfully executed; otherwise, false.</returns>
+            /// <exception cref="ArgumentNullException">Thrown if the compiled action associated with this execution is null.</exception>
+            public bool ExecuteAction(ExPlayer? player, ContextSetupHandler? contextSetupHandler = null)
             {
                 if (action is null)
                     throw new ArgumentNullException(nameof(action));
@@ -176,32 +180,39 @@ namespace SecretLabAPI.Actions
 
                 actions.Add(action);
 
-                var result = actions.ExecuteActions(player);
+                var result = actions.ExecuteActions(player, contextSetupHandler);
 
                 ListPool<CompiledAction>.Shared.Return(actions);
                 return result;
             }
 
             /// <summary>
-            /// Executes the specified compiled action.
+            /// Executes the specified compiled action for the given player and returns a value indicating whether the
+            /// execution was successful.
             /// </summary>
-            /// <returns>true if the action was successfully executed for all players; otherwise, false.</returns>
-            /// <exception cref="ArgumentNullException">Thrown if <paramref name="action"/> is null.</exception>
-            public bool ExecuteAction()
+            /// <param name="player">The player for whom the action is executed. Cannot be null.</param>
+            /// <param name="contextSetupHandler">An optional delegate to set up the action context before execution. Can be null.</param>
+            /// <returns>true if the action was executed successfully; otherwise, false.</returns>
+            /// <exception cref="ArgumentNullException">Thrown if <paramref name="action"/> or <paramref name="player"/> is null.</exception>
+            public bool ExecuteAction(ContextSetupHandler? contextSetupHandler = null)
             {
                 if (action is null)
                     throw new ArgumentNullException(nameof(action));
 
-                return action.ExecuteAction(default(ExPlayer));
+                return action.ExecuteAction(default(ExPlayer?), contextSetupHandler);
             }
 
             /// <summary>
-            /// Executes the specified compiled action for the provided list of players.
+            /// Executes the current action for the specified list of players, optionally using a context setup handler.
             /// </summary>
-            /// <param name="players">The list of players on which to execute the action. Cannot be null.</param>
-            /// <returns>true if the action was successfully executed for all players; otherwise, false.</returns>
-            /// <exception cref="ArgumentNullException">Thrown if <paramref name="action"/> or <paramref name="players"/> is null.</exception>
-            public void ExecuteAction(List<ExPlayer> players)
+            /// <param name="players">The list of players on whom the action will be executed. Cannot be null or empty.</param>
+            /// <param name="contextSetupHandler">
+            /// An optional delegate for configuring the action's context before execution. Can be null if no custom setup is required.
+            /// </param>
+            /// <exception cref="ArgumentNullException">
+            /// Thrown if <paramref name="players"/> is null or if the underlying action to be executed is null.
+            /// </exception>
+            public void ExecuteAction(List<ExPlayer> players, ContextSetupHandler? contextSetupHandler = null)
             {
                 if (action is null)
                     throw new ArgumentNullException(nameof(action));
@@ -212,7 +223,7 @@ namespace SecretLabAPI.Actions
                 var list = ListPool<CompiledAction>.Shared.Rent(1);
 
                 list.Add(action);
-                list.ExecuteActions(players);
+                list.ExecuteActions(players, contextSetupHandler);
 
                 ListPool<CompiledAction>.Shared.Return(list);
             }
@@ -222,27 +233,35 @@ namespace SecretLabAPI.Actions
         extension(List<CompiledAction> actions)
         {
             /// <summary>
-            /// Executes the specified collection of compiled actions and returns a value indicating whether the execution
-            /// was successful.
+            /// Executes all compiled actions within the specified context, optionally allowing for customization of
+            /// the action context using a delegate.
             /// </summary>
-            /// <returns>true if all actions were executed successfully; otherwise, false.</returns>
-            /// <exception cref="ArgumentNullException">Thrown if the actions parameter is null.</exception>
-            public bool ExecuteActions()
+            /// <param name="contextSetupHandler">
+            /// An optional delegate that allows modifications to the action context before the actions are executed. May be null.
+            /// </param>
+            /// <returns>True if all actions executed successfully; otherwise, false.</returns>
+            /// <exception cref="ArgumentNullException">Thrown if the internal actions list is null.</exception>
+            public bool ExecuteActions(ContextSetupHandler? contextSetupHandler = null)
             {
                 if (actions is null)
                     throw new ArgumentNullException(nameof(actions));
 
-                return actions.ExecuteActions(default(ExPlayer));
+                return actions.ExecuteActions(default(ExPlayer), contextSetupHandler);
             }
 
             /// <summary>
-            /// Executes the specified compiled actions for the given player and returns a value indicating whether all
-            /// actions completed successfully.
+            /// Executes the specified actions for the given player within a newly created action context.
+            /// Allows customization of the context through an optional context configuration handler.
             /// </summary>
-            /// <param name="player">The player for whom the actions will be executed. Cannot be null.</param>
-            /// <returns>true if all actions executed successfully; otherwise, false.</returns>
-            /// <exception cref="ArgumentNullException">Thrown if <paramref name="actions"/> or <paramref name="player"/> is null.</exception>
-            public bool ExecuteActions(ExPlayer? player)
+            /// <param name="player">The player object that the actions will execute against. Cannot be null.</param>
+            /// <param name="contextSetupHandler">
+            /// An optional delegate allowing modifications to the action context before execution. May be null.
+            /// </param>
+            /// <returns>True if all actions executed successfully, otherwise false.</returns>
+            /// <exception cref="ArgumentNullException">
+            /// Thrown if <paramref name="player"/> is null or if the internal actions list is null.
+            /// </exception>
+            public bool ExecuteActions(ExPlayer? player, ContextSetupHandler? contextSetupHandler = null)
             {
                 if (actions is null)
                     throw new ArgumentNullException(nameof(actions));
@@ -251,21 +270,21 @@ namespace SecretLabAPI.Actions
                     throw new ArgumentNullException(nameof(player));
 
                 var context = new ActionContext(actions, player);
+
+                if (contextSetupHandler != null)
+                    contextSetupHandler(ref context);
+                
                 return ExecuteContext(ref context);
             }
 
             /// <summary>
-            /// Executes a sequence of compiled actions for the specified players and returns a value indicating whether all
-            /// actions completed successfully.
+            /// Executes a set of compiled actions for each player in the specified list, using an optional context setup handler
+            /// to modify the action context before execution.
             /// </summary>
-            /// <remarks>If either the actions or players list is empty, the method returns false without
-            /// executing any actions. If an action signals to stop or an error occurs during execution, the method disposes
-            /// the context and returns false or the result as indicated by the action flags. Logging is performed for
-            /// unsuccessful or error cases.</remarks>
-            /// <param name="players">The list of players for whom the actions are executed. Cannot be null or empty.</param>
-            /// <returns>true if all actions were executed and completed successfully; otherwise, false.</returns>
-            /// <exception cref="ArgumentNullException">Thrown if either the actions or players parameter is null.</exception>
-            public void ExecuteActions(List<ExPlayer> players)
+            /// <param name="players">The list of players for whom the actions will be executed. Cannot be null or empty.</param>
+            /// <param name="contextSetupHandler">An optional handler for customizing the action context before execution.</param>
+            /// <exception cref="ArgumentNullException">Thrown if <paramref name="players"/> or the list of actions is null.</exception>
+            public void ExecuteActions(List<ExPlayer> players, ContextSetupHandler? contextSetupHandler = null)
             {
                 if (actions is null)
                     throw new ArgumentNullException(nameof(actions));
@@ -283,28 +302,43 @@ namespace SecretLabAPI.Actions
                 {
                     var context = new ActionContext(actions, players[i]);
 
+                    if (contextSetupHandler != null)
+                        contextSetupHandler(ref context);
+
                     ExecuteContext(ref context);
                 }
             }
         }
 
         /// <summary>
-        /// Executes the actions within the given context.
+        /// Executes the actions within the given context in sequence and determines the success of the execution.
         /// </summary>
-        /// <param name="context">The context to execute.</param>
-        /// <returns>true if all the actions returned success</returns>
-        public static bool ExecuteContext(ref ActionContext context)
+        /// <param name="context">A reference to the <see cref="ActionContext"/> containing the details of the actions to be executed. Cannot be null.</param>
+        /// <param name="disposeContext">A boolean value indicating whether to dispose the context after execution. Defaults to true.</param>
+        /// <returns>True if all actions in the context execute successfully; otherwise, false.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if the provided <paramref name="context"/> is null.</exception>
+        /// <exception cref="Exception">Thrown if an unhandled exception occurs while executing any action in the context.</exception>
+        public static bool ExecuteContext(ref ActionContext context, bool disposeContext = true)
         {
             for (context.IteratorIndex = 0; context.IteratorIndex < context.Actions.Count; context.IteratorIndex++)
             {
                 if (context.IteratorIndex < 0 || context.IteratorIndex >= context.Actions.Count)
+                {
+                    if (disposeContext)
+                        context.Dispose();
+
                     break;
+                }
 
                 var current = context.Actions[context.IteratorIndex];
 
                 context.Previous = context.Current;
                 context.Current = current;
-                context.Next = context.IteratorIndex + 1 < context.Actions.Count ? context.Actions[context.IteratorIndex + 1] : null;
+                
+                context.Next = context.IteratorIndex + 1 < context.Actions.Count 
+                    ? context.Actions[context.IteratorIndex + 1] 
+                    : null;
+                
                 try
                 {
                     var flags = current.Action.Delegate(ref context);
@@ -320,7 +354,8 @@ namespace SecretLabAPI.Actions
                     if (flags.IsSuccess()) 
                         continue;
                     
-                    context.Dispose();
+                    if (disposeContext)
+                        context.Dispose();
 
                     ApiLog.Warn("ActionManager", $"Action &r{current.Action.Delegate.Method}&r returned unsuccessful result.");
                     return false;
@@ -329,7 +364,9 @@ namespace SecretLabAPI.Actions
                 {
                     ApiLog.Error("ActionManager", $"Error executing compiled action &r{current.Action.Delegate.Method}&r:\n{ex}");
 
-                    context.Dispose();
+                    if (disposeContext)
+                        context.Dispose();
+                    
                     return false;
                 }
             }
@@ -338,14 +375,14 @@ namespace SecretLabAPI.Actions
         }
 
         /// <summary>
-        /// Reads a set of action definitions from the provided lines and converts them into a list of
-        /// actionable methods.
+        /// Parses the provided lines into a list of action methods, assigning an optional identifier prefix
+        /// to each generated action.
         /// </summary>
-        /// <param name="lines">An array of strings where each string represents a line of action definitions.
-        /// Lines starting with ':' indicate the beginning of an action definition, while lines prefixed with '#' or empty lines are ignored.</param>
-        /// <returns>A list of <see cref="ActionMethod"/> objects representing actions parsed from the input lines.
-        /// Returns an empty list if no valid actions are found or if the input is null or empty.</returns>
-        public static List<ActionMethod> ReadFromLines(string[] lines, string? idPrefix)
+        /// <param name="lines">An array of strings where each line represents part of the action definition. Cannot be null or empty.</param>
+        /// <param name="idPrefix">An optional identifier prefix to assign to each action. Can be null.</param>
+        /// <returns>A list of <see cref="ActionMethod"/> objects created from the parsed lines. Returns an empty list if no valid actions are found.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="lines"/> is null.</exception>
+        public static List<ActionMethod> ReadFromLines(string[] lines, string? idPrefix = null)
         {
             if (lines?.Length < 1)
                 return new();
@@ -714,6 +751,9 @@ namespace SecretLabAPI.Actions
             {
                 FileUtils.TrySaveYamlFile(SecretLab.RootDirectory, "action_table.yml", Table);
             }
+            
+            ActionEvents.Initialize();
+            CoinActions.Initialize();
         }
     }
 }

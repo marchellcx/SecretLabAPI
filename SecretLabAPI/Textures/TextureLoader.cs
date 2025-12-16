@@ -1,7 +1,11 @@
 ﻿using LabExtended.API.Images;
 using LabExtended.Core;
+
 using SecretLabAPI.Utilities;
+
 using System.Collections.Concurrent;
+
+using SecretLabAPI.Textures.API;
 
 namespace SecretLabAPI.Textures
 {

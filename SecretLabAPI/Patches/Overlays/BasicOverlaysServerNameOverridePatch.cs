@@ -30,7 +30,7 @@ namespace SecretLabAPI.Patches.Overlays
 
             if (value is null)
             {
-                ApiLog.Warn("SecretLabAPI", $"PeanutClubOverlay.LocalData is null");
+                ApiLog.Warn("SecretLabAPI", "PeanutClubOverlay.LocalData is null");
                 return true;
             }
 
@@ -38,7 +38,7 @@ namespace SecretLabAPI.Patches.Overlays
 
             if (data is null)
             {
-                ApiLog.Warn("SecretLabAPI", $"PeanutClubOverlay.LocalData[1] is null");
+                ApiLog.Warn("SecretLabAPI", "PeanutClubOverlay.LocalData[1] is null");
                 return true;
             }
 

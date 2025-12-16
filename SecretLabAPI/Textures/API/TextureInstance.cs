@@ -11,9 +11,10 @@ using SecretLabNAudio.Core.Extensions;
 using UnityEngine;
 
 using Utils.NonAllocLINQ;
+
 using SecretLabAPI.Audio.Playback;
 
-namespace SecretLabAPI.Textures
+namespace SecretLabAPI.Textures.API
 {
     /// <summary>
     /// Represents a spawned texture.

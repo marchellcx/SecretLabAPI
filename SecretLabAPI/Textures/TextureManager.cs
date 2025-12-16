@@ -13,6 +13,8 @@ using System.Diagnostics;
 
 using UnityEngine;
 
+using SecretLabAPI.Textures.API;
+
 namespace SecretLabAPI.Textures
 {
     /// <summary>

@@ -8,7 +8,7 @@
         /// <summary>
         /// The ID of the action.
         /// </summary>
-        public string Id { get; }
+        public string Id { get; set; }
 
         /// <summary>
         /// Gets the compiled delegate representing the action method.

@@ -1,19 +1,23 @@
 ﻿using LabExtended.API.Containers;
 using LabExtended.API.Custom.Items;
 using LabExtended.API.Hints;
+
 using LabExtended.Core;
 using LabExtended.Extensions;
+
 using PlayerRoles;
+
 using SecretLabAPI.Actions.API;
 using SecretLabAPI.Actions.Enums;
 using SecretLabAPI.Actions.Attributes;
 
 using SecretLabAPI.Audio.Clips;
-
+using SecretLabAPI.Elements.Alerts;
 using SecretLabAPI.Extensions;
 using SecretLabAPI.Utilities;
 
 using UnityEngine;
+
 using StringExtensions = SecretLabAPI.Extensions.StringExtensions;
 
 namespace SecretLabAPI.Actions.Functions
@@ -98,20 +102,24 @@ namespace SecretLabAPI.Actions.Functions
                 return index switch
                 {
                     0 => p.EnsureCompiled(Enum.TryParse, ItemType.GrenadeHE),
-                    1 => p.EnsureCompiled("You get five big booms!"),
-                    2 => p.EnsureCompiled(bool.TryParse, true),
-                    3 => p.EnsureCompiled(float.TryParse, 10f),
+                    1 => p.EnsureCompiled(int.TryParse, 1),
+                    2 => p.EnsureCompiled("You get five big booms!"),
+                    3 => p.EnsureCompiled(bool.TryParse, true),
+                    4 => p.EnsureCompiled(bool.TryParse, true),
+                    5 => p.EnsureCompiled(float.TryParse, 10f),
 
                     _ => false
                 };
             });
 
             var type = context.GetMemoryOrValue<ItemType>("GrenadeType", 0);
-            var reason = context.GetMemoryOrValue("DeathReason", 1);
-            var effect = context.GetMemoryOrValue<bool>("EffectOnly", 2);
-            var velocity = context.GetMemoryOrValue<float>("Velocity", 3);
+            var amount = context.GetMemoryOrValue<int>("Amount", 1);
+            var reason = context.GetMemoryOrValue("DeathReason", 2);
+            var effect = context.GetMemoryOrValue<bool>("EffectOnly", 3);
+            var killPlayer = context.GetMemoryOrValue<bool>("KillPlayer", 4);
+            var velocity = context.GetMemoryOrValue<float>("Velocity", 5);
 
-            context.Player.Explode(type, reason, effect, velocity);
+            context.Player.Explode(amount, type, reason, effect, killPlayer, velocity);
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -872,6 +880,45 @@ namespace SecretLabAPI.Actions.Functions
             var priority = context.GetValue<bool>(2);
 
             context.Player.ShowHint(msg, duration, priority);
+            return ActionResultFlags.SuccessDispose;
+        }
+
+        /// <summary>
+        /// Sends an alert hint to the player, displaying a message of a specified type for a defined duration.
+        /// </summary>
+        /// <remarks>
+        /// The method retrieves the alert type, duration, and message from the provided action context
+        /// and validates them. If the parameters are not valid, the method will terminate without processing
+        /// further actions. Otherwise, the alert will be sent to the target player.
+        /// </remarks>
+        /// <param name="context">A reference to the action context containing the parameters for the alert: the alert type, duration, and message content.</param>
+        /// <returns>An ActionResultFlags value indicating the outcome of the method. Returns SuccessDispose when the alert is successfully sent or if the operation completes without errors and resources can be released.</returns>
+        [Action("Alert", "Sends an alert hint to the player.")]
+        [ActionParameter("Type", "The type of the alert (Info / Warn).")]
+        [ActionParameter("Duration", "The duration of the alert (in seconds).")]
+        [ActionParameter("Message", "The content of the alert.")]
+        public static ActionResultFlags Alert(ref ActionContext context)
+        {
+            context.EnsureCompiled((index, p) =>
+            {
+                return index switch
+                {
+                    0 => p.EnsureCompiled(Enum.TryParse, AlertType.Info),
+                    1 => p.EnsureCompiled(float.TryParse, 5f),
+                    2 => p.EnsureCompiled(string.Empty),
+
+                    _ => false
+                };
+            });
+            
+            var type = context.GetValue<AlertType>(0);
+            var duration = context.GetValue<float>(1);
+            var msg = context.GetValue(2);
+
+            if (duration <= 0f || string.IsNullOrEmpty(msg) || context.Player == null)
+                return ActionResultFlags.SuccessDispose;
+            
+            context.Player.SendAlert(type, duration, msg);
             return ActionResultFlags.SuccessDispose;
         }
     }

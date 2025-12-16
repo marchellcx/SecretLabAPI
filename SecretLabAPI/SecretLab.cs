@@ -26,7 +26,7 @@ using LabExtended.API.Hints;
 using LabExtended.Attributes;
 
 using SecretLabAPI.Levels;
-
+using SecretLabAPI.RandomEvents;
 using SecretLabAPI.Roles.Misc;
 using SecretLabAPI.Roles.ChaosSpy;
 using SecretLabAPI.Rays;
@@ -64,7 +64,7 @@ public class SecretLab : Plugin<SecretLabConfig>
     public override Version Version { get; } = new(1, 0, 0);
 
     /// <inheritdoc/>
-    public override Version RequiredApiVersion { get; }
+    public override Version RequiredApiVersion { get; } = null!;
 
     /// <inheritdoc/>
     public override void Enable()
@@ -75,6 +75,8 @@ public class SecretLab : Plugin<SecretLabConfig>
         RootDirectory = Plugin.GetConfigDirectory(true).FullName;
 
         // New init
+        
+        LabEvents.Initialize();
 
         TextureManager.Initialize();
 
@@ -102,6 +104,7 @@ public class SecretLab : Plugin<SecretLabConfig>
         InitCustomOverlays();
 
         RayManager.Initialize();
+        RandomEventManager.Initialize();
 
         // Old init
 

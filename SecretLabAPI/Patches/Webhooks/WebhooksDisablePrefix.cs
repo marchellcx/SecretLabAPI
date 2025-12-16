@@ -1,5 +1,7 @@
 ﻿using HarmonyLib;
 
+using Webhooks.Discord;
+
 namespace SecretLabAPI.Patches.Webhooks
 {
     /// <summary>
@@ -7,7 +9,7 @@ namespace SecretLabAPI.Patches.Webhooks
     /// </summary>
     public static class WebhooksDisablePrefix
     {
-        [HarmonyPatch("Webhooks.Discord.DiscordClient", "Dispose")]
+        [HarmonyPatch(typeof(DiscordClient), nameof(DiscordClient.Dispose))]
         private static bool Prefix() => false;
     }
 }

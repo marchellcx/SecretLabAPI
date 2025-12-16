@@ -1,6 +1,6 @@
 ﻿using System.Collections.Concurrent;
 
-namespace SecretLabAPI.Textures
+namespace SecretLabAPI.Textures.API
 {
     /// <summary>
     /// Represents a loaded texture.

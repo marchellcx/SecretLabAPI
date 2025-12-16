@@ -14,27 +14,40 @@ namespace SecretLabAPI.Utilities
     public static class ExplosionEffects
     {
         /// <summary>
-        /// Triggers an explosion at the player's position, simulating the detonation of the specified grenade type and
-        /// optionally causing the player's death with a custom reason.
+        /// Triggers an explosion effect for the specified player, with options for spawning grenades,
+        /// applying visual effects, and causing player death.
         /// </summary>
-        /// <remarks>If the player is not alive, this method has no effect. The explosion type and visual
-        /// effect are determined by the specified grenade type. When <paramref name="effectOnly"/> is <see
-        /// langword="false"/>, the player is killed with the provided death reason and a simulated explosion
-        /// force.</remarks>
-        /// <param name="player">The player who will be affected by the explosion. Must be alive for the explosion to occur.</param>
-        /// <param name="grenadeType">The type of grenade to simulate for the explosion effect. Determines the visual and damage type of the
+        /// <param name="player">The player entity to target with the explosion effect.</param>
+        /// <param name="amount">The number of explosions to trigger.</param>
+        /// <param name="grenadeType">The type of grenade to simulate in the explosion.</param>
+        /// <param name="deathReason">The reason assigned for the player's death, if applicable.</param>
+        /// <param name="effectOnly">Specifies whether only the visual effect should be triggered
+        /// without causing damage to entities.</param>
+        /// <param name="killPlayer">Indicates whether the targeted player should be killed by the
         /// explosion.</param>
-        /// <param name="deathReason">The custom reason to record for the player's death if the explosion is lethal.</param>
-        /// <param name="effectOnly">If <see langword="true"/>, only the explosion effect is shown and the player is not killed. If <see
-        /// langword="false"/>, the player is killed by the explosion.</param>
-        public static void Explode(this ExPlayer player, ItemType grenadeType, string deathReason, bool effectOnly = false, float velocityMultiplier = 1f)
+        /// <param name="velocityMultiplier">A multiplier for the velocity applied to the player's ragdoll
+        /// upon explosion.</param>
+        /// <returns>Returns true if the explosion was successfully applied, false otherwise.</returns>
+        public static bool Explode(this ExPlayer player, int amount, ItemType grenadeType, string? deathReason,
+            bool effectOnly = false, bool killPlayer = true, float velocityMultiplier = 1f)
         {
+            if (player?.ReferenceHub == null)
+                return false;
+
+            if (amount < 1)
+                return false;
+
             if (!player.Role.IsAlive)
-                return;
+                return false;
+
+            deathReason ??= "No death reason provided.";
 
             if (effectOnly)
             {
-                ExplosionUtils.ServerSpawnEffect(player.Position, grenadeType);
+                for (var x = 0; x < amount; x++)
+                {
+                    ExplosionUtils.ServerSpawnEffect(player.Position, grenadeType);
+                }
             }
             else
             {
@@ -63,23 +76,33 @@ namespace SecretLabAPI.Utilities
                         break;
                 }
 
-                ExplosionUtils.ServerExplode(player.Position, player.Footprint, explosionType);
+                for (var x = 0; x < amount; x++)
+                {
+                    ExplosionUtils.ServerExplode(player.Position, player.Footprint, explosionType);
+                }
             }
 
-            var velocity = player.Rotation.Rotation * (Vector3.back * velocityMultiplier);
+            if (killPlayer)
+            {
+                if (player.IsGodModeEnabled) player.IsGodModeEnabled = false;
+                
+                var velocity = player.Rotation.Rotation * (Vector3.back * velocityMultiplier);
 
-            velocity.y = 1f;
-            velocity.Normalize();
+                velocity.y = 1f;
+                velocity.Normalize();
 
-            velocity *= (5f + velocityMultiplier);
-            velocity.y += 2f;
+                velocity *= (5f + velocityMultiplier);
+                velocity.y += 2f;
 
-            var damageHandler = new CustomReasonDamageHandler(deathReason, -1f);
+                var damageHandler = new CustomReasonDamageHandler(deathReason, -1f);
 
-            damageHandler.ApplyDamage(player.ReferenceHub);
-            damageHandler.StartVelocity = velocity;
+                damageHandler.ApplyDamage(player.ReferenceHub);
+                damageHandler.StartVelocity = velocity;
 
-            player.ReferenceHub.playerStats.KillPlayer(damageHandler);
+                player.ReferenceHub.playerStats.KillPlayer(damageHandler);
+            }
+
+            return true;
         }
     }
 }

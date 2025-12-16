@@ -1,4 +1,4 @@
-﻿namespace SecretLabAPI.Textures
+﻿namespace SecretLabAPI.Textures.API
 {
     /// <summary>
     /// Defines the size of a texture grid.
