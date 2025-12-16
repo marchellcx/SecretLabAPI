@@ -1,6 +1,4 @@
-﻿using BasicOverlays.Overlays;
-
-using HarmonyLib;
+﻿using HarmonyLib;
 
 using LabExtended.API.Hints;
 using LabExtended.Core;
@@ -19,13 +17,13 @@ namespace SecretLabAPI.Patches.Overlays
         /// </summary>
         public static OverlayOptions? ServerNameOverlay { get; internal set; }
 
-        [HarmonyPatch(typeof(PeanutClubOverlay), nameof(PeanutClubOverlay.OnUpdate))]
-        private static bool UpdatePrefix(PeanutClubOverlay __instance)
+        [HarmonyPatch("BasicOverlays.Overlays.PeanutClubOverlay", "OnUpdate")]
+        private static bool UpdatePrefix(object __instance)
         {
             if (ServerNameOverlay is null)
                 return true;
 
-            var field = AccessTools.Field(typeof(PeanutClubOverlay), "LocalData");
+            var field = AccessTools.Field(Type.GetType("BasicOverlays.Overlays.PeanutClubOverlay"), "LocalData");
             var value = field.GetValue(__instance) as IEnumerable<HintData>;
 
             if (value is null)

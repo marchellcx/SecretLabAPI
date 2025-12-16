@@ -92,8 +92,10 @@ namespace SecretLabAPI.Actions.Functions
         /// performed successfully.</returns>
         [Action("Explode", "Explodes a player.")]
         [ActionParameter("Type", "The type of the grenade to spawn.")]
+        [ActionParameter("Amount", "The amount of grenades to spawn.")]
         [ActionParameter("Reason", "The reason for the player's death.")]
         [ActionParameter("EffectOnly", "Whether or not the grenade should damage other players.")]
+        [ActionParameter("KillPlayer", "Whether or not the grenade should kill the targeted player.")]
         [ActionParameter("Velocity", "The velocity multiplier for the player's ragdoll.")]
         public static ActionResultFlags Explode(ref ActionContext context)
         {
