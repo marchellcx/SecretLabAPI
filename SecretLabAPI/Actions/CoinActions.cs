@@ -35,7 +35,7 @@ namespace SecretLabAPI.Actions
         {
             context.EnsureCompiled((_, p) => p.EnsureCompiled(int.TryParse, 0));
             
-            var delay = context.GetValue<float>(0);
+            var delay = context.GetValue<int>(0);
 
             if (context.Player != null)
             {

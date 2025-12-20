@@ -114,12 +114,12 @@ namespace SecretLabAPI.Actions.Functions
                 };
             });
 
-            var type = context.GetMemoryOrValue<ItemType>("GrenadeType", 0);
-            var amount = context.GetMemoryOrValue<int>("Amount", 1);
-            var reason = context.GetMemoryOrValue("DeathReason", 2);
-            var effect = context.GetMemoryOrValue<bool>("EffectOnly", 3);
-            var killPlayer = context.GetMemoryOrValue<bool>("KillPlayer", 4);
-            var velocity = context.GetMemoryOrValue<float>("Velocity", 5);
+            var type = context.GetValue<ItemType>(0);
+            var amount = context.GetValue<int>(1);
+            var reason = context.GetValue(2);
+            var effect = context.GetValue<bool>(3);
+            var killPlayer = context.GetValue<bool>(4);
+            var velocity = context.GetValue<float>(5);
 
             context.Player.Explode(amount, type, reason, effect, killPlayer, velocity);
             return ActionResultFlags.SuccessDispose;
@@ -920,7 +920,7 @@ namespace SecretLabAPI.Actions.Functions
             if (duration <= 0f || string.IsNullOrEmpty(msg) || context.Player == null)
                 return ActionResultFlags.SuccessDispose;
             
-            context.Player.SendAlert(type, duration, msg);
+            context.Player.SendAlert(type, duration, msg, true);
             return ActionResultFlags.SuccessDispose;
         }
     }

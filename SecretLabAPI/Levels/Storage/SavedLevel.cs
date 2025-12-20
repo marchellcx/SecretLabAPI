@@ -9,13 +9,22 @@ namespace SecretLabAPI.Levels.Storage
     /// </summary>
     public class SavedLevel : StorageValue
     {
-        private int level = 1;
+        private byte level = 1;
         private int experience = 0;
+
+        /// <summary>
+        /// Gets a value indicating whether the level progression is capped.
+        /// </summary>
+        /// <remarks>
+        /// The level is considered capped if the required experience is set to -1
+        /// or if the next level exceeds the maximum level cap defined by <see cref="LevelProgress.Cap"/>.
+        /// </remarks>
+        public bool IsCapped => RequiredExperience == -1 || Level + 1 >= LevelProgress.Cap;
 
         /// <summary>
         /// Gets or sets the current level value.
         /// </summary>
-        public int Level
+        public byte Level
         {
             get => level;
             set => SetField(ref level, value);
@@ -38,15 +47,15 @@ namespace SecretLabAPI.Levels.Storage
         /// <inheritdoc/>
         public override void ReadValue(NetworkReader reader)
         {
-            level = reader.ReadInt();
+            level = reader.ReadByte();
             experience = reader.ReadInt();
         }
 
         /// <inheritdoc/>
         public override void WriteValue(NetworkWriter writer)
         {
-            writer.WriteInt(level);
-            writer.WriteFloat(experience);
+            writer.WriteByte(level);
+            writer.WriteInt(experience);
         }
 
         /// <inheritdoc/>

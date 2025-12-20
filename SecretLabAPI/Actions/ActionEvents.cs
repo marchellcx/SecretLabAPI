@@ -57,7 +57,6 @@ namespace SecretLabAPI.Actions
                 
                 try
                 {
-
                     list.Add(actions[0]);
 
                     for (var x = 0; x < actions.Count; x++)

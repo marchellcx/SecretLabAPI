@@ -82,8 +82,8 @@ namespace SecretLabAPI.Levels
         /// <param name="player">The player from whom experience will be subtracted.</param>
         /// <param name="amount">The amount of experience to subtract. Must be a positive value.</param>
         /// <returns><see langword="true"/> if the experience was successfully subtracted; otherwise, <see langword="false"/>.</returns>
-        public static bool SubstractExperience(this Player player, string reason, int amount)
-            => SubstractExperience(player.UserId, reason, amount);
+        public static bool SubtractExperience(this Player player, string reason, int amount)
+            => SubtractExperience(player.UserId, reason, amount);
 
         /// <summary>
         /// Retrieves the saved level for a specified user.
@@ -144,7 +144,7 @@ namespace SecretLabAPI.Levels
         /// <returns><see langword="true"/> if the user's level was successfully set; otherwise, <see langword="false"/> if the
         /// user does not exist.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="userId"/> is null.</exception>
-        public static bool SetLevel(string userId, int level)
+        public static bool SetLevel(string userId, byte level)
         {
             if (userId is null)
                 throw new ArgumentNullException(nameof(userId));
@@ -152,7 +152,7 @@ namespace SecretLabAPI.Levels
             if (!Levels.TryGetValue(userId, out var savedLevel))
                 return false;
 
-            var newExperience = LevelProgress.GetExperienceForLevel(level);
+            var newExperience = LevelProgress.ExperienceForLevel(level);
 
             if (newExperience != savedLevel.Experience)
             {
@@ -162,7 +162,7 @@ namespace SecretLabAPI.Levels
 
                 savedLevel.Experience = newExperience;
 
-                LevelEvents.OnChangedExperience(new ChangedExperienceEventArgs(savedLevel, userId, "Command", changingExperienceArgs.CurrentExp, savedLevel.Experience), changingExperienceArgs.target);
+                LevelEvents.OnChangedExperience(new(savedLevel, userId, "Command", changingExperienceArgs.CurrentExp, savedLevel.Experience), changingExperienceArgs.target);
             }
 
             var changingLevelArgs = new ChangingLevelEventArgs(savedLevel, userId, "Command", savedLevel.Level, level);
@@ -170,9 +170,9 @@ namespace SecretLabAPI.Levels
             LevelEvents.OnChangingLevel(changingLevelArgs);
 
             savedLevel.Level = level;
-            savedLevel.RequiredExperience = LevelProgress.GetExperienceForLevel(level + 1);
+            savedLevel.RequiredExperience = LevelProgress.ExperienceForLevel(level + 1);
 
-            LevelEvents.OnChangedLevel(new ChangedLevelEventArgs(savedLevel, userId, "Command", changingLevelArgs.CurrentLevel, savedLevel.Level), changingLevelArgs.target);
+            LevelEvents.OnChangedLevel(new(savedLevel, userId, "Command", changingLevelArgs.CurrentLevel, savedLevel.Level), changingLevelArgs.target);
             return true;
         }
 
@@ -192,7 +192,7 @@ namespace SecretLabAPI.Levels
             if (!Levels.TryGetValue(userId, out var savedLevel))
                 return false;
 
-            var newLevel = LevelProgress.GetLevelForExperience(exp);
+            var newLevel = LevelProgress.LevelAtExp(exp);
 
             if (newLevel != savedLevel.Level)
             {
@@ -201,9 +201,9 @@ namespace SecretLabAPI.Levels
                 LevelEvents.OnChangingLevel(changingLevelArgs);
 
                 savedLevel.Level = newLevel;
-                savedLevel.RequiredExperience = LevelProgress.GetExperienceForLevel(newLevel + 1);
+                savedLevel.RequiredExperience = LevelProgress.ExperienceForLevel(newLevel + 1);
 
-                LevelEvents.OnChangedLevel(new ChangedLevelEventArgs(savedLevel, userId, "Command", changingLevelArgs.CurrentLevel, savedLevel.Level), changingLevelArgs.target);
+                LevelEvents.OnChangedLevel(new(savedLevel, userId, "Command", changingLevelArgs.CurrentLevel, savedLevel.Level), changingLevelArgs.target);
             }
 
             var chaningExperienceArgs = new ChangingExperienceEventArgs(savedLevel, userId, "Command", savedLevel.Experience, exp);
@@ -211,8 +211,9 @@ namespace SecretLabAPI.Levels
             LevelEvents.OnChangingExperience(chaningExperienceArgs);
 
             savedLevel.Experience = exp;
+            savedLevel.RequiredExperience = LevelProgress.ExperienceForLevel(savedLevel.Level + 1);
 
-            LevelEvents.OnChangedExperience(new ChangedExperienceEventArgs(savedLevel, userId, "Command", chaningExperienceArgs.CurrentExp, savedLevel.Experience), chaningExperienceArgs.target);
+            LevelEvents.OnChangedExperience(new(savedLevel, userId, "Command", chaningExperienceArgs.CurrentExp, savedLevel.Experience), chaningExperienceArgs.target);
             return true;
         }
 
@@ -239,7 +240,7 @@ namespace SecretLabAPI.Levels
 
             savedLevel.Experience += amount;
 
-            LevelEvents.OnChangedExperience(new ChangedExperienceEventArgs(savedLevel, userId, reason, changingExperienceArgs.CurrentExp, savedLevel.Experience), changingExperienceArgs.target);
+            LevelEvents.OnChangedExperience(new(savedLevel, userId, reason, changingExperienceArgs.CurrentExp, savedLevel.Experience), changingExperienceArgs.target);
             LevelProgress.CheckProgress(userId, reason, savedLevel);
 
             return true;
@@ -253,7 +254,7 @@ namespace SecretLabAPI.Levels
         /// <returns><see langword="true"/> if the user's experience was successfully subtracted; otherwise, <see
         /// langword="false"/> if the user ID does not exist.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="userId"/> is null.</exception>
-        public static bool SubstractExperience(string userId, string reason, int amount)
+        public static bool SubtractExperience(string userId, string reason, int amount)
         {
             if (userId is null)
                 throw new ArgumentNullException(nameof(userId));
@@ -268,7 +269,7 @@ namespace SecretLabAPI.Levels
 
             savedLevel.Experience -= amount;
 
-            LevelEvents.OnChangedExperience(new ChangedExperienceEventArgs(savedLevel, userId, reason, changingExperienceArgs.CurrentExp, savedLevel.Experience), changingExperienceArgs.target);
+            LevelEvents.OnChangedExperience(new(savedLevel, userId, reason, changingExperienceArgs.CurrentExp, savedLevel.Experience), changingExperienceArgs.target);
             LevelProgress.CheckProgress(userId, reason, savedLevel);
 
             return true;
@@ -296,10 +297,10 @@ namespace SecretLabAPI.Levels
 
             savedLevel.Level = 1;
             savedLevel.Experience = 0;
-            savedLevel.RequiredExperience = LevelProgress.GetExperienceForLevel(2);
+            savedLevel.RequiredExperience = LevelProgress.ExperienceForLevel(2);
 
-            LevelEvents.OnChangedLevel(new ChangedLevelEventArgs(savedLevel, userId, reason, changingLevelArgs.CurrentLevel, savedLevel.Level), changingLevelArgs.target);
-            LevelEvents.OnChangedExperience(new ChangedExperienceEventArgs(savedLevel, userId, reason, changingExperienceArgs.CurrentExp, savedLevel.Experience), changingExperienceArgs.target);
+            LevelEvents.OnChangedLevel(new(savedLevel, userId, reason, changingLevelArgs.CurrentLevel, savedLevel.Level), changingLevelArgs.target);
+            LevelEvents.OnChangedExperience(new(savedLevel, userId, reason, changingExperienceArgs.CurrentExp, savedLevel.Experience), changingExperienceArgs.target);
 
             return true;
         }
@@ -327,10 +328,10 @@ namespace SecretLabAPI.Levels
 
                     level.Value.Level = 1;
                     level.Value.Experience = 0;
-                    level.Value.RequiredExperience = LevelProgress.GetExperienceForLevel(2);
+                    level.Value.RequiredExperience = LevelProgress.ExperienceForLevel(2);
 
-                    LevelEvents.OnChangedLevel(new ChangedLevelEventArgs(level.Value, level.Key, reason, changingLevelArgs.CurrentLevel, level.Value.Level), changingLevelArgs.target);
-                    LevelEvents.OnChangedExperience(new ChangedExperienceEventArgs(level.Value, level.Key, reason, changingExperienceArgs.CurrentExp, level.Value.Experience), changingExperienceArgs.target);
+                    LevelEvents.OnChangedLevel(new(level.Value, level.Key, reason, changingLevelArgs.CurrentLevel, level.Value.Level), changingLevelArgs.target);
+                    LevelEvents.OnChangedExperience(new(level.Value, level.Key, reason, changingExperienceArgs.CurrentExp, level.Value.Experience), changingExperienceArgs.target);
 
                     if (changingLevelArgs.Target != null)
                         LevelEvents.OnLoaded(changingLevelArgs.Target, level.Value);
@@ -356,7 +357,7 @@ namespace SecretLabAPI.Levels
                 Levels[player.UserId] 
                         = Storage.GetOrAdd(player.UserId, () => new SavedLevel());
 
-            level.RequiredExperience = LevelProgress.GetExperienceForLevel(level.Level + 1);
+            level.RequiredExperience = LevelProgress.ExperienceForLevel(level.Level + 1);
 
             LevelEvents.OnLoaded(player, level);
         }
@@ -391,7 +392,7 @@ namespace SecretLabAPI.Levels
                     Levels[player.UserId]
                             = Storage.GetOrAdd(player.UserId, () => new SavedLevel());
 
-                level.RequiredExperience = LevelProgress.GetExperienceForLevel(level.Level + 1);
+                level.RequiredExperience = LevelProgress.ExperienceForLevel(level.Level + 1);
 
                 LevelEvents.OnLoaded(player, level);
             }
@@ -417,7 +418,9 @@ namespace SecretLabAPI.Levels
 
             if (Storage != null)
             {
-                DataCollection.AddEntry(new DataCollectionEntry("Levels",
+                LevelProgress.Initialize();
+                
+                DataCollection.AddEntry(new("Levels",
                     "<color=red>📊</color> | <b>Level Systém</b></color>", 
                     "Ukládá počet dosažených XP a levelů pomocí identifikátoru vašeho účtu <i>(SteamID64 pro Steam účty a Discord ID pro Discord účty)</i>."));
 

@@ -9,69 +9,90 @@ namespace SecretLabAPI.Levels
     public static class LevelProgress
     {
         /// <summary>
-        /// Calculates the level corresponding to the specified amount of experience points.
+        /// Gets the maximum level number.
         /// </summary>
-        /// <param name="experience">The total experience points to evaluate. Must be greater than or equal to 0.</param>
-        /// <returns>The level that matches the given experience points. Returns 1 if the experience is less than the requirement
-        /// for the next level.</returns>
-        public static int GetLevelForExperience(int experience)
+        public static byte Cap
         {
-            if (experience < 0)
-                throw new ArgumentOutOfRangeException(nameof(experience), "Experience must be non-negative.");
+            get => SecretLab.Config.LevelCap;
+            set => SecretLab.Config.LevelCap = value;
+        } 
+        
+        /// <summary>
+        /// Gets the pregenerated array of experience required for each level.
+        /// </summary>
+        public static int[] RequiredExperience { get; private set; }
 
-            var level = 1;
-
-            while (true)
+        /// <summary>
+        /// Determines the player level corresponding to a given amount of experience points.
+        /// </summary>
+        /// <param name="expAmount">The total experience points earned by the player.</param>
+        /// <returns>The player level that matches the provided experience points, or 0 if the experience is insufficient for the first level.</returns>
+        public static byte LevelAtExp(int expAmount)
+        {
+            for (var x = 1; x < Cap; x++)
             {
-                var requiredForNext = GetExperienceForLevel(level + 1);
-
-                if (experience < requiredForNext)
-                    return level;
-
-                level++;
+                if (RequiredExperience[x] > expAmount)
+                {
+                    return (byte)(x - 1);
+                }
             }
+
+            return 0;
         }
 
         /// <summary>
-        /// Calculates the total experience required to reach the specified level.
+        /// Retrieves the required experience points needed to reach the specified level.
         /// </summary>
-        /// <remarks>The experience required for each level is determined by the base step value and any
-        /// configured step offsets. The calculation is cumulative, summing the experience needed for each level up to,
-        /// but not including, the specified level.</remarks>
-        /// <param name="level">The target level for which to calculate the cumulative experience. Must be greater than or equal to 1.</param>
-        /// <returns>The total experience points required to reach the specified level. Returns 0 if the level is 1.</returns>
-        public static int GetExperienceForLevel(int level)
+        /// <param name="level">The target level for which the experience points are being queried.</param>
+        /// <returns>The experience points required to reach the specified level. Returns 0 if the level exceeds the level cap.</returns>
+        public static int ExperienceForLevel(int level)
         {
-            var exp = 0;
-            var step = SecretLab.Config.LevelStep;
+            if (level < 1)
+                throw new ArgumentOutOfRangeException(nameof(level));
+            
+            if (level > Cap)
+                return -1;
 
-            for (var i = 1; i < level; i++)
-            {
-                if (SecretLab.Config.LevelStepOffsets.TryGetValue(i, out var offset))
-                    step += offset;
-
-                exp += step;
-            }
-
-            return exp;
+            return RequiredExperience[level];
         }
 
         internal static void CheckProgress(string userId, string reason, SavedLevel level)
         {
-            var newLevel = GetLevelForExperience(level.Experience);
-
-            if (level.Level == newLevel)
+            if ((level.Level + 1) > Cap || level.Experience < level.RequiredExperience)
                 return;
 
+            var newLevel = LevelAtExp(level.Experience);
             var changingLevelArgs = new ChangingLevelEventArgs(level, userId, reason, level.Level, newLevel);
 
             if (!LevelEvents.OnChangingLevel(changingLevelArgs))
                 return;
 
             level.Level = newLevel;
-            level.RequiredExperience = GetExperienceForLevel(newLevel + 1);
+            level.RequiredExperience = ExperienceForLevel(newLevel + 1);
 
             LevelEvents.OnChangedLevel(new(level, userId, reason, changingLevelArgs.CurrentLevel, newLevel), changingLevelArgs.target);
+        }
+
+        internal static void Initialize()
+        {
+            if (Cap < 1)
+                Cap = 1;
+
+            RequiredExperience = new int[Cap + 1];
+            RequiredExperience[0] = 0;
+
+            var exp = 0;
+            var step = SecretLab.Config.LevelStep;
+
+            for (var x = 1; x < Cap; x++)
+            {
+                if (SecretLab.Config.LevelStepOffsets.TryGetValue((byte)x, out var offset))
+                    step += offset;
+
+                exp += step;
+
+                RequiredExperience[x] = exp;
+            }
         }
     }
 }

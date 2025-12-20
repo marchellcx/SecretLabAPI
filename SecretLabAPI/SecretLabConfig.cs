@@ -47,10 +47,16 @@ namespace SecretLabAPI
         public int LevelStep { get; set; } = 100;
 
         /// <summary>
+        /// Gets or sets the maximum achievable level.
+        /// </summary>
+        [Description("Sets the max achievable level.")]
+        public byte LevelCap { get; set; } = 100;
+
+        /// <summary>
         /// Gets or sets the step offsets for different level ranges.
         /// </summary>
         [Description("Sets the level step offsets for different level ranges.")]
-        public Dictionary<int, int> LevelStepOffsets { get; set; } = new()
+        public Dictionary<byte, int> LevelStepOffsets { get; set; } = new()
         {
             [21] = 1900
         };

@@ -230,6 +230,9 @@ namespace SecretLabAPI.Rays
 
         internal static void Initialize()
         {
+            if (SecretLab.Config.RayManagerFrameSkip == -1)
+                return;
+            
             layerMask = LayerMask.GetMask(SecretLab.Config.RayManagerLayers);
 
             component.OnLateUpdate += OnUpdate;

@@ -4,15 +4,22 @@ using LabExtended.Commands;
 using LabExtended.Commands.Attributes;
 using LabExtended.Commands.Interfaces;
 
-using SecretLabAPI.Levels;
-
 namespace SecretLabAPI.Levels.Commands
 {
+    /// <summary>
+    /// Represents the LevelCommand class, which provides server-side commands
+    /// for managing player levels and experience within the system.
+    /// </summary>
+    /// <remarks>
+    /// The LevelCommand class enables interaction with player level-related
+    /// data, including viewing levels, setting levels, adjusting experience,
+    /// and resetting levels. These commands are intended for administrative use.
+    /// </remarks>
     [Command("level", "Base command for level management")]
     public class LevelCommand : CommandBase, IServerSideCommand
     {
         [CommandOverload("Shows the level of a specific player.", null)]
-        public void Show(
+        private void Show(
             [CommandParameter("Target", "The player to show the level of")] ExPlayer? target = null)
         {
             target ??= Sender;
@@ -29,7 +36,12 @@ namespace SecretLabAPI.Levels.Commands
         }
 
         [CommandOverload("setlevel", "Sets the level of a player.", null)]
-        public void SetLevel(string userId, int level)
+        private void SetLevel(
+            [CommandParameter(ParserType = typeof(ExPlayer), ParserProperty = nameof(ExPlayer.UserId))]
+            [CommandParameter("The ID of the user to set the level of (or player ID / nickname if online).")] 
+            string userId, 
+            
+            [CommandParameter("Level", "The number of the level to set for the player.")] byte level)
         {
             if (LevelManager.SetLevel(userId, level))
             {
@@ -42,7 +54,12 @@ namespace SecretLabAPI.Levels.Commands
         }
 
         [CommandOverload("setxp", "Sets the experience of a player.", null)]
-        public void SetExperience(string userId, int exp)
+        private void SetExperience(
+            [CommandParameter(ParserType = typeof(ExPlayer), ParserProperty = nameof(ExPlayer.UserId))]
+            [CommandParameter("The ID of the user to set the level of (or player ID / nickname if online).")] 
+            string userId,
+            
+            [CommandParameter("Experience", "The amount of experience points to set.")] int exp)
         {
             if (LevelManager.SetExperience(userId, exp))
             {
@@ -55,7 +72,12 @@ namespace SecretLabAPI.Levels.Commands
         }
 
         [CommandOverload("addxp", "Adds experience points to a player.", null)]
-        public void AddExperience(string userId, int exp)
+        private void AddExperience(
+            [CommandParameter(ParserType = typeof(ExPlayer), ParserProperty = nameof(ExPlayer.UserId))]
+            [CommandParameter("The ID of the user to set the level of (or player ID / nickname if online).")] 
+            string userId, 
+            
+            [CommandParameter("Experience", "The amount of experience points to add.")] int exp)
         {
             if (LevelManager.AddExperience(userId, "Command", exp))
             {
@@ -68,9 +90,14 @@ namespace SecretLabAPI.Levels.Commands
         }
 
         [CommandOverload("subxp", "Subtracts experience points from a player.", null)]
-        public void SubtractExperience(string userId, int exp)
+        private void SubtractExperience(            
+            [CommandParameter(ParserType = typeof(ExPlayer), ParserProperty = nameof(ExPlayer.UserId))]
+            [CommandParameter("The ID of the user to set the level of (or player ID / nickname if online).")] 
+            string userId, 
+            
+            [CommandParameter("Experience", "The amount of experience points to subtract.")] int exp)
         {
-            if (LevelManager.SubstractExperience(userId, "Command", exp))
+            if (LevelManager.SubtractExperience(userId, "Command", exp))
             {
                 Ok($"Removed '{exp}' XP from player '{userId}'");
             }
@@ -81,7 +108,10 @@ namespace SecretLabAPI.Levels.Commands
         }
 
         [CommandOverload("reset", "Resets the level of a player.", null)]
-        public void ResetLevel(string userId)
+        private void ResetLevel(
+            [CommandParameter(ParserType = typeof(ExPlayer), ParserProperty = nameof(ExPlayer.UserId))]
+            [CommandParameter("The ID of the user to set the level of (or player ID / nickname if online).")] 
+            string userId)
         {
             if (LevelManager.ResetLevel(userId))
             {
@@ -94,15 +124,15 @@ namespace SecretLabAPI.Levels.Commands
         }
 
         [CommandOverload("resetall", "Resets the level of a player.", null)]
-        public void ResetLevels()
+        private void ResetLevels()
         {
             if (LevelManager.ResetLevels())
             {
-                Ok($"Reset levels of all players to 1");
+                Ok("Reset levels of all players to 1");
             }
             else
             {
-                Fail($"Could not reset levels of all players to default");
+                Fail("Could not reset levels of all players to default");
             }
         }
     }

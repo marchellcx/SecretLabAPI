@@ -31,13 +31,25 @@ namespace SecretLabAPI.RandomEvents
         private static void OnRoundStart()
         {
             if (Config.EventWeight <= 0f)
+            {
+                previousEvent = null;
                 return;
-            
+            }
+
             if (Config.EventWeight < 100f && !WeightUtils.GetBool(Config.EventWeight))
+            {
+                previousEvent = null;
                 return;
+            }
 
             var randomEvent = CustomGamemode.RegisteredObjects.GetRandomWeighted(y =>
             {
+                if (previousEvent != null && previousEvent == y.Value)
+                    return 0f;
+
+                if (!y.Value.CanActivateMidRound)
+                    return 0f;
+                
                 if (y.Value is RandomEventBase x)
                 {
                     if (x.Weight <= 0f)
@@ -70,9 +82,14 @@ namespace SecretLabAPI.RandomEvents
             });
 
             if (randomEvent.Value == null)
+            {
+                previousEvent = null;
                 return;
+            }
 
             CustomGamemode.Enable(randomEvent.Value, true);
+
+            previousEvent = randomEvent.Value;
         }
 
         internal static void Initialize()

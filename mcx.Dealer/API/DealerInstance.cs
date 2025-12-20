@@ -18,6 +18,7 @@ using InventorySystem.Items.Coin;
 using PlayerRoles.FirstPersonControl;
 
 using LabExtended.API.Custom.Items;
+
 using SecretLabAPI.Elements.Alerts;
 using SecretLabAPI.Items.Stacking;
 
@@ -273,7 +274,7 @@ namespace mcx.Dealer.API
                     Player.Role.MouseLook.LookAtDirection(ActivePlayer.Position.Position - Player.Position.Position);
                 }
             }
-            else
+            else if (!IsDestroyed)
             {
                 ExPlayer? closestPlayer = null;
                 float closestDistance = 0f;
@@ -298,6 +299,10 @@ namespace mcx.Dealer.API
 
                     Audio.OnClosestPlayerDetected(closestPlayer, closestDistance);
                 }
+            }
+            else
+            {
+                DestroyInstance();
             }
         }
 

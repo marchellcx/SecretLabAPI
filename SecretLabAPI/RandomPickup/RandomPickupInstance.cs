@@ -341,7 +341,6 @@ namespace SecretLabAPI.RandomPickup
                 isDespawning = false;
 
                 Destroy();
-                return;
             }
         }
     }

@@ -143,8 +143,8 @@ namespace SecretLabAPI.Actions.API
         /// <exception cref="IndexOutOfRangeException">Thrown when <paramref name="index"/> is less than 0 or greater than or equal to the number of actions.</exception>
         public string GetValue(int index)
         {
-            if (index < 0 || index >= Actions.Count)
-                throw new IndexOutOfRangeException($"Action index {index} is out of range.");
+            if (index < 0 || index >= Current.Parameters.Length)
+                throw new IndexOutOfRangeException($"Parameter index {index} is out of range.");
 
             return Current.Parameters[index].Source;
         }
