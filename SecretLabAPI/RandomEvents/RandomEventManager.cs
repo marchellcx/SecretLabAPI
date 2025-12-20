@@ -87,7 +87,8 @@ namespace SecretLabAPI.RandomEvents
                 return;
             }
 
-            CustomGamemode.Enable(randomEvent.Value, true);
+            if (!CustomGamemode.Enable(randomEvent.Value, false))
+                return;
 
             previousEvent = randomEvent.Value;
         }

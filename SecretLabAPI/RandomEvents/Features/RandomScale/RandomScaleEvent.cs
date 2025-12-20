@@ -21,6 +21,9 @@ namespace SecretLabAPI.RandomEvents.Features.RandomScale
         /// <inheritdoc />
         public override string Id { get; } = "RandomScale";
 
+        /// <inheritdoc />
+        public override bool CanActivateMidRound { get; set; } = true;
+
         /// <summary>
         /// Gets or sets a dictionary defining the possible scales to apply along with their respective probabilities.
         /// </summary>
@@ -49,7 +52,7 @@ namespace SecretLabAPI.RandomEvents.Features.RandomScale
                     $"<b>Začal event <color=red>Náhodná velikost</color>!</b>\n" +
                     $"<b>Po každém respawnu dostanete náhodný scale.</b>", true);
 
-                if (!p.Role.IsAlive)
+                if (!p.Role.IsAlive || p.Role.IsTutorial)
                     return;
 
                 var scale = SelectScale();
@@ -58,6 +61,7 @@ namespace SecretLabAPI.RandomEvents.Features.RandomScale
                     return;
 
                 p.Scale = scale;
+                p.SendConsoleMessage($"[RANDOM_SCALE] Scale: X={scale.x} Y={scale.y} Z={scale.z}", "red");
             });
         }
 
@@ -92,7 +96,11 @@ namespace SecretLabAPI.RandomEvents.Features.RandomScale
             if (scale == Vector3.zero)
                 return;
 
-            TimingUtils.AfterSeconds(() => player.Scale = scale, 1f);
+            TimingUtils.AfterSeconds(() =>
+            {
+                player.Scale = scale;
+                player.SendConsoleMessage($"[RANDOM_SCALE] Scale: X={scale.x} Y={scale.y} Z={scale.z}", "red");
+            }, 1);
         }
 
         private Vector3 SelectScale()

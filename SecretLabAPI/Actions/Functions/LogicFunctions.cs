@@ -6,10 +6,11 @@ using MEC;
 using NorthwoodLib.Pools;
 
 using SecretLabAPI.Actions.API;
+using SecretLabAPI.Actions.Enums;
 using SecretLabAPI.Actions.Attributes;
 
 using System.Collections;
-using SecretLabAPI.Actions.Enums;
+
 using UnityEngine;
 
 namespace SecretLabAPI.Actions.Functions
@@ -19,6 +20,32 @@ namespace SecretLabAPI.Actions.Functions
     /// </summary>
     public static class LogicFunctions
     {
+        /// <summary>
+        /// Halts the execution of the current action sequence if the specified variable evaluates to TRUE.
+        /// </summary>
+        /// <remarks>
+        /// This method checks the value of a BOOLEAN variable from the provided context. If the variable is TRUE,
+        /// the execution stops and the associated resources are disposed of. Otherwise, execution continues while
+        /// releasing resources as needed.
+        /// </remarks>
+        /// <param name="context">A reference to the action context containing information about the current execution state,
+        /// including the variable to evaluate.</param>
+        /// <returns>A flag indicating the result of the execution:
+        /// ActionResultFlags.SuccessStop | ActionResultFlags.Dispose if the variable is TRUE,
+        /// or ActionResultFlags.SuccessDispose otherwise.</returns>
+        [Action("StopIf", "Stops the execution if a variable is equal to TRUE.")]
+        [ActionParameter("Variable", "The name of the variable (must be a BOOLEAN).")]
+        public static ActionResultFlags StopIf(ref ActionContext context)
+        {
+            context.EnsureCompiled((_, p) => p.EnsureCompiled(bool.TryParse, false));
+            
+            var boolean = context.GetValue<bool>(0);
+
+            return boolean
+                ? ActionResultFlags.SuccessStop | ActionResultFlags.Dispose
+                : ActionResultFlags.SuccessDispose;
+        }
+        
         /// <summary>
         /// Iterates through a list of players and executes a specified action for each player within the context provided.
         /// </summary>
@@ -47,10 +74,7 @@ namespace SecretLabAPI.Actions.Functions
             });
 
             var actionId = context.GetValue(0);
-            
-            var playerVar = context.GetValue(1);
-            var players = context.GetValue<List<ExPlayer>>(playerVar);
-
+            var players = context.GetValue<List<ExPlayer>>(0);
             var argsOverflow = context.GetMetadata<List<string>>("ArgsOverflow", () => new());
 
             var compiledAction = context.GetMetadata("CompiledExecute", () =>
@@ -81,6 +105,8 @@ namespace SecretLabAPI.Actions.Functions
                     subContext.Player = players[i];
                     subContext.Memory.Clear();
                 }
+
+                subContext.Index = 0;
                 
                 try
                 {
@@ -184,7 +210,7 @@ namespace SecretLabAPI.Actions.Functions
         [ActionParameter("Delay", "The delay in seconds between each repetition.")]
         public static ActionResultFlags Repeat(ref ActionContext context)
         {
-            if (context.IteratorIndex + 1 >= context.Actions.Count)
+            if (context.Index + 1 >= context.Actions.Count)
             {
                 ApiLog.Error("ActionManager", "Could not repeat action: No further actions to repeat.");
                 return ActionResultFlags.StopDispose;
@@ -206,13 +232,13 @@ namespace SecretLabAPI.Actions.Functions
             var offset = context.GetValue<int>(1);
             var delay = context.GetValue<float>(2);
 
-            var startIndex = context.IteratorIndex + 1;
+            var startIndex = context.Index + 1;
             var endIndex = startIndex + 1 + offset;
 
             if (endIndex > context.Actions.Count)
                 endIndex = context.Actions.Count;
 
-            context.IteratorIndex = endIndex + 1;
+            context.Index = endIndex + 1;
 
             var ctx = context;
 
@@ -288,7 +314,7 @@ namespace SecretLabAPI.Actions.Functions
 
             var randomValue = UnityEngine.Random.Range(minValue, maxValue);
 
-            context.SaveOutput(randomValue);
+            context.SetMemory(randomValue);
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -356,7 +382,7 @@ namespace SecretLabAPI.Actions.Functions
                     enumerator.Reset();
                 }
 
-                context.SaveOutput(list);
+                context.SetMemory(list);
             }
             else
             {
@@ -367,7 +393,7 @@ namespace SecretLabAPI.Actions.Functions
                 {
                     if (currentIndex == randomIndex)
                     {
-                        context.SaveOutput(enumerator.Current!);
+                        context.SetMemory(enumerator.Current!);
                         break;
                     }
 

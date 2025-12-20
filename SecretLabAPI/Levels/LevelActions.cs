@@ -33,7 +33,7 @@ namespace SecretLabAPI.Levels
             });
 
             var reason = context.GetValue(0);
-            var xp = context.GetMemoryOrValue<int>("ExpAmount", 1);
+            var xp = context.GetValue<int>(1);
 
             if (xp <= 0 || context.Player == null)
                 return ActionResultFlags.SuccessDispose;
@@ -64,7 +64,7 @@ namespace SecretLabAPI.Levels
             });
 
             var reason = context.GetValue(0);
-            var xp = context.GetMemoryOrValue<int>("ExpAmount", 1);
+            var xp = context.GetValue<int>(1);
 
             if (xp <= 0 || context.Player == null)
                 return ActionResultFlags.SuccessDispose;

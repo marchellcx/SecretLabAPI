@@ -1,9 +1,13 @@
 ﻿using LabExtended.API;
+
 using MapGeneration;
+
 using SecretLabAPI.Actions.API;
-using SecretLabAPI.Actions.Attributes;
 using SecretLabAPI.Actions.Enums;
+using SecretLabAPI.Actions.Attributes;
+
 using SecretLabAPI.Extensions;
+
 using UnityEngine;
 
 using Utils;
@@ -119,9 +123,9 @@ namespace SecretLabAPI.Actions.Functions
                 };
             });
 
-            var type = context.GetMemoryOrValue<ItemType>("ItemType", 0);
-            var amount = context.GetMemoryOrValue<int>("ItemAmount", 1);
-            var scale = context.GetMemoryOrValue<Vector3>("ItemScale", 2);
+            var type = context.GetValue<ItemType>(0);
+            var amount = context.GetValue<int>(1);
+            var scale = context.GetValue<Vector3>(2);
 
             if (type is ItemType.None || amount <= 0)
                 return ActionResultFlags.SuccessDispose;
@@ -165,22 +169,12 @@ namespace SecretLabAPI.Actions.Functions
                 };
             });
 
-            var type = context.GetMemoryOrValue<ItemType>("Type", 0);
-            var amount = context.GetMemoryOrValue<int>("Amount", 1);
-            var force = context.GetMemoryOrValue<float>("Force", 2);
-            var fuse = context.GetMemoryOrValue<float>("Fuse", 3);
-            var velocity = context.GetMemoryOrValue<float>("Velocity",4);
-
-            var vectorVelocity = context.Player.Velocity;
-
-            if (vectorVelocity.x > 0f)
-                vectorVelocity.x *= velocity;
-
-            if (vectorVelocity.y > 0f)
-                vectorVelocity.y *= velocity;
-
-            if (vectorVelocity.z > 0f)
-                vectorVelocity.z *= velocity;
+            var type = context.GetValue<ItemType>(0);
+            var amount = context.GetValue<int>(1);
+            var force = context.GetValue<float>(2);
+            var fuse = context.GetValue<float>(3);
+            var velocity = context.GetValue<float>(4);
+            var vectorVelocity = context.Player.MultipliedVelocity(velocity);
 
             for (var i = 0; i < amount; i++)
                 ExMap.SpawnProjectile(type, context.Player.Position, Vector3.one, vectorVelocity, context.Player.Rotation, force, fuse);

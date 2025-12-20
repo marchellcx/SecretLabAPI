@@ -153,8 +153,8 @@ namespace SecretLabAPI.Actions.Functions
                 };
             });
 
-            var item = context.GetMemoryOrValue("ItemType", 0);
-            var amount = context.GetMemoryOrValue<int>("ItemAmount", 1);
+            var item = context.GetValue(0);
+            var amount = context.GetValue<int>(1);
             var p = context.Player;
 
             if (Enum.TryParse<ItemType>(item, true, out var itemType))

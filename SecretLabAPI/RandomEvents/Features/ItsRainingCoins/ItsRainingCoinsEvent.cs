@@ -48,6 +48,9 @@ namespace SecretLabAPI.RandomEvents.Features.ItsRainingCoins
         public override string Id { get; } = "ItsRainingCoins";
 
         /// <inheritdoc />
+        public override bool CanActivateMidRound { get; set; } = true;
+
+        /// <inheritdoc />
         public override void OnEnabled()
         {
             base.OnEnabled();

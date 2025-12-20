@@ -37,8 +37,8 @@ namespace SecretLabAPI.Actions.Functions
                 };
             });
 
-            var reason = context.GetMemoryOrValue("BanReason", 0);
-            var duration = context.GetMemoryOrValue<long>("BanDuration", 1);
+            var reason = context.GetValue(0);
+            var duration = context.GetValue<long>(1);
 
             context.Player.Ban(reason, duration);
             return ActionResultFlags.SuccessDispose;
@@ -66,7 +66,7 @@ namespace SecretLabAPI.Actions.Functions
                 };
             });
 
-            var reason = context.GetMemoryOrValue("KickReason", 0);
+            var reason = context.GetValue(0);
 
             context.Player.Kick(reason);
             return ActionResultFlags.SuccessDispose;

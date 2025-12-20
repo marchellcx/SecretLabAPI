@@ -320,9 +320,9 @@ namespace SecretLabAPI.Actions
         /// <exception cref="Exception">Thrown if an unhandled exception occurs while executing any action in the context.</exception>
         public static bool ExecuteContext(ref ActionContext context, bool disposeContext = true)
         {
-            for (context.IteratorIndex = 0; context.IteratorIndex < context.Actions.Count; context.IteratorIndex++)
+            for (context.Index = 0; context.Index < context.Actions.Count; context.Index++)
             {
-                if (context.IteratorIndex < 0 || context.IteratorIndex >= context.Actions.Count)
+                if (context.Index < 0 || context.Index >= context.Actions.Count)
                 {
                     if (disposeContext)
                         context.Dispose();
@@ -330,13 +330,13 @@ namespace SecretLabAPI.Actions
                     break;
                 }
 
-                var current = context.Actions[context.IteratorIndex];
+                var current = context.Actions[context.Index];
 
                 context.Previous = context.Current;
                 context.Current = current;
                 
-                context.Next = context.IteratorIndex + 1 < context.Actions.Count 
-                    ? context.Actions[context.IteratorIndex + 1] 
+                context.Next = context.Index + 1 < context.Actions.Count 
+                    ? context.Actions[context.Index + 1] 
                     : null;
                 
                 try
@@ -514,6 +514,7 @@ namespace SecretLabAPI.Actions
                 // - ActionID "Arg" "Arg"; ActionID "Arg"; ActionID "Arg" "Arg" "Arg"
 
                 // ActionArg; ActionAndArgs; ActionAndArgs;
+                // $Variable = Action
                 var parts = trimmed.SplitEscaped(';');
 
                 if (parts.Length < 1)
@@ -526,37 +527,73 @@ namespace SecretLabAPI.Actions
                     if (string.IsNullOrEmpty(part))
                         continue;
 
-                    var spaceIndex = part.IndexOf(' ');
-
-                    string actionId = string.Empty;
-                    string[] actionArgs = Array.Empty<string>();
-                    
-                    if (spaceIndex == -1)
+                    if (part.TrySplit('=', true, 2, out var varParts))
                     {
-                        actionId = part;
-                        actionArgs = Array.Empty<string>();
+                        var varName = varParts[0].Trim();
+                        var varAction = varParts[1].Trim();
+                        var varArgs = part
+                            .Replace($"{varName} = {varAction}", "")
+                            .Trim()
+                            .SplitOutsideQuotes(' ');
+
+                        if (!varName.StartsWith("$")) 
+                            varName = string.Concat("$", varName);
+                        
+                        if (!Actions.TryGetValue(varAction, out var action))
+                        {
+                            ApiLog.Error("ActionManager",
+                                $"Failed to compile action &3{part}&r: unknown action ID (&6{varAction}&r)");
+                            continue;
+                        }
+                        
+                        var resultAction = action.CompileAction(varArgs);
+
+                        if (resultAction is null)
+                        {
+                            ApiLog.Error("ActionManager", $"Failed to compile action: &3{part}&r");
+                            continue;
+                        }
+
+                        resultAction.OutputVariableName = varName;
+                        
+                        actions.Add(resultAction);
                     }
                     else
                     {
-                        actionId = part.Substring(0, spaceIndex).Trim();
-                        actionArgs = part.Substring(spaceIndex + 1).Trim().SplitOutsideQuotes(' ', true, true, true);
+                        var spaceIndex = part.IndexOf(' ');
+
+                        var actionId = string.Empty;
+                        var actionArgs = Array.Empty<string>();
+
+                        if (spaceIndex == -1)
+                        {
+                            actionId = part;
+                            actionArgs = Array.Empty<string>();
+                        }
+                        else
+                        {
+                            actionId = part.Substring(0, spaceIndex).Trim();
+                            actionArgs = part.Substring(spaceIndex + 1).Trim()
+                                .SplitOutsideQuotes(' ', true, true, true);
+                        }
+
+                        if (!Actions.TryGetValue(actionId, out var action))
+                        {
+                            ApiLog.Error("ActionManager",
+                                $"Failed to compile action &3{part}&r: unknown action ID (&6{actionId}&r)");
+                            continue;
+                        }
+
+                        var resultAction = action.CompileAction(actionArgs);
+
+                        if (resultAction is null)
+                        {
+                            ApiLog.Error("ActionManager", $"Failed to compile action: &3{part}&r");
+                            continue;
+                        }
+
+                        actions.Add(resultAction);
                     }
-
-                    if (!Actions.TryGetValue(actionId, out var action))
-                    {
-                        ApiLog.Error("ActionManager", $"Failed to compile action &3{part}&r: unknown action ID (&6{actionId}&r)");
-                        continue;
-                    }
-
-                    var resultAction = action.CompileAction(actionArgs);
-
-                    if (resultAction is null)
-                    {
-                        ApiLog.Error("ActionManager", $"Failed to compile action: &3{part}&r");
-                        continue;
-                    }
-
-                    actions.Add(resultAction);
                 }
             }
 
@@ -580,7 +617,6 @@ namespace SecretLabAPI.Actions
         public static CompiledAction? CompileAction(this ActionMethod method, string[] args)
         {
             var array = new CompiledParameter[method.Parameters.Length];
-            var output = default(string);
             var comp = new CompiledAction(method, array, string.Empty);
 
             for (var i = 0; i < args.Length; i++)
@@ -608,15 +644,6 @@ namespace SecretLabAPI.Actions
                 {
                     ApiLog.Error("ActionManager", $"Error while compiling action (&3{method.Id}&r): Argument &6{method.Parameters[i].Name}&r was provided as empty.");
                     return null;
-                }
-
-                if (output is null && i == 0 && arg[0] == '$')
-                {
-                    output = arg.Substring(1).Trim();
-                    args = args.Skip(1).ToArray();
-
-                    i--;
-                    continue;
                 }
 
                 var splitArg = arg.SplitEscaped('=');
@@ -668,7 +695,6 @@ namespace SecretLabAPI.Actions
                 }
             }
 
-            comp.OutputVariableName = output;
             return comp;
         }
 

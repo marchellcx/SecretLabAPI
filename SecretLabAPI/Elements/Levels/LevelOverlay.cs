@@ -8,7 +8,9 @@ using SecretLabAPI.Extensions;
 
 using UnityEngine;
 
+using SecretLabAPI.Levels;
 using SecretLabAPI.Levels.Storage;
+
 using SecretLabAPI.Elements.Levels.Entries;
 
 namespace SecretLabAPI.Elements.Levels
@@ -119,20 +121,47 @@ namespace SecretLabAPI.Elements.Levels
             if (value.Length < 1)
                 return;
 
-            var percentage = Mathf.CeilToInt((Level.Experience / Level.RequiredExperience) * 100);
+            var percentage = 0;
+            
+            var curXp = 0;
+            
+            var reqXp = 0;
+            var reqXpString = string.Empty;
+
+            var nextLevelString = (Level.Level + 1 > LevelProgress.Cap)
+                ? "MAX"
+                : (Level.Level + 1).ToString();
+
+            if (!Level.IsCapped)
+            {
+                percentage = Mathf.CeilToInt((Level.Experience / Level.RequiredExperience) * 100);
+                
+                curXp = Level.Experience;
+                
+                reqXp = Level.RequiredExperience;
+                reqXpString = reqXp.ToString();
+            }
+            else
+            {
+                percentage = 100;
+                
+                curXp = Level.Experience;
+                
+                reqXp = Level.Experience;
+                reqXpString = "MAX";
+            }
+
             var color = GetBarColor(percentage);
-            var curXp = Mathf.CeilToInt(Level.Experience);
-            var reqXp = Mathf.CeilToInt(Level.RequiredExperience);
 
             value = value
                 .Replace("$BarColor", color)
                 .Replace("$BarString", RenderBar(percentage))
 
                 .Replace("$CurExp", curXp.ToString())
-                .Replace("$ReqExp", reqXp.ToString())
+                .Replace("$ReqExp", reqXpString)
                 
                 .Replace("$CurLevel", Level.Level.ToString())
-                .Replace("$NextLevel", (Level.Level + 1).ToString())
+                .Replace("$NextLevel", nextLevelString)
                 
                 .ReplaceEmojis();
 
@@ -145,16 +174,20 @@ namespace SecretLabAPI.Elements.Levels
         {
             if (percentage >= 85)
                 return "#1dde37";
-            else if (percentage >= 70)
+
+            if (percentage >= 70)
                 return "#9deb21";
-            else if (percentage >= 50)
+
+            if (percentage >= 50)
                 return "#d6f233";
-            else if (percentage >= 30)
+
+            if (percentage >= 30)
                 return "#f2dc33";
-            else if (percentage >= 15)
+
+            if (percentage >= 15)
                 return "#f27933";
-            else
-                return "#eb220c";
+
+            return "#eb220c";
         }
 
         private static string RenderBar(int percentage)

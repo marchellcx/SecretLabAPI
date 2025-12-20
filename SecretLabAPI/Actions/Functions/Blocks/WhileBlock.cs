@@ -53,8 +53,8 @@ namespace SecretLabAPI.Actions.Functions.Blocks
                 };
             });
 
-            var delay = context.GetMemoryOrValue<float>("Delay", 0);
-            var reverse = context.GetMemoryOrValue<bool>("Reverse", 1);
+            var delay = context.GetValue<float>(0);
+            var reverse = context.GetValue<bool>(1);
 
             if (delay > 0f)
                 return WhileDelayed(ref context, delay);
@@ -77,8 +77,8 @@ namespace SecretLabAPI.Actions.Functions.Blocks
             {
                 condsCtx.Memory.Clear();
 
-                for (condsCtx.IteratorIndex = 0; condsCtx.IteratorIndex < compiledWhileTree.Item1.Count; condsCtx.IteratorIndex++)
-                    compiledWhileTree.Item1[condsCtx.IteratorIndex].Action.Delegate(ref condsCtx);
+                for (condsCtx.Index = 0; condsCtx.Index < compiledWhileTree.Item1.Count; condsCtx.Index++)
+                    compiledWhileTree.Item1[condsCtx.Index].Action.Delegate(ref condsCtx);
 
                 var result = condsCtx.GetMemory<bool>(output);
 
@@ -92,18 +92,18 @@ namespace SecretLabAPI.Actions.Functions.Blocks
             {
                 actionsCtx.Memory.Clear();
 
-                for (actionsCtx.IteratorIndex = 0; actionsCtx.IteratorIndex < compiledWhileTree.Item2.Count; actionsCtx.IteratorIndex++)
-                    compiledWhileTree.Item2[actionsCtx.IteratorIndex].Action.Delegate(ref actionsCtx);
+                for (actionsCtx.Index = 0; actionsCtx.Index < compiledWhileTree.Item2.Count; actionsCtx.Index++)
+                    compiledWhileTree.Item2[actionsCtx.Index].Action.Delegate(ref actionsCtx);
             }
 
-            var nextIndex = context.Actions.FindIndex(context.IteratorIndex, x => x == compiledWhileTree.Item2[compiledWhileTree.Item2.Count - 1]);
+            var nextIndex = context.Actions.FindIndex(context.Index, x => x == compiledWhileTree.Item2[compiledWhileTree.Item2.Count - 1]);
 
-            context.IteratorIndex = nextIndex + 1;
+            context.Index = nextIndex + 1;
 
             condsCtx.Dispose();
             actionsCtx.Dispose();
 
-            if (context.IteratorIndex >= context.Actions.Count)
+            if (context.Index >= context.Actions.Count)
                 return ActionResultFlags.StopDispose | ActionResultFlags.Success;
 
             return ActionResultFlags.SuccessDispose;
@@ -111,7 +111,7 @@ namespace SecretLabAPI.Actions.Functions.Blocks
 
         private static ActionResultFlags WhileDelayed(ref ActionContext context, float delay)
         {
-            var reverse = context.GetMemoryOrValue<bool>("Reverse", 1);
+            var reverse = context.GetValue<bool>(1);
 
             if (!context.Current.Metadata.TryGetValue("CompiledWhileTree", out var compiledWhileTreeObj)
                 || compiledWhileTreeObj is not ValueTuple<List<CompiledAction>, List<CompiledAction>> compiledWhileTree)
@@ -131,8 +131,8 @@ namespace SecretLabAPI.Actions.Functions.Blocks
             {
                 condsCtx.Memory.Clear();
 
-                for (condsCtx.IteratorIndex = 0; condsCtx.IteratorIndex < compiledWhileTree.Item1.Count; condsCtx.IteratorIndex++)
-                    compiledWhileTree.Item1[condsCtx.IteratorIndex].Action.Delegate(ref condsCtx);
+                for (condsCtx.Index = 0; condsCtx.Index < compiledWhileTree.Item1.Count; condsCtx.Index++)
+                    compiledWhileTree.Item1[condsCtx.Index].Action.Delegate(ref condsCtx);
 
                 var result = condsCtx.GetMemory<bool>(output);
 
@@ -150,8 +150,8 @@ namespace SecretLabAPI.Actions.Functions.Blocks
                 {
                     actionsCtx.Memory.Clear();
 
-                    for (actionsCtx.IteratorIndex = 0; actionsCtx.IteratorIndex < compiledWhileTree.Item2.Count; actionsCtx.IteratorIndex++)
-                        compiledWhileTree.Item2[actionsCtx.IteratorIndex].Action.Delegate(ref actionsCtx);
+                    for (actionsCtx.Index = 0; actionsCtx.Index < compiledWhileTree.Item2.Count; actionsCtx.Index++)
+                        compiledWhileTree.Item2[actionsCtx.Index].Action.Delegate(ref actionsCtx);
 
                     yield return Timing.WaitForSeconds(delay);
                 }
@@ -159,7 +159,7 @@ namespace SecretLabAPI.Actions.Functions.Blocks
                 condsCtx.Dispose();
                 actionsCtx.Dispose();
 
-                var nextIndex = ctx.Actions.FindIndex(ctx.IteratorIndex, x => x == compiledWhileTree.Item2[compiledWhileTree.Item2.Count - 1]) + 1;
+                var nextIndex = ctx.Actions.FindIndex(ctx.Index, x => x == compiledWhileTree.Item2[compiledWhileTree.Item2.Count - 1]) + 1;
 
                 if (nextIndex >= ctx.Actions.Count)
                 {
@@ -181,7 +181,7 @@ namespace SecretLabAPI.Actions.Functions.Blocks
         {
             compiledWhileTree = new(new(), new());
 
-            var endIndex = context.Actions.FindIndex(context.IteratorIndex, x => x.Action.Id == "EndWhile");
+            var endIndex = context.Actions.FindIndex(context.Index, x => x.Action.Id == "EndWhile");
 
             if (endIndex == -1)
             {
@@ -191,7 +191,7 @@ namespace SecretLabAPI.Actions.Functions.Blocks
 
             var inActions = false;
 
-            for (var i = context.IteratorIndex + 1; i < endIndex - 1; i++)
+            for (var i = context.Index + 1; i < endIndex - 1; i++)
             {
                 var action = context.Actions[i];
 

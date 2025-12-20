@@ -1,9 +1,5 @@
 ﻿using LabExtended.API;
-using LabExtended.Extensions;
-
 using LabExtended.Core.Pooling.Pools;
-
-using NorthwoodLib.Pools;
 
 using SecretLabAPI.Extensions;
 
@@ -18,7 +14,7 @@ namespace SecretLabAPI.Actions.API
         /// <summary>
         /// The index of the iterator.
         /// </summary>
-        public int IteratorIndex;
+        public int Index;
 
         /// <summary>
         /// The current action being processed.
@@ -38,7 +34,7 @@ namespace SecretLabAPI.Actions.API
         /// <summary>
         /// The player targeted by the action.
         /// </summary>
-        public ExPlayer Player;
+        public ExPlayer? Player;
 
         /// <summary>
         /// The list of actions to be performed.
@@ -51,10 +47,11 @@ namespace SecretLabAPI.Actions.API
         public Dictionary<string, object> Memory;
 
         /// <summary>
-        /// Initializes a new instance of the ActionContext class with the specified list of actions.
+        /// Represents the context for an action, containing relevant state
+        /// information such as the list of actions, associated player, and
+        /// a memory pool for temporary data storage. Used to facilitate the
+        /// execution of compiled actions and manage the associated resources.
         /// </summary>
-        /// <param name="actions">The list of actions to be managed by this context. Cannot be null.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="actions"/> is null.</exception>
         public ActionContext(List<CompiledAction> actions, ExPlayer? player = null)
         {
             if (actions is null)
@@ -91,13 +88,19 @@ namespace SecretLabAPI.Actions.API
         /// <exception cref="Exception">Thrown if the memory variable does not exist or cannot be cast to type <typeparamref name="T"/>.</exception>
         public T GetMemory<T>(string variable)
         {
+            if (string.IsNullOrWhiteSpace(variable))
+                throw new ArgumentNullException(nameof(variable));
+
+            if (variable[0] != '$')
+                variable = string.Concat("$", variable);
+            
             if (!Memory.TryGetValue(variable, out var obj))
-                throw new Exception($"Memory variable '{variable}' not found.");
+                throw new($"Memory variable '{variable}' not found.");
 
             if (obj is T variableValue)
                 return variableValue;
 
-            throw new Exception($"Memory variable '{variable}' is not of type {typeof(T).FullName}.");
+            throw new($"Memory variable '{variable}' is not of type {typeof(T).FullName}.");
         }
 
         /// <summary>
@@ -131,182 +134,67 @@ namespace SecretLabAPI.Actions.API
             if (variable[0] != '$')
                 return;
 
-            Memory[variable.Substring(1)] = value!;
+            Memory[variable] = value!;
         }
 
         /// <summary>
-        /// Retrieves the source value of the parameter at the specified index within the current action.
+        /// Retrieves the value of a parameter at the specified index within the current context, with an option to resolve memory-based variables.
         /// </summary>
-        /// <param name="index">The zero-based index of the parameter to retrieve. Must be greater than or equal to 0 and less than the
-        /// total number of actions.</param>
-        /// <returns>A string containing the source value of the parameter at the specified index.</returns>
-        /// <exception cref="IndexOutOfRangeException">Thrown when <paramref name="index"/> is less than 0 or greater than or equal to the number of actions.</exception>
-        public string GetValue(int index)
+        /// <param name="index">The zero-based index of the parameter to retrieve.</param>
+        /// <param name="allowMemory">A boolean indicating whether to resolve memory-based variables when applicable. If true, memory variables prefixed with '$' will be resolved.</param>
+        /// <returns>The value of the parameter at the specified index, optionally resolved from memory.</returns>
+        /// <exception cref="IndexOutOfRangeException">Thrown when the specified index is outside the range of the available parameters.</exception>
+        public string GetValue(int index, bool allowMemory = true)
         {
             if (index < 0 || index >= Current.Parameters.Length)
                 throw new IndexOutOfRangeException($"Parameter index {index} is out of range.");
 
-            return Current.Parameters[index].Source;
-        }
+            var variable = Current.Parameters[index].Source;
 
+            if (allowMemory && variable.Length > 0)
+            {
+                if (variable[0] == '$' 
+                    && Memory.TryGetValue(variable.Substring(1, variable.Length - 1), out var memoryValue))
+                {
+                    return memoryValue.ToString();
+                }
+            }
+
+            return variable;
+        }
+        
         /// <summary>
-        /// Retrieves the value of type <typeparamref name="T"/> from the parameter at the specified index in the
-        /// current action.
+        /// Retrieves the value of a parameter at the specified index within the current action context,
+        /// optionally allowing access to memory-sourced data. Supports type casting to the specified type.
         /// </summary>
-        /// <typeparam name="T">The type of the value to retrieve from the parameter.</typeparam>
-        /// <param name="index">The zero-based index of the parameter whose value is to be retrieved. Must be within the bounds of the
-        /// current action's parameter collection.</param>
-        /// <returns>The value of type <typeparamref name="T"/> stored in the parameter at the specified index.</returns>
-        /// <exception cref="IndexOutOfRangeException">Thrown when <paramref name="index"/> is less than zero or greater than or equal to the number of parameters
-        /// in the current action.</exception>
-        public T GetValue<T>(int index)
+        /// <typeparam name="T">The expected type of the parameter's value.</typeparam>
+        /// <param name="index">The zero-based index of the parameter to retrieve.</param>
+        /// <param name="allowMemory">
+        /// A boolean indicating whether values stored in memory should be considered
+        /// when retrieving the parameter's value.
+        /// </param>
+        /// <returns>The value of the parameter at the specified index, cast to the specified type.</returns>
+        /// <exception cref="IndexOutOfRangeException">
+        /// Thrown when the specified index is out of the range of the parameter array.
+        /// </exception>
+        public T GetValue<T>(int index, bool allowMemory = true)
         {
             if (index < 0 || index >= Current.Parameters.Length)
                 throw new IndexOutOfRangeException($"Parameter index {index} is out of range.");
 
-            return Current.Parameters[index].GetValue<T>();
-        }
+            var variable = Current.Parameters[index];
 
-        /// <summary>
-        /// Retrieves the value of the specified parameter, identified by key, and returns it as the requested type.
-        /// </summary>
-        /// <typeparam name="T">The type to which the parameter value will be cast and returned.</typeparam>
-        /// <param name="key">The name of the parameter whose value is to be retrieved. Cannot be null or empty.</param>
-        /// <returns>The value of the parameter with the specified key, cast to type <typeparamref name="T"/>.</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="key"/> is null or empty.</exception>
-        /// <exception cref="Exception">Thrown if a parameter with the specified key does not exist.</exception>
-        public T GetValue<T>(string key)
-        {
-            if (string.IsNullOrEmpty(key))
-                throw new ArgumentNullException(nameof(key));
-
-            var index = Current.Action.Parameters.FindIndex(p => p.Name == key);
-
-            if (index == -1)
-                throw new($"Parameter with key '{key}' not found.");
-
-            return GetValue<T>(index);
-        }
-
-        /// <summary>
-        /// Retrieves the value associated with the specified parameter key from the current action.
-        /// </summary>
-        /// <param name="key">The name of the parameter whose value to retrieve. Cannot be null or empty.</param>
-        /// <returns>The value of the parameter identified by the specified key.</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="key"/> is null or empty.</exception>
-        /// <exception cref="Exception">Thrown if a parameter with the specified key does not exist.</exception>
-        public string GetValue(string key)
-        {
-            if (string.IsNullOrEmpty(key))
-                throw new ArgumentNullException(nameof(key));
-
-            var index = Current.Action.Parameters.FindIndex(p => p.Name == key);
-
-            if (index == -1)
-                throw new($"Parameter with key '{key}' not found.");
-
-            return GetValue(index);
-        }
-
-        /// <summary>
-        /// Retrieves a value of the specified type associated with the given key, or from memory if the key is prefixed
-        /// with a dollar sign ('$').
-        /// </summary>
-        /// <remarks>If the <paramref name="key"/> starts with a dollar sign ('$'), the method retrieves
-        /// the value from memory using the substring after the '$'. Otherwise, it retrieves the value directly using
-        /// the provided key.</remarks>
-        /// <typeparam name="T">The type of the value to retrieve.</typeparam>
-        /// <param name="key">The key that identifies the value to retrieve. If the key begins with '$', the value is retrieved from
-        /// memory using the remainder of the key.</param>
-        /// <returns>The value of type T associated with the specified key, or from memory if the key is prefixed with '$'.</returns>
-        /// <exception cref="ArgumentNullException">Thrown when <paramref name="key"/> is null or an empty string.</exception>
-        public T GetValueOrMemory<T>(string key) 
-        {
-            if (string.IsNullOrEmpty(key))
-                throw new ArgumentNullException(nameof(key));
-
-            if (key[0] == '$')
-                return GetMemory<T>(key.Substring(1));
-            
-            return GetValue<T>(key);
-        }
-
-        /// <summary>
-        /// Retrieves a value of type <typeparamref name="T"/> from memory using the specified key, or returns a value
-        /// from the provided index if the key is not found.
-        /// </summary>
-        /// <remarks>If the specified key does not exist in memory, the method falls back to retrieving
-        /// the value from the indexed source. The method enforces type safety by throwing an exception if the memory
-        /// value does not match the requested type.</remarks>
-        /// <typeparam name="T">The type of the value to retrieve from memory or from the indexed source.</typeparam>
-        /// <param name="key">The key used to look up the value in memory. Cannot be null or empty.</param>
-        /// <param name="index">The index used to retrieve the value if the key is not present in memory.</param>
-        /// <returns>The value of type <typeparamref name="T"/> associated with the specified key if found in memory; otherwise,
-        /// the value obtained from the specified index.</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="key"/> is null or empty.</exception>
-        /// <exception cref="Exception">Thrown if the value found in memory for <paramref name="key"/> is not of type <typeparamref name="T"/>.</exception>
-        public T GetMemoryOrValue<T>(string key, int index) 
-        {
-            if (string.IsNullOrEmpty(key))
-                throw new ArgumentNullException(nameof(key));
-
-            if (Memory.TryGetValue(key, out var obj))
+            if (allowMemory && variable.Source.Length > 0)
             {
-                if (obj is T variableValue)
-                    return variableValue;
-
-                throw new($"Memory variable '{key}' is not of type {typeof(T).FullName}.");
+                if (variable.Source[0] == '$' 
+                    && Memory.TryGetValue(variable.Source.Substring(1, variable.Source.Length - 1), out var memoryValue)
+                    && memoryValue is T castMemoryValue)
+                {
+                    return castMemoryValue;
+                }
             }
-            
-            return GetValue<T>(index);
-        }
 
-        /// <summary>
-        /// Retrieves the string value associated with the specified key from memory, or returns a value based on the
-        /// provided index if the key is not found.
-        /// </summary>
-        /// <param name="key">The key used to look up the value in memory. Cannot be null or empty.</param>
-        /// <param name="index">The index used to retrieve a value if the key is not present in memory.</param>
-        /// <returns>The string value associated with the specified key if found; otherwise, the value obtained using the
-        /// specified index.</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="key"/> is null or empty.</exception>
-        /// <exception cref="Exception">Thrown if the memory variable associated with <paramref name="key"/> exists but is not of type <see
-        /// cref="String"/>.</exception>
-        public string GetMemoryOrValue(string key, int index)
-        {
-            if (string.IsNullOrEmpty(key))
-                throw new ArgumentNullException(nameof(key));
-
-            if (Memory.TryGetValue(key, out var obj))
-            {
-                if (obj is string variableValue)
-                    return variableValue;
-
-                throw new($"Memory variable '{key}' is not of type {typeof(string).FullName}.");
-            }
-            
-            return GetValue(index);
-        }
-
-        /// <summary>
-        /// Retrieves the value associated with the specified key, or returns a memory-stored value if the key is
-        /// prefixed with a dollar sign ('$').
-        /// </summary>
-        /// <param name="key">The key used to identify the value to retrieve. If the key begins with '$', the method returns a value from
-        /// memory using the remainder of the key; otherwise, it returns the standard value associated with the key.
-        /// Cannot be null or empty.</param>
-        /// <returns>A string containing the value associated with the specified key, or the memory-stored value if the key is
-        /// prefixed with '$'.</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="key"/> is null or empty.</exception>
-        public string GetValueOrMemory(string key)
-        {
-            if (string.IsNullOrEmpty(key))
-                throw new ArgumentNullException(nameof(key));
-
-            if (key[0] == '$')
-                return GetMemory<string>(key.Substring(1));
-            
-            return GetValue(key);
+            return variable.GetValue<T>();
         }
 
         /// <summary>
@@ -365,7 +253,7 @@ namespace SecretLabAPI.Actions.API
         /// is not set or is empty.</remarks>
         /// <param name="output">The value to be saved. Cannot be null.</param>
         /// <returns>true if the output was successfully saved; otherwise, false.</returns>
-        public bool SaveOutput(object output)
+        public bool SetMemory(object output)
         {
             if (output is null)
                 return false;

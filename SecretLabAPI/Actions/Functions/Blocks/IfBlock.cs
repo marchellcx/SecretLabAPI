@@ -97,7 +97,7 @@ namespace SecretLabAPI.Actions.Functions.Blocks
                 ifTree.Actions.ExecuteActions(context.Player);
             }
 
-            context.IteratorIndex = context.Actions.IndexOf(endIfTree.Conditions[endIfTree.Conditions.Count - 1]);
+            context.Index = context.Actions.IndexOf(endIfTree.Conditions[endIfTree.Conditions.Count - 1]);
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -115,9 +115,9 @@ namespace SecretLabAPI.Actions.Functions.Blocks
 
             var context = new ActionContext(actions, player);
 
-            for (context.IteratorIndex = 0; context.IteratorIndex < actions.Count; context.IteratorIndex++)
+            for (context.Index = 0; context.Index < actions.Count; context.Index++)
             {
-                var action = actions[context.IteratorIndex];
+                var action = actions[context.Index];
 
                 try
                 {
@@ -153,7 +153,7 @@ namespace SecretLabAPI.Actions.Functions.Blocks
         {
             actions = new();
 
-            var ifStartIndex = context.IteratorIndex;
+            var ifStartIndex = context.Index;
             var ifEndIndex = context.Actions.FindIndex(ifStartIndex, x => x.Action.Id == "EndIf");
 
             if (ifEndIndex == -1)

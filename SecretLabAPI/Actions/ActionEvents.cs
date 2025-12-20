@@ -70,7 +70,7 @@ namespace SecretLabAPI.Actions
                             context.Current = action;
                         }
 
-                        context.IteratorIndex = 0;
+                        context.Index = 0;
 
                         ActionManager.ExecuteContext(ref context, false);
                     }
