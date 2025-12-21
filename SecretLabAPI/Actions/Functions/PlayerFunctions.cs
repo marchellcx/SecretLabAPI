@@ -985,6 +985,18 @@ namespace SecretLabAPI.Actions.Functions
             return ActionResultFlags.StopDispose;
         }
 
+        /// <summary>
+        /// Teleports the specified player to the center position of a room defined by a RoomIdentifier.
+        /// </summary>
+        /// <remarks>
+        /// This method retrieves the target room using the provided room variable, validates the input and player state,
+        /// and updates the player's position. If the operation is successful, it signals the action result for proper resource cleanup.
+        /// </remarks>
+        /// <param name="context">A reference to the action context, containing data such as the target room variable and player information.</param>
+        /// <returns>An ActionResultFlags value indicating the result of the teleportation action. Returns SuccessDispose if the operation succeeds,
+        /// or StopDispose if the operation fails due to invalid input or player state.</returns>
+        [Action("TpToRoom", "Teleports a player to a room.")]
+        [ActionParameter("Variable", "The name of the room variable (must be a RoomIdentifier!).")]
         public static ActionResultFlags TpToRoom(ref ActionContext context)
         {
             var room = context.GetValue<RoomIdentifier>(0);

@@ -527,17 +527,17 @@ namespace SecretLabAPI.Actions
                     if (string.IsNullOrEmpty(part))
                         continue;
 
-                    if (part.TrySplit('=', true, 2, out var varParts))
+                    if (part[0] == '$' 
+                        && part.TrySplit('=', true, 2, out var varParts)
+                        && part.StartsWith($"{varParts[0].Trim()} ="))
                     {
                         var varName = varParts[0].Trim();
                         var varAction = varParts[1].Trim();
+                        
                         var varArgs = part
                             .Replace($"{varName} = {varAction}", "")
                             .Trim()
                             .SplitOutsideQuotes(' ');
-
-                        if (!varName.StartsWith("$")) 
-                            varName = string.Concat("$", varName);
                         
                         if (!Actions.TryGetValue(varAction, out var action))
                         {
@@ -633,55 +633,21 @@ namespace SecretLabAPI.Actions
                         continue;
                     }
 
-                    ApiLog.Warn("ActionManager", $"Error while compiling action (&3{method.Id}&r): Too many arguments were provided.");
+                    ApiLog.Warn("ActionManager",
+                        $"Error while compiling action (&3{method.Id}&r): Too many arguments were provided.");
                     return null;
                 }
-
-                var compiledArg = new CompiledParameter();
+                
                 var arg = args[i].Trim();
 
                 if (string.IsNullOrEmpty(arg))
                 {
-                    ApiLog.Error("ActionManager", $"Error while compiling action (&3{method.Id}&r): Argument &6{method.Parameters[i].Name}&r was provided as empty.");
+                    ApiLog.Error("ActionManager",
+                        $"Error while compiling action (&3{method.Id}&r): Argument &6{method.Parameters[i].Name}&r was provided as empty.");
                     return null;
                 }
 
-                var splitArg = arg.SplitEscaped('=');
-
-                if (splitArg.Length == 2)
-                {
-                    var argKey = splitArg[0].Trim();
-                    var argValue = splitArg[1].Trim();
-                    var argIndex = method.Parameters.FindIndex(x => string.Equals(x.Name, argKey, StringComparison.InvariantCultureIgnoreCase));
-
-                    if (argIndex == -1)
-                    {
-                        ApiLog.Error("ActionManager", $"Error while compiling action (&3{method.Id}&r): No argument labeled &6{argKey}&r was found.");
-                        return null;
-                    }
-
-                    if (array[argIndex] != null)
-                    {
-                        ApiLog.Error("ActionManager", $"Error while compiling action (&3{method.Id}&r): Duplicate argument &6{argKey}&r was provided.");
-                        return null;
-                    }
-
-                    compiledArg.Source = argValue;
-
-                    array[argIndex] = compiledArg;
-                }
-                else
-                {
-                    compiledArg.Source = arg;
-
-                    if (array[i] != null)
-                    {
-                        ApiLog.Error("ActionManager", $"Error while compiling action (&3{method.Id}&r): Duplicate argument &6{method.Parameters[i].Name}&r was provided.");
-                        return null;
-                    }
-
-                    array[i] = compiledArg;
-                }
+                array[i] = new() { Source = arg };
             }
 
             if (args.Length < method.Parameters.Length)
