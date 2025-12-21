@@ -8,6 +8,7 @@ using NorthwoodLib.Pools;
 using SecretLabAPI.Actions.API;
 using SecretLabAPI.Actions.Enums;
 using SecretLabAPI.Actions.Attributes;
+using SecretLabAPI.Actions.Extensions;
 
 using System.Collections;
 
@@ -44,6 +45,89 @@ namespace SecretLabAPI.Actions.Functions
             return boolean
                 ? ActionResultFlags.SuccessStop | ActionResultFlags.Dispose
                 : ActionResultFlags.SuccessDispose;
+        }
+
+        [Action("StopIfAndExecute", "Stops the execution path and invokes the specified amount of following actions if $VARIABLE is TRUE.")]
+        [ActionParameter("Variable", "The variable to check.")]
+        [ActionParameter("Amount", "The amount of instructions to invoke or skip.")]
+        public static ActionResultFlags StopIfAndExecute(ref ActionContext context)
+        {
+            context.EnsureCompiled((i, p) =>
+            {
+                return i switch
+                {
+                    0 => p.EnsureCompiled(bool.TryParse, false),
+                    1 => p.EnsureCompiled(int.TryParse, 1),
+                    
+                    _ => false
+                };
+            });
+
+            var boolean = context.GetValue<bool>(0);
+            var amount = context.GetValue<int>(1);
+
+            if (!boolean)
+            {
+                context.Index += amount;
+                return ActionResultFlags.SuccessDispose;
+            }
+
+            var startIndex = context.Index + 1;
+            var endIndex = startIndex + amount;
+
+            if (startIndex >= context.Actions.Count)
+            {
+                ApiLog.Warn("Actions :: StopIfAndExecute", $"Start Index is out of range! (EndIndex={endIndex}; StartIndex={startIndex}; Count={context.Actions.Count}; Amount={amount})");
+                return ActionResultFlags.StopDispose;
+            }
+
+            if (endIndex >= context.Actions.Count)
+            {
+                ApiLog.Warn("Actions :: StopIfAndExecute", $"End Index is out of range! (EndIndex={endIndex}; StartIndex={startIndex}; Count={context.Actions.Count}; Amount={amount})");
+                return ActionResultFlags.StopDispose;
+            }
+
+            for (var x = startIndex; x < endIndex; x++)
+            {
+                context.Index = x;
+                context.Current = context.Actions[x];
+
+                if (x > 0) 
+                    context.Previous = context.Actions[x - 1];
+                else 
+                    context.Previous = null;
+
+                if (x + 1 < context.Actions.Count) 
+                    context.Next = context.Actions[x + 1];
+                else 
+                    context.Next = null;
+
+                try
+                {
+                    var flags = context.Current.Action.Delegate(ref context);
+                    
+                    if (flags.ShouldStop())
+                    {
+                        if (flags.ShouldDispose())
+                            context.Dispose();
+
+                        context.Index = endIndex + 1;
+                        return flags;
+                    }
+
+                    if (flags.IsSuccess()) 
+                        continue;
+                    
+                    return ActionResultFlags.StopDispose;
+                }
+                catch (Exception ex)
+                {
+                    ApiLog.Error("Actions :: StopIfAndExecute", ex);
+                    return ActionResultFlags.StopDispose;
+                }
+            }
+
+            return ActionResultFlags.SuccessDispose | ActionResultFlags.Stop;
         }
         
         /// <summary>

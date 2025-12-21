@@ -66,6 +66,31 @@ namespace SecretLabAPI.Actions
 
             return ActionResultFlags.SuccessDispose;
         }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        [Action("RollCoin", "Re-rolls the coin actions.")]
+        [ActionParameter("IsTails", "Whether or not the Coin landed on Tails (BOOLEAN).")]
+        public static ActionResultFlags RollCoin(ref ActionContext context)
+        {
+            context.EnsureCompiled((_, p) => p.EnsureCompiled(bool.TryParse, false));
+            
+            if (context.Player?.ReferenceHub != null)
+            {
+                var isTails = context.GetValue<bool>(0);
+                
+                var prefix = isTails
+                    ? "CoinTails_"
+                    : "CoinHead_";
+                
+                ActionManager.Table.SelectAndExecuteTable(context.Player, str => str.StartsWith(prefix));
+            }
+
+            return ActionResultFlags.SuccessDispose;
+        }
         
         private static void OnFlipped(PlayerFlippedCoinEventArgs args)
         {
