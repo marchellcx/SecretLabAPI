@@ -7,7 +7,7 @@ using LabExtended.Core;
 using LabExtended.Extensions;
 using MapGeneration;
 using PlayerRoles;
-
+using PlayerRoles.PlayableScps.Scp106;
 using SecretLabAPI.Actions.API;
 using SecretLabAPI.Actions.Enums;
 using SecretLabAPI.Actions.Attributes;
@@ -1009,7 +1009,7 @@ namespace SecretLabAPI.Actions.Functions
 
             if (context.Player?.ReferenceHub != null && context.Player.IsAlive)
             {
-                context.Player.Position.Position = room.WorldspaceBounds.center;
+                context.Player.Position.Position = room.GetSafePosition(context.Player);
                 return ActionResultFlags.SuccessDispose;
             }
 

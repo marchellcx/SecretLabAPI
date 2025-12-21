@@ -1,6 +1,6 @@
 ﻿using LabExtended.API;
 using LabExtended.Core.Pooling.Pools;
-
+using NorthwoodLib.Pools;
 using SecretLabAPI.Extensions;
 
 namespace SecretLabAPI.Actions.API
@@ -153,10 +153,19 @@ namespace SecretLabAPI.Actions.API
 
             if (allowMemory && variable.Length > 0)
             {
-                if (variable[0] == '$' 
-                    && Memory.TryGetValue(variable.Substring(1, variable.Length - 1), out var memoryValue))
+                if (variable[0] == '$')
                 {
-                    return memoryValue.ToString();
+                    var obj = ResolveMemoryObject(variable);
+
+                    if (obj != null)
+                    {
+                        if (obj is string str)
+                            return str;
+
+                        return obj.ToString();
+                    }
+
+                    throw new($"Failed to resolve memory variable '{variable}' to string (null return)");
                 }
             }
 
@@ -186,11 +195,14 @@ namespace SecretLabAPI.Actions.API
 
             if (allowMemory && variable.Source.Length > 0)
             {
-                if (variable.Source[0] == '$' 
-                    && Memory.TryGetValue(variable.Source.Substring(1, variable.Source.Length - 1), out var memoryValue)
-                    && memoryValue is T castMemoryValue)
+                if (variable.Source[0] == '$')
                 {
-                    return castMemoryValue;
+                    var obj = ResolveMemoryObject(variable.Source);
+
+                    if (obj is T memoryValue)
+                        return memoryValue;
+
+                    throw new($"Failed to resolve memory variable '{variable.Source}' to type '{typeof(T).Name}'");
                 }
             }
 
@@ -281,6 +293,49 @@ namespace SecretLabAPI.Actions.API
                 return;
 
             Current.Parameters.For((index, p) => parameter(index, p));
+        }
+
+        private object ResolveMemoryObject(string variableName)
+        {
+            if (Memory.TryGetValue(variableName, out var memoryObj))
+                return memoryObj;
+
+            if (!ActionManager.Actions.TryGetValue(variableName, out var method))
+                throw new($"Memory variable '{variableName}' could not be loaded");
+
+            var compiled = GetMetadata($"Compiled{variableName}", () =>
+            {
+                return new CompiledAction(method, method.Parameters.Select(_ => new CompiledParameter() { Source = string.Empty }).ToArray(), "$CompResult_");
+            });
+
+            var list = ListPool<CompiledAction>.Shared.Rent();
+            var ctx = new ActionContext(list, Player);
+            
+            list.Add(compiled);
+
+            try
+            {
+                ActionManager.ExecuteContext(ref ctx, false);
+            }
+            catch (Exception ex)
+            {
+                ctx.Dispose();
+                
+                ListPool<CompiledAction>.Shared.Return(list);
+
+                throw ex;
+            }
+            
+            ListPool<CompiledAction>.Shared.Return(list);
+
+            if (!ctx.Memory.TryGetValue("$CompResult_", out memoryObj))
+            {
+                ctx.Dispose();
+                
+                throw new($"Method '{variableName}' did not save an output variable");
+            }
+
+            return memoryObj;
         }
     }
 }
