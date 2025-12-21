@@ -174,7 +174,7 @@ namespace SecretLabAPI.Actions
             Ok($"Invoked table '{table.Name}'");
         }
 
-        [CommandOverload("invoke", "Attempts to parse and invoke an action expression..", null)]
+        [CommandOverload("invoke", "Attempts to parse and invoke an action expression.", null)]
         private void Invoke(
             [CommandParameter("Expression", "The action expression to parse.")] string expression, 
             [CommandParameter("Target", "The target player to invoke the expression on.")] ExPlayer? target = null)

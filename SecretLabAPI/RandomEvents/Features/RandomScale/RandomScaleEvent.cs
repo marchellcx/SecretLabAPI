@@ -48,7 +48,7 @@ namespace SecretLabAPI.RandomEvents.Features.RandomScale
             
             ExPlayer.Players.ForEach(p =>
             {
-                p.SendAlert(AlertType.Info, 10f,
+                p.SendAlert(AlertType.Info, 10f, "Náhodné Eventy",
                     $"<b>Začal event <color=red>Náhodná velikost</color>!</b>\n" +
                     $"<b>Po každém respawnu dostanete náhodný scale.</b>", true);
 
@@ -78,7 +78,7 @@ namespace SecretLabAPI.RandomEvents.Features.RandomScale
         {
             base.OnPlayerJoined(player);
             
-            player.SendAlert(AlertType.Info, 10f, 
+            player.SendAlert(AlertType.Info, 10f, "Náhodné Eventy",
                 $"<b>Na serveru právě probíhá event <color=red>Náhodná velikost</color></b>\n" +
                 $"<b>Po každém respawnu dostanete náhodný scale.</b>", true);
         }

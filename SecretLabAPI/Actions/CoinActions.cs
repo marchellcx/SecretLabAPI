@@ -61,7 +61,7 @@ namespace SecretLabAPI.Actions
         [Action("ResumeFlipping", "Resumes the execution of action tables upon coin flip for a certain player.")]
         public static ActionResultFlags ResumeFlipping(ref ActionContext context)
         {
-            if (context.Player != null)
+            if (context.Player?.ReferenceHub != null)
                 PausedPlayers.Remove(context.Player.UserId);
 
             return ActionResultFlags.SuccessDispose;
@@ -69,11 +69,8 @@ namespace SecretLabAPI.Actions
         
         private static void OnFlipped(PlayerFlippedCoinEventArgs args)
         {
-            if (args.Player is not ExPlayer player)
-                return;
-
-            if (PausedPlayers.Contains(player.UserId))
-                return;
+            if (args.Player is not ExPlayer player) return;
+            if (PausedPlayers.Contains(player.UserId)) return;
             
             var prefix = args.IsTails
                 ? "CoinTails_"

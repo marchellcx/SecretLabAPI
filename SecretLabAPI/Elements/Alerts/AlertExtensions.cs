@@ -31,11 +31,21 @@ public static class AlertExtensions
     /// The end of a message line.
     /// </summary>
     public const string TextEnd = "«";
+    
+    /// <summary>
+    /// The prefix of a title.
+    /// </summary>
+    public const string TitlePrefix = "<size=30><b>﹝ ";
 
     /// <summary>
-    /// Gets the prefix for alert messages.
+    /// The postfix of a title.
     /// </summary>
-    public const string MessagePrefix = "<size=30><b>﹝ Ｓ E R VＥ R • Z P R Á V A ﹞</b></size>";
+    public const string TitlePostfix = " ﹞</b></size>";
+    
+    /// <summary>
+    /// The default title.
+    /// </summary>
+    public const string DefaultTitle = "server zpráva";
     
     /// <summary>
     /// Sends a new alert to a player.
@@ -44,7 +54,7 @@ public static class AlertExtensions
     /// <param name="type">The type of the alert.</param>
     /// <param name="duration">The duration of the alert (in seconds) - must be at least one.</param>
     /// <param name="content">The content of the alert.</param>
-    public static void SendAlert(this ExPlayer player, AlertType type, float duration, string content)
+    public static void SendAlert(this ExPlayer player, AlertType type, float duration, string? title, string content)
     {
         if (player?.ReferenceHub == null)
             return;
@@ -60,6 +70,8 @@ public static class AlertExtensions
         
         alertElement.Alerts.Add(new()
         {
+            Title = title ?? DefaultTitle,
+            
             Type = type,
             Content = content,
             Duration = duration
@@ -67,13 +79,15 @@ public static class AlertExtensions
     }
 
     /// <summary>
-    /// Sends a new alert to a player.
+    /// 
     /// </summary>
-    /// <param name="player">The player receiving the alert.</param>
-    /// <param name="type">The type of the alert.</param>
-    /// <param name="duration">The duration of the alert (in seconds) - must be at least one.</param>
-    /// <param name="content">The content of the alert.</param>
-    public static void SendAlert(this ExPlayer player, AlertType type, float duration, string content, bool overrideCurrent)
+    /// <param name="player"></param>
+    /// <param name="type"></param>
+    /// <param name="duration"></param>
+    /// <param name="title"></param>
+    /// <param name="content"></param>
+    /// <param name="overrideCurrent"></param>
+    public static void SendAlert(this ExPlayer player, AlertType type, float duration, string? title, string content, bool overrideCurrent)
     {
         if (player?.ReferenceHub == null)
             return;
@@ -93,6 +107,7 @@ public static class AlertExtensions
 
             alertElement.CurrentAlert = new()
             {
+                Title = title ?? DefaultTitle,
                 Type = type,
                 Content = content,
                 Duration = duration
@@ -104,6 +119,7 @@ public static class AlertExtensions
         {
             alertElement.Alerts.Add(new()
             {
+                Title = title ?? DefaultTitle,
                 Type = type,
                 Content = content,
                 Duration = duration
@@ -121,11 +137,16 @@ public static class AlertExtensions
         return StringBuilderPool.Shared.BuildString(x =>
         {
             var content = alert.Content.Replace("\n", $" {TextEnd}\n{TextStart} ");
+            var title = ProcessTitle(alert.Title);
             
             x.Append("<color=#");
             x.Append(alert.Type is AlertType.Info ? InfoColor : WarnColor);
             x.Append(">");
-            x.Append(MessagePrefix);
+            
+            x.Append(TitlePrefix);
+            x.Append(title);
+            x.Append(TitlePostfix);
+            
             x.Append("</color>\n<size=25>");
             x.Append(TextStart);
             x.Append(" ");
@@ -134,5 +155,25 @@ public static class AlertExtensions
             x.Append(TextEnd);
             x.Append("</size>");
         });
+    }
+
+    // "word one" to "W O R D • O N E"
+    private static string ProcessTitle(string title)
+    {
+        if (string.IsNullOrWhiteSpace(title))
+            return title;
+
+        var words = title.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+        var letterGroups = new string[words.Length];
+
+        for (var i = 0; i < words.Length; i++) 
+            letterGroups[i] = words[i].ToUpperInvariant();
+        
+        var spacedWords = new string[words.Length];
+        
+        for (var i = 0; i < words.Length; i++)
+            spacedWords[i] = string.Join(" ", letterGroups[i].ToCharArray());
+        
+        return string.Join(" • ", spacedWords);
     }
 }

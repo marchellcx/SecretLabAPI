@@ -2,7 +2,9 @@ using LabApi.Events.Arguments.Interfaces;
 
 using LabExtended.API;
 using LabExtended.Core;
+
 using LabExtended.Utilities;
+using LabExtended.Utilities.Values;
 
 using NorthwoodLib.Pools;
 
@@ -30,6 +32,10 @@ namespace SecretLabAPI.Actions
     {
         private static Dictionary<string, List<string>> config = new();
 
+        private static ReusableValue<List<CompiledAction>> pool = new(new(1),
+            () => ListPool<CompiledAction>.Shared.Rent(1), null,
+            list => ListPool<CompiledAction>.Shared.Return(list));
+
         /// <summary>
         /// A dictionary that groups and maps specific event names to corresponding lists of compiled actions
         /// that are triggered when the associated event is executed.
@@ -46,14 +52,16 @@ namespace SecretLabAPI.Actions
         
         private static void OnExecuted(Type type, object args)
         {
-            if (Triggers.TryGetValue(type.Name, out var actions))
+            if (Triggers.Count > 0 && Triggers.TryGetValue(type.Name, out var actions))
             {
-                var list = ListPool<CompiledAction>.Shared.Rent();
+                var list = pool.Rent();
 
                 var context = new ActionContext(list,
                     args is IPlayerEvent { Player: ExPlayer player }
                         ? player
                         : null);
+                
+                if (list.Count > 0) list.Clear();
                 
                 try
                 {
@@ -82,7 +90,7 @@ namespace SecretLabAPI.Actions
 
                 context.Dispose();
                 
-                ListPool<CompiledAction>.Shared.Return(list);
+                pool.Return(list);
             }
         }
 

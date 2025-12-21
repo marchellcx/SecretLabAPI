@@ -119,14 +119,14 @@ namespace SecretLabAPI.RandomEvents.Features.ItsRainingCoins
         {
             if (isJoined)
             {
-                player.SendAlert(AlertType.Info, 15f,
+                player.SendAlert(AlertType.Info, 15f, "Náhodné Eventy",
                     $"<b>Na serveru aktuálně probíhá event <color=red>Život na žida</color></b>\n" +
                     $"<b>Každých <color=yellow>{CurrentDelay / 1000} sekund</color> se spawne nad každým živím hráčem <color=yellow>{CurrentCount}</color> coinů.</b>",
                     true);
             }
             else
             {
-                player.SendAlert(AlertType.Info, 15f,
+                player.SendAlert(AlertType.Info, 15f, "Náhodné Eventy",
                     $"<b>Začal event <color=red>Život na žida</color></b>\n" +
                     $"<b>Každých <color=yellow>{CurrentDelay / 1000} sekund</color> se spawne nad každým živím hráčem <color=yellow>{CurrentCount}</color> coinů!</b>",
                     true);

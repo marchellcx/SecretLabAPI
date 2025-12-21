@@ -2,7 +2,9 @@
 
 using LabExtended.API.Custom.Items;
 using LabExtended.API.Custom.Items.Events;
+
 using SecretLabAPI.Elements.Alerts;
+
 using System.ComponentModel;
 
 namespace SecretLabAPI.Items.Weapons
@@ -43,7 +45,7 @@ namespace SecretLabAPI.Items.Weapons
         {
             base.OnItemAdded(args);
 
-            args.Player.SendAlert(AlertType.Info, 10f,
+            args.Player.SendAlert(AlertType.Info, 10f, "Custom Items",
                 $"Dostal si <color=red>Airsoft Gun</color>!\n" +
                 $"Tato zbraň dává damage <color=yellow>5 HP</color> při <b>každé</b> ráně!");
         }

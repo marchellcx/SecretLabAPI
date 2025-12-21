@@ -1,10 +1,11 @@
-﻿using LabExtended.API.Containers;
+﻿using LabExtended.API;
+using LabExtended.API.Containers;
 using LabExtended.API.Custom.Items;
 using LabExtended.API.Hints;
 
 using LabExtended.Core;
 using LabExtended.Extensions;
-
+using MapGeneration;
 using PlayerRoles;
 
 using SecretLabAPI.Actions.API;
@@ -59,7 +60,7 @@ namespace SecretLabAPI.Actions.Functions
             var volume = context.GetValue<float>(1);
             var personal = context.GetValue<bool>(2);
 
-            context.Player.PlayClip(name, volume, personal);
+            context.Player?.PlayClip(name, volume, personal);
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -75,7 +76,7 @@ namespace SecretLabAPI.Actions.Functions
         [Action("StopClip", "Stops any playing audio clips.")]
         public static ActionResultFlags StopClip(ref ActionContext context)
         {
-            context.Player.StopClip(out _);
+            context.Player?.StopClip(out _);
             return ActionResultFlags.SuccessDispose;
         }
         
@@ -114,14 +115,18 @@ namespace SecretLabAPI.Actions.Functions
                 };
             });
 
-            var type = context.GetValue<ItemType>(0);
-            var amount = context.GetValue<int>(1);
-            var reason = context.GetValue(2);
-            var effect = context.GetValue<bool>(3);
-            var killPlayer = context.GetValue<bool>(4);
-            var velocity = context.GetValue<float>(5);
+            if (context.Player?.ReferenceHub != null)
+            {
+                var type = context.GetValue<ItemType>(0);
+                var amount = context.GetValue<int>(1);
+                var reason = context.GetValue(2);
+                var effect = context.GetValue<bool>(3);
+                var killPlayer = context.GetValue<bool>(4);
+                var velocity = context.GetValue<float>(5);
 
-            context.Player.Explode(amount, type, reason, effect, killPlayer, velocity);
+                context.Player.Explode(amount, type, reason, effect, killPlayer, velocity);
+            }
+
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -153,34 +158,37 @@ namespace SecretLabAPI.Actions.Functions
                 };
             });
 
-            var item = context.GetValue(0);
-            var amount = context.GetValue<int>(1);
-            var p = context.Player;
-
-            if (Enum.TryParse<ItemType>(item, true, out var itemType))
+            if (context.Player?.ReferenceHub != null)
             {
-                if (itemType.IsAmmo())
+                var item = context.GetValue(0);
+                var amount = context.GetValue<int>(1);
+                var p = context.Player;
+
+                if (Enum.TryParse<ItemType>(item, true, out var itemType))
                 {
-                    p.Ammo.AddAmmo(itemType, (ushort)amount);
+                    if (itemType.IsAmmo())
+                    {
+                        p.Ammo.AddAmmo(itemType, (ushort)amount);
+                    }
+                    else
+                    {
+                        for (var i = 0; i < amount; i++)
+                        {
+                            p.Inventory.AddItem(itemType);
+                        }
+                    }
                 }
-                else
+                else if (CustomItem.TryGet(item, out var customItem))
                 {
                     for (var i = 0; i < amount; i++)
                     {
-                        p.Inventory.AddItem(itemType);
+                        customItem.AddItem(p);
                     }
                 }
-            }
-            else if (CustomItem.TryGet(item, out var customItem))
-            {
-                for (var i = 0; i < amount; i++)
+                else
                 {
-                    customItem.AddItem(p);
+                    ApiLog.Error("ActionManager", $"&6[AddItem]&r Item &3{item}&r could not be parsed!");
                 }
-            }
-            else
-            {
-                ApiLog.Error("ActionManager", $"&6[AddItem]&r Item &3{item}&r could not be parsed!");
             }
 
             return ActionResultFlags.SuccessDispose;
@@ -201,80 +209,92 @@ namespace SecretLabAPI.Actions.Functions
         [ActionParameter("List", "The list of items to add (formatted as 'ItemTypeOrCustomItemID:Amount,Item2:Amount2,Item3:Amount3')")]
         public static ActionResultFlags AddItems(ref ActionContext context)
         {
-            context.EnsureCompiled((index, p) => p.EnsureCompiled(string.Empty));
+            context.EnsureCompiled((_, p) => p.EnsureCompiled(string.Empty));
 
-            var str = context.GetValue(0);
-
-            var items = context.GetMetadata<List<(ItemType BaseItem, CustomItem? CustomItem, int Amount)>>("ParsedItems", () =>
+            if (context.Player?.ReferenceHub != null)
             {
-                var list = new List<(ItemType, CustomItem?, int)>();
-                var array = str.SplitEscaped(',');
+                var str = context.GetValue(0);
 
-                foreach (var item in array)
-                {
-                    var parts = item.SplitEscaped(':');
-
-                    if (parts.Length != 2)
+                var items = context.GetMetadata<List<(ItemType BaseItem, CustomItem? CustomItem, int Amount)>>(
+                    "ParsedItems", () =>
                     {
-                        if (parts.Length == 1)
-                            parts = [parts[0], "1"];
+                        var list = new List<(ItemType, CustomItem?, int)>();
+                        var array = str.SplitEscaped(',');
 
-                        ApiLog.Warn("ActionManager", $"[&6AddItems&r] Invalid formatting: &3{item}&r");
-                        continue;
-                    }
-
-                    var itemPart = parts[0];
-                    var amountPart = parts[1];
-
-                    if (!int.TryParse(amountPart, out var amount))
-                    {
-                        ApiLog.Warn("ActionManager", $"[&6AddItems&r] Invalid formatting: &3{item}&r (amount could not be parsed)");
-                        continue;
-                    }
-
-                    if (amount < 1)
-                    {
-                        ApiLog.Warn("ActionManager", $"[&6AddItems&r] Invalid formatting: &3{item}&r (amount is less than one)");
-                        continue;
-                    }
-
-                    if (Enum.TryParse<ItemType>(itemPart, true, out var itemType))
-                    {
-                        if (itemType != ItemType.None)
+                        foreach (var item in array)
                         {
-                            list.Add((itemType, null, amount));
+                            var parts = item.SplitEscaped(':');
+
+                            if (parts.Length != 2)
+                            {
+                                if (parts.Length == 1)
+                                {
+                                    parts = [parts[0], "1"];
+                                }
+                                else
+                                {
+                                    ApiLog.Warn("ActionManager", $"[&6AddItems&r] Invalid formatting: &3{item}&r");
+                                    continue;
+                                }
+                            }
+
+                            var itemPart = parts[0];
+                            var amountPart = parts[1];
+
+                            if (!int.TryParse(amountPart, out var amount))
+                            {
+                                ApiLog.Warn("ActionManager",
+                                    $"[&6AddItems&r] Invalid formatting: &3{item}&r (amount could not be parsed)");
+                                continue;
+                            }
+
+                            if (amount < 1)
+                            {
+                                ApiLog.Warn("ActionManager",
+                                    $"[&6AddItems&r] Invalid formatting: &3{item}&r (amount is less than one)");
+                                continue;
+                            }
+
+                            if (Enum.TryParse<ItemType>(itemPart, true, out var itemType))
+                            {
+                                if (itemType != ItemType.None)
+                                {
+                                    list.Add((itemType, null, amount));
+                                }
+                                else
+                                {
+                                    ApiLog.Warn("ActionManager",
+                                        $"[&6AddItems&r] Invalid formatting: &3{item}&r (item type cannot be None)");
+                                }
+                            }
+                            else if (CustomItem.TryGet(itemPart, out var customItem))
+                            {
+                                list.Add((ItemType.None, customItem, amount));
+                            }
+                            else
+                            {
+                                ApiLog.Warn("ActionManager",
+                                    $"[&6AddItems&r] Invalid formatting: &3{item}&r (item could not be parsed and no custom items were found)");
+                            }
+                        }
+
+                        return list;
+                    });
+
+                var p = context.Player;
+
+                foreach (var item in items)
+                {
+                    for (var i = 0; i < item.Amount; i++)
+                    {
+                        if (item.CustomItem != null)
+                        {
+                            item.CustomItem.AddItem(p);
                         }
                         else
                         {
-                            ApiLog.Warn("ActionManager", $"[&6AddItems&r] Invalid formatting: &3{item}&r (item type cannot be None)");
+                            p.Inventory.AddItem(item.BaseItem);
                         }
-                    }
-                    else if (CustomItem.TryGet(itemPart, out var customItem))
-                    {
-                        list.Add((ItemType.None, customItem, amount));
-                    }
-                    else
-                    {
-                        ApiLog.Warn("ActionManager", $"[&6AddItems&r] Invalid formatting: &3{item}&r (item could not be parsed and no custom items were found)");
-                    }
-                }
-
-                return list;
-            });
-
-            var p = context.Player;
-
-            foreach (var item in items)
-            {
-                for (var i = 0; i < item.Amount; i++)
-                {
-                    if (item.CustomItem != null)
-                    {
-                        item.CustomItem.AddItem(p);
-                    }
-                    else
-                    {
-                        p.Inventory.AddItem(item.BaseItem);
                     }
                 }
             }
@@ -296,20 +316,23 @@ namespace SecretLabAPI.Actions.Functions
         [ActionParameter("Ammo", "Whether or not to clear ammo.")]
         public static ActionResultFlags ClearInventory(ref ActionContext context)
         {
-            context.EnsureCompiled((index, p) => p.EnsureCompiled<bool>(bool.TryParse, true));
+            context.EnsureCompiled((_, p) => p.EnsureCompiled(bool.TryParse, true));
 
-            var items = context.GetValue<bool>(0);
-            var ammo = context.GetValue<bool>(1);
-            var p = context.Player;
+            if (context.Player?.ReferenceHub != null)
+            {
+                var items = context.GetValue<bool>(0);
+                var ammo = context.GetValue<bool>(1);
+                var p = context.Player;
 
-            if (items)
-                p.Inventory.Clear();
+                if (items)
+                    p.Inventory.Clear();
 
-            if (!ammo) 
-                return ActionResultFlags.SuccessDispose;
-            
-            p.Ammo.ClearAmmo();
-            p.Ammo.ClearCustomAmmo();
+                if (!ammo)
+                    return ActionResultFlags.SuccessDispose;
+
+                p.Ammo.ClearAmmo();
+                p.Ammo.ClearCustomAmmo();
+            }
 
             return ActionResultFlags.SuccessDispose;
         }
@@ -340,40 +363,43 @@ namespace SecretLabAPI.Actions.Functions
                 };
             });
 
-            var type = context.GetValue<ItemType>(0);
-            var amount = context.GetValue<int>(1);
-            var p = context.Player;
-
-            if (amount <= 1)
+            if (context.Player?.ReferenceHub != null)
             {
-                if (type != ItemType.None)
+                var type = context.GetValue<ItemType>(0);
+                var amount = context.GetValue<int>(1);
+                var p = context.Player;
+
+                if (amount <= 1)
                 {
-                    if (p.Inventory.Items.TryGetFirst(x => x.ItemTypeId == type, out var targetItem))
+                    if (type != ItemType.None)
                     {
-                        p.Inventory.RemoveItem(targetItem);
+                        if (p.Inventory.Items.TryGetFirst(x => x.ItemTypeId == type, out var targetItem))
+                        {
+                            p.Inventory.RemoveItem(targetItem);
+                        }
+                    }
+                    else
+                    {
+                        if (p.Inventory.ItemCount > 0)
+                        {
+                            p.Inventory.RemoveItem(p.Inventory.Items.First());
+                        }
                     }
                 }
                 else
                 {
-                    if (p.Inventory.ItemCount > 0)
+                    if (type != ItemType.None)
                     {
-                        p.Inventory.RemoveItem(p.Inventory.Items.First());
+                        p.Inventory.RemoveItems(type, amount);
                     }
-                }
-            }
-            else
-            {
-                if (type != ItemType.None)
-                {
-                    p.Inventory.RemoveItems(type, amount);
-                }
-                else
-                {
-                    amount = Mathf.Min(amount, p.Inventory.ItemCount);
+                    else
+                    {
+                        amount = Mathf.Min(amount, p.Inventory.ItemCount);
 
-                    var items = p.Inventory.Items.Take(amount);
+                        var items = p.Inventory.Items.Take(amount);
 
-                    items.ToList().ForEach(item => p.Inventory.RemoveItem(item));
+                        items.ToList().ForEach(item => p.Inventory.RemoveItem(item));
+                    }
                 }
             }
 
@@ -406,41 +432,45 @@ namespace SecretLabAPI.Actions.Functions
                 };
             });
 
-            var type = context.GetValue<ItemType>(0);
-            var amount = context.GetValue<int>(1);
-            var player = context.Player;
-
-            if (amount <= 1)
+            if (context.Player?.ReferenceHub != null)
             {
-                if (type != ItemType.None)
+                var type = context.GetValue<ItemType>(0);
+                var amount = context.GetValue<int>(1);
+                var player = context.Player;
+
+                if (amount <= 1)
                 {
-                    if (context.Player.Inventory.Items.TryGetFirst(x => x.ItemTypeId == type, out var targetItem))
+                    if (type != ItemType.None)
                     {
-                        context.Player.Inventory.DropItem(targetItem);
+                        if (context.Player.Inventory.Items.TryGetFirst(x => x.ItemTypeId == type, out var targetItem))
+                        {
+                            context.Player.Inventory.DropItem(targetItem);
+                        }
+                    }
+                    else
+                    {
+                        if (context.Player.Inventory.ItemCount > 0)
+                        {
+                            context.Player.Inventory.DropItem(context.Player.Inventory.Items.First());
+                        }
                     }
                 }
                 else
                 {
-                    if (context.Player.Inventory.ItemCount > 0)
+                    if (type != ItemType.None)
                     {
-                        context.Player.Inventory.DropItem(context.Player.Inventory.Items.First());
+                        var count = context.Player.Inventory.Items.Count(x => x.ItemTypeId == type);
+                        var items = context.Player.Inventory.Items.Where(x => x.ItemTypeId == type)
+                            .Take(Mathf.Min(amount, count));
+
+                        items.ToList().ForEach(item => player.Inventory.DropItem(item));
                     }
-                }
-            }
-            else
-            {
-                if (type != ItemType.None)
-                {
-                    var count = context.Player.Inventory.Items.Count(x => x.ItemTypeId == type);
-                    var items = context.Player.Inventory.Items.Where(x => x.ItemTypeId == type).Take(Mathf.Min(amount, count));
+                    else
+                    {
+                        var items = player.Inventory.Items.Take(amount);
 
-                    items.ToList().ForEach(item => player.Inventory.DropItem(item));
-                }
-                else
-                {
-                    var items = player.Inventory.Items.Take(amount);
-
-                    items.ToList().ForEach(item => player.Inventory.DropItem(item));
+                        items.ToList().ForEach(item => player.Inventory.DropItem(item));
+                    }
                 }
             }
 
@@ -456,7 +486,7 @@ namespace SecretLabAPI.Actions.Functions
         [Action("DropHeldItem", "Drops the currently held item from a player's inventory.")]
         public static ActionResultFlags DropHeldItem(ref ActionContext context)
         {
-            context.Player.Inventory.DropHeldItem();
+            context.Player?.Inventory.DropHeldItem();
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -469,7 +499,7 @@ namespace SecretLabAPI.Actions.Functions
         [Action("RemoveHeldItem", "Removes the currently held item from the player's inventory.")]
         public static ActionResultFlags RemoveHeldItem(ref ActionContext context)
         {
-            context.Player.Inventory.RemoveHeldItem();
+            context.Player?.Inventory.RemoveHeldItem();
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -489,7 +519,7 @@ namespace SecretLabAPI.Actions.Functions
             
             var reason = context.GetValue(0);
 
-            context.Player.Kill(reason);
+            context.Player?.Kill(reason);
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -517,17 +547,20 @@ namespace SecretLabAPI.Actions.Functions
                     _ => false
                 };
             });
-            
-            var value = context.GetValue<int>(0);
-            var isPercentage = context.GetValue<bool>(1);
 
-            if (isPercentage)
-                context.Player.Health -= (context.Player.MaxHealth * value) / 100;
-            else
-                context.Player.Health -= value;
+            if (context.Player?.ReferenceHub != null)
+            {
+                var value = context.GetValue<int>(0);
+                var isPercentage = context.GetValue<bool>(1);
 
-            if (context.Player.Health <= 0)
-                context.Player.Kill();
+                if (isPercentage)
+                    context.Player.Health -= (context.Player.MaxHealth * value) / 100;
+                else
+                    context.Player.Health -= value;
+
+                if (context.Player.Health <= 0)
+                    context.Player.Kill();
+            }
 
             return ActionResultFlags.SuccessDispose;
         }
@@ -561,21 +594,24 @@ namespace SecretLabAPI.Actions.Functions
                     _ => false
                 };
             });
-            
-            var value = context.GetValue<int>(0);
-            var isPercentage = context.GetValue<bool>(1);
-            var setMaxHealth = context.GetValue<bool>(2);
-            var allowOverflow = context.GetValue<bool>(3);
 
-            if (isPercentage)
-                context.Player.Health += (context.Player.MaxHealth * value) / 100;
-            else
-                context.Player.Health += value;
+            if (context.Player?.ReferenceHub != null)
+            {
+                var value = context.GetValue<int>(0);
+                var isPercentage = context.GetValue<bool>(1);
+                var setMaxHealth = context.GetValue<bool>(2);
+                var allowOverflow = context.GetValue<bool>(3);
 
-            if (setMaxHealth && context.Player.Health > context.Player.MaxHealth)
-                context.Player.MaxHealth = context.Player.Health;
-            else if (!allowOverflow && context.Player.Health > context.Player.MaxHealth)
-                context.Player.Health = context.Player.MaxHealth;
+                if (isPercentage)
+                    context.Player.Health += (context.Player.MaxHealth * value) / 100;
+                else
+                    context.Player.Health += value;
+
+                if (setMaxHealth && context.Player.Health > context.Player.MaxHealth)
+                    context.Player.MaxHealth = context.Player.Health;
+                else if (!allowOverflow && context.Player.Health > context.Player.MaxHealth)
+                    context.Player.Health = context.Player.MaxHealth;
+            }
 
             return ActionResultFlags.SuccessDispose;
         }
@@ -607,14 +643,17 @@ namespace SecretLabAPI.Actions.Functions
                     _ => false
                 };
             });
-            
-            var health = context.GetValue<float>(0);
-            var setMax = context.GetValue<bool>(1);
 
-            context.Player.Health = health;
+            if (context.Player?.ReferenceHub != null)
+            {
+                var health = context.GetValue<float>(0);
+                var setMax = context.GetValue<bool>(1);
 
-            if (setMax)
-                context.Player.MaxHealth = health;
+                context.Player.Health = health;
+
+                if (setMax)
+                    context.Player.MaxHealth = health;
+            }
 
             return ActionResultFlags.SuccessDispose;
         }
@@ -645,14 +684,17 @@ namespace SecretLabAPI.Actions.Functions
                     _ => false
                 };
             });
-            
-            var health = context.GetValue<float>(0);
-            var setMax = context.GetValue<bool>(1);
 
-            context.Player.MaxHealth = health;
+            if (context.Player?.ReferenceHub != null)
+            {
+                var health = context.GetValue<float>(0);
+                var setMax = context.GetValue<bool>(1);
 
-            if (setMax)
-                context.Player.Health = health;
+                context.Player.MaxHealth = health;
+
+                if (setMax)
+                    context.Player.Health = health;
+            }
 
             return ActionResultFlags.SuccessDispose;
         }
@@ -677,7 +719,9 @@ namespace SecretLabAPI.Actions.Functions
             
             var scale = context.GetValue<Vector3>(0);
 
-            context.Player.Scale = scale;
+            if (context.Player?.ReferenceHub != null)
+                context.Player.Scale = scale;
+            
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -697,7 +741,9 @@ namespace SecretLabAPI.Actions.Functions
             
             var pitch = context.GetValue<float>(0);
 
-            context.Player.VoicePitch = pitch;
+            if (context.Player != null)
+                context.Player.VoicePitch = pitch;
+            
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -719,7 +765,9 @@ namespace SecretLabAPI.Actions.Functions
             
             var gravity = context.GetValue<Vector3>(0);
 
-            context.Player.Gravity = gravity;
+            if (context.Player?.ReferenceHub != null)
+                context.Player.Gravity = gravity;
+            
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -732,7 +780,9 @@ namespace SecretLabAPI.Actions.Functions
         [Action("ResetGravity", "Resets a player's gravity to the default value.")]
         public static ActionResultFlags ResetGravity(ref ActionContext context)
         {
-            context.Player.Gravity = PositionContainer.DefaultGravity;
+            if (context.Player?.ReferenceHub != null)
+                context.Player.Gravity = PositionContainer.DefaultGravity;
+            
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -764,7 +814,7 @@ namespace SecretLabAPI.Actions.Functions
             var flyDirection = context.GetValue<Vector3>(0);
             var overrideGodMode = context.GetValue<bool>(1);
 
-            context.Player.Disintegrate(flyDirection, overrideGodMode);
+            context.Player?.Disintegrate(flyDirection, overrideGodMode);
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -797,7 +847,7 @@ namespace SecretLabAPI.Actions.Functions
             var type = context.GetValue<RoleTypeId>(0);
             var flags = context.GetValue<RoleSpawnFlags>(1);
             
-            context.Player.Role.Set(type, RoleChangeReason.RemoteAdmin, flags);
+            context.Player?.Role.Set(type, RoleChangeReason.RemoteAdmin, flags);
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -810,7 +860,7 @@ namespace SecretLabAPI.Actions.Functions
         [Action("ClearBroadcasts", "Clears the player's broadcast queue.")]
         public static ActionResultFlags ClearBroadcasts(ref ActionContext context)
         {
-            context.Player.ClearBroadcasts();
+            context.Player?.ClearBroadcasts();
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -844,7 +894,7 @@ namespace SecretLabAPI.Actions.Functions
             var msg = context.GetValue(0);
             var duration = context.GetValue<ushort>(1);
 
-            context.Player.SendBroadcast(msg, duration);
+            context.Player?.SendBroadcast(msg, duration);
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -881,7 +931,7 @@ namespace SecretLabAPI.Actions.Functions
             var duration = context.GetValue<ushort>(1);
             var priority = context.GetValue<bool>(2);
 
-            context.Player.ShowHint(msg, duration, priority);
+            context.Player?.ShowHint(msg, duration, priority);
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -898,7 +948,9 @@ namespace SecretLabAPI.Actions.Functions
         [Action("Alert", "Sends an alert hint to the player.")]
         [ActionParameter("Type", "The type of the alert (Info / Warn).")]
         [ActionParameter("Duration", "The duration of the alert (in seconds).")]
+        [ActionParameter("Title", "The title of the alert.")]
         [ActionParameter("Message", "The content of the alert.")]
+        [ActionParameter("Override", "Whether or not the current alert should be overriden.")]
         public static ActionResultFlags Alert(ref ActionContext context)
         {
             context.EnsureCompiled((index, p) =>
@@ -908,20 +960,48 @@ namespace SecretLabAPI.Actions.Functions
                     0 => p.EnsureCompiled(Enum.TryParse, AlertType.Info),
                     1 => p.EnsureCompiled(float.TryParse, 5f),
                     2 => p.EnsureCompiled(string.Empty),
+                    3 => p.EnsureCompiled(string.Empty),
+                    4 => p.EnsureCompiled(bool.TryParse, true),
 
                     _ => false
                 };
             });
-            
-            var type = context.GetValue<AlertType>(0);
-            var duration = context.GetValue<float>(1);
-            var msg = context.GetValue(2);
 
-            if (duration <= 0f || string.IsNullOrEmpty(msg) || context.Player == null)
+            if (context.Player?.ReferenceHub != null)
+            {
+                var type = context.GetValue<AlertType>(0);
+                var duration = context.GetValue<float>(1);
+                var title = context.GetValue(2);
+                var msg = context.GetValue(3);
+                var overrideCurrent = context.GetValue<bool>(4);
+
+                if (duration <= 0f || string.IsNullOrEmpty(msg) || context.Player == null)
+                    return ActionResultFlags.SuccessDispose;
+
+                context.Player.SendAlert(type, duration, title, msg, overrideCurrent);
                 return ActionResultFlags.SuccessDispose;
-            
-            context.Player.SendAlert(type, duration, msg, true);
-            return ActionResultFlags.SuccessDispose;
+            }
+
+            return ActionResultFlags.StopDispose;
+        }
+
+        public static ActionResultFlags TpToRoom(ref ActionContext context)
+        {
+            var room = context.GetValue<RoomIdentifier>(0);
+
+            if (room == null)
+            {
+                ApiLog.Warn("Actions :: TpToRoom", "A null room was provided");
+                return ActionResultFlags.StopDispose;
+            }
+
+            if (context.Player?.ReferenceHub != null && context.Player.IsAlive)
+            {
+                context.Player.Position.Position = room.WorldspaceBounds.center;
+                return ActionResultFlags.SuccessDispose;
+            }
+
+            return ActionResultFlags.StopDispose;
         }
     }
 }

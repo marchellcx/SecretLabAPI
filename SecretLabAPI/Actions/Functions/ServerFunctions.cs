@@ -40,7 +40,7 @@ namespace SecretLabAPI.Actions.Functions
             var reason = context.GetValue(0);
             var duration = context.GetValue<long>(1);
 
-            context.Player.Ban(reason, duration);
+            context.Player?.Ban(reason, duration);
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -68,7 +68,7 @@ namespace SecretLabAPI.Actions.Functions
 
             var reason = context.GetValue(0);
 
-            context.Player.Kick(reason);
+            context.Player?.Kick(reason);
             return ActionResultFlags.SuccessDispose;
         }
 

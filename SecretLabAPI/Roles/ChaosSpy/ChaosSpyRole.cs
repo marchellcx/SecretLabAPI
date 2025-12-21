@@ -98,8 +98,8 @@ namespace SecretLabAPI.Roles.ChaosSpy
             {
                 chaosSpyData.IsInCooldown = false;
 
-                player.SendAlert(AlertType.Info, 5f,
-                    $"<b>Tvůj převlek je znova <color=green>aktivní</color>!</b>", true);
+                player.SendAlert(AlertType.Info, 5f, "Chaos Spy",
+                    "<b>Tvůj převlek je znova <color=green>aktivní</color>!</b>", true);
             }
         }
 
@@ -116,10 +116,10 @@ namespace SecretLabAPI.Roles.ChaosSpy
         {
             base.OnSpawned(player, ref data);
 
-            player.SendAlert(AlertType.Info, 10f, $"" +
-                $"<b>Jsi <color=green>Chaos Spy</color>!</b>\n" +
-                $"<b>Dodržuj stejná pravidla jako normální <color=green>Chaos Insurgent</color>!</b>\n" +
-                $"<b>Budeš odhalen jakmile střelíš do enemy týmu (<color=yellow>Scientist</color>, <color=blue>MTF</color>)</b>");
+            player.SendAlert(AlertType.Info, 10f, "Chaos Spy", $"" +
+                                                              $"<b>Jsi <color=green>Chaos Spy</color>!</b>\n" +
+                                                              $"<b>Dodržuj stejná pravidla jako normální <color=green>Chaos Insurgent</color>!</b>\n" +
+                                                              $"<b>Budeš odhalen jakmile střelíš do enemy týmu (<color=yellow>Scientist</color>, <color=blue>MTF</color>)</b>");
 
             ExPlayer.Players.ForEach(ply =>
             {
@@ -129,7 +129,7 @@ namespace SecretLabAPI.Roles.ChaosSpy
                 if (ply == player)
                     return;
 
-                ply.SendAlert(AlertType.Info, 10f, 
+                ply.SendAlert(AlertType.Info, 10f, "Chaos Spy",
                     $"<b>Hráč <color=red>{player.Nickname}</color> se spawnul jako <color=green>Chaos Spy</color>!</b>", true);
             });
         }
@@ -160,7 +160,7 @@ namespace SecretLabAPI.Roles.ChaosSpy
             chaosSpyData.CooldownEndTime = Time.realtimeSinceStartup + DisguiseCoooldown;
             chaosSpyData.IsInCooldown = true;
 
-            attacker.SendAlert(AlertType.Info, 10f,
+            attacker.SendAlert(AlertType.Info, 10f, "Chaos Spy",
                 $"<b>Tvůj převlek byl odhalen! Znovu aktivní bude za <color=yellow>{DisguiseCoooldown} sekund</color>!</b>", true);
         }
 
@@ -175,7 +175,7 @@ namespace SecretLabAPI.Roles.ChaosSpy
             if (args.Player is not ExPlayer target)
                 return;
 
-            target.SendAlert(AlertType.Info, 10f,
+            target.SendAlert(AlertType.Info, 10f, "Chaos Spy",
                 $"<b>Zabil tě hráč <color=red>{attacker.Nickname}</color> jako <color=green>Chaos Spy</color>!</b>", true);
         }
 
@@ -217,7 +217,8 @@ namespace SecretLabAPI.Roles.ChaosSpy
 
                     args.Players.ForEach(x =>
                     {
-                        ((ExPlayer)x).SendAlert(AlertType.Info, 10f, $"<b>Hráč <color=red>{ply.Nickname}</color> je <color=green>Chaos Spy</color>!</b>", true);
+                        ((ExPlayer)x).SendAlert(AlertType.Info, 10f, "Chaos Spy", 
+                            $"<b>Hráč <color=red>{ply.Nickname}</color> je <color=green>Chaos Spy</color>!</b>", true);
                     });
                 });
             }

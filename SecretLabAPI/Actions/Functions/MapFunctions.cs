@@ -87,9 +87,13 @@ namespace SecretLabAPI.Actions.Functions
                 };
             });
 
-            var type = context.GetValue<ExplosionType>(0);
+            if (context.Player?.ReferenceHub != null)
+            {
+                var type = context.GetValue<ExplosionType>(0);
 
-            ExplosionUtils.ServerExplode(context.Player.ReferenceHub, type);
+                ExplosionUtils.ServerExplode(context.Player.ReferenceHub, type);
+            }
+
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -123,15 +127,18 @@ namespace SecretLabAPI.Actions.Functions
                 };
             });
 
-            var type = context.GetValue<ItemType>(0);
-            var amount = context.GetValue<int>(1);
-            var scale = context.GetValue<Vector3>(2);
+            if (context.Player?.ReferenceHub != null)
+            {
+                var type = context.GetValue<ItemType>(0);
+                var amount = context.GetValue<int>(1);
+                var scale = context.GetValue<Vector3>(2);
 
-            if (type is ItemType.None || amount <= 0)
-                return ActionResultFlags.SuccessDispose;
+                if (type is ItemType.None || amount <= 0)
+                    return ActionResultFlags.SuccessDispose;
 
-            for (var i = 0; i < amount; i++)
-                ExMap.SpawnItem(type, context.Player.Position, scale, context.Player.Rotation);
+                for (var i = 0; i < amount; i++)
+                    ExMap.SpawnItem(type, context.Player.Position, scale, context.Player.Rotation);
+            }
 
             return ActionResultFlags.SuccessDispose;
         }
@@ -169,15 +176,19 @@ namespace SecretLabAPI.Actions.Functions
                 };
             });
 
-            var type = context.GetValue<ItemType>(0);
-            var amount = context.GetValue<int>(1);
-            var force = context.GetValue<float>(2);
-            var fuse = context.GetValue<float>(3);
-            var velocity = context.GetValue<float>(4);
-            var vectorVelocity = context.Player.MultipliedVelocity(velocity);
+            if (context.Player?.ReferenceHub != null)
+            {
+                var type = context.GetValue<ItemType>(0);
+                var amount = context.GetValue<int>(1);
+                var force = context.GetValue<float>(2);
+                var fuse = context.GetValue<float>(3);
+                var velocity = context.GetValue<float>(4);
+                var vectorVelocity = context.Player.MultipliedVelocity(velocity);
 
-            for (var i = 0; i < amount; i++)
-                ExMap.SpawnProjectile(type, context.Player.Position, Vector3.one, vectorVelocity, context.Player.Rotation, force, fuse);
+                for (var i = 0; i < amount; i++)
+                    ExMap.SpawnProjectile(type, context.Player.Position, Vector3.one, vectorVelocity,
+                        context.Player.Rotation, force, fuse);
+            }
 
             return ActionResultFlags.SuccessDispose;
         }

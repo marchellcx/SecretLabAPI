@@ -63,7 +63,7 @@ namespace SecretLabAPI.Items.Weapons
         {
             base.OnItemAdded(args);
 
-            args.Player.SendAlert(AlertType.Info, 10f,
+            args.Player.SendAlert(AlertType.Info, 10f, "Custom Items",
                 "Dostal si <color=red>Sniper Rifle</color>!\n" +
                 "Tato zbraň dává damage <color=yellow>250 HP</color> při <b>každé</b> ráně!");
         }

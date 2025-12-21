@@ -4,6 +4,7 @@ using LabExtended.API.Custom.Roles;
 using LabExtended.Extensions;
 
 using PlayerRoles;
+
 using SecretLabAPI.Elements.Alerts;
 using SecretLabAPI.Utilities.Roles;
 
@@ -102,7 +103,7 @@ namespace SecretLabAPI.Roles.Misc
             base.OnSpawned(player, ref data);
 
             player.Position.Position = RoleTypeId.Scientist.GetSpawnPosition().position;
-            player.SendAlert(AlertType.Info, 10f, "<b>Tvoje role je</b>\n<size=30><color=yellow><b>UKLÍZEČ</b></color></size>!");
+            player.SendAlert(AlertType.Info, 10f, "Custom Role", "<b>Tvoje role je</b>\n<size=30><color=yellow><b>UKLÍZEČ</b></color></size>!");
         }
 
         internal static void Initialize()
