@@ -47,7 +47,7 @@ namespace SecretLabAPI.Items.Weapons
 
             args.Player.SendAlert(AlertType.Info, 10f, "Custom Items",
                 $"Dostal si <color=red>Airsoft Gun</color>!\n" +
-                $"Tato zbraň dává damage <color=yellow>5 HP</color> při <b>každé</b> ráně!");
+                $"Tato zbraň dává damage <color=yellow>5 HP</color> při <b>každé</b> ráně!", false);
         }
 
         internal static void Initialize()

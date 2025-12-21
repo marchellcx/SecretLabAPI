@@ -1,6 +1,7 @@
 ﻿using LabApi.Loader.Features.Paths;
 
 using LabExtended.Core;
+using LabExtended.Extensions;
 
 using SecretLabNAudio.Core;
 using SecretLabNAudio.Core.Pools;
@@ -10,6 +11,7 @@ using SecretLabNAudio.Core.FileReading;
 using UnityEngine;
 
 using NAudio.Wave;
+using NorthwoodLib.Pools;
 
 namespace SecretLabAPI.Audio.Playback
 {
@@ -23,6 +25,110 @@ namespace SecretLabAPI.Audio.Playback
         /// </summary>
         public static Dictionary<string, KeyValuePair<byte[], string>> LoadedClips { get; } = new();
 
+        /// <summary>
+        /// Extracts a list of unique file names from the loaded audio clips, preserving only the last part of each file path.
+        /// </summary>
+        /// <remarks>
+        /// This method processes all keys in the <see cref="LoadedClips"/> dictionary. If a key contains a path with
+        /// a forward slash ('/'), it splits the path and retains only the last segment (i.e., the file name). If no
+        /// slash is found, the entire key is treated as a unique file name. Duplicates are filtered out, and only unique
+        /// file names are returned.
+        /// </remarks>
+        /// <returns>
+        /// An array of unique file names extracted from the keys of the <see cref="LoadedClips"/> dictionary.
+        /// </returns>
+        public static string[] UniqueFiles()
+        {
+            var list = HashSetPool<string>.Shared.Rent();
+
+            foreach (var p in LoadedClips)
+            {
+                if (p.Key.TrySplit('/', true, 2, out var parts))
+                {
+                    list.Add(parts.Last());
+                }
+                else
+                {
+                    list.Add(p.Key);
+                }
+            }
+
+            var array = list.ToArray();
+            
+            HashSetPool<string>.Shared.Return(list);
+            return array;
+        }
+        
+        /// <summary>
+        /// Reloads all audio files from the audio directory into memory and clears previously loaded clips.
+        /// </summary>
+        /// <remarks>
+        /// This method scans the Secret Lab's "audio" directory and its subdirectories for audio files.
+        /// If the directory does not exist, it will be created. All files found, along with their extensions,
+        /// are loaded into the <see cref="LoadedClips"/> dictionary. Both file names with and without extensions
+        /// are stored as keys. Subdirectory organization is preserved in the keys by including the folder name
+        /// in the path where applicable. If the file names are duplicates (including across directories), only
+        /// unique keys are stored. A log message is generated indicating the number of unique files loaded.
+        /// </remarks>
+        /// <exception cref="IOException">Thrown if an error occurs while reading files or directories.</exception>
+        /// <exception cref="UnauthorizedAccessException">Thrown if the application does not have permission to access the file system.</exception>
+        public static void ReloadFiles()
+        {
+            LoadedClips.Clear();
+            
+            var path = Path.Combine(PathManager.SecretLab.FullName, "audio");
+
+            if (!Directory.Exists(path))
+            {
+                ApiLog.Warn("PlaybackUtils", "Audio directory does not exist, creating ..");
+
+                Directory.CreateDirectory(path);
+            }
+
+            var uniqueCount = 0;
+
+            foreach (var file in Directory.GetFiles(path))
+            {
+                var data = File.ReadAllBytes(file);
+                var extension = Path.GetExtension(file);
+
+                var nameExtension = Path.GetFileName(file);
+                var nameNoExtension = Path.GetFileNameWithoutExtension(file);
+
+                if (!LoadedClips.ContainsKey(nameExtension)) LoadedClips.Add(nameExtension, new(data, extension));
+                if (!LoadedClips.ContainsKey(nameNoExtension)) LoadedClips.Add(nameNoExtension, new(data, extension));
+
+                uniqueCount++;
+            }
+
+            foreach (var directory in Directory.GetDirectories(path))
+            {
+                var name = Path.GetFileName(directory);
+
+                foreach (var file in Directory.GetFiles(directory))
+                {
+                    var data = File.ReadAllBytes(file);
+                    var extension = Path.GetExtension(file);
+
+                    var nameExtensionWithDirectory = $"{name}/{Path.GetFileName(file)}";
+                    var nameExtensionWithoutDirectory = Path.GetFileName(file);
+
+                    var nameNoExtensionWithDirectory = Path.GetFileNameWithoutExtension(file);
+                    var nameNoExtensionWithoutDirectory = $"{name}/{Path.GetFileNameWithoutExtension(file)}";
+
+                    if (!LoadedClips.ContainsKey(nameExtensionWithDirectory)) LoadedClips.Add(nameExtensionWithDirectory, new(data, extension));
+                    if (!LoadedClips.ContainsKey(nameExtensionWithoutDirectory)) LoadedClips.Add(nameExtensionWithoutDirectory, new(data, extension));
+
+                    if (!LoadedClips.ContainsKey(nameNoExtensionWithDirectory)) LoadedClips.Add(nameNoExtensionWithDirectory, new(data, extension));
+                    if (!LoadedClips.ContainsKey(nameNoExtensionWithoutDirectory)) LoadedClips.Add(nameNoExtensionWithoutDirectory, new(data, extension));
+
+                    uniqueCount++;
+                }
+            }
+
+            ApiLog.Info("PlaybackUtils", $"Loaded &a{uniqueCount}&r audio clips from &3{path}&r");
+        }
+        
         /// <summary>
         /// Attempts to load an audio clip by its name and create an audio stream and provider.
         /// </summary>
@@ -144,57 +250,7 @@ namespace SecretLabAPI.Audio.Playback
 
         internal static void Initialize()
         {
-            var path = Path.Combine(PathManager.SecretLab.FullName, "audio");
-
-            if (!Directory.Exists(path))
-            {
-                ApiLog.Warn("PlaybackUtils", "Audio directory does not exist, creating ..");
-
-                Directory.CreateDirectory(path);
-            }
-
-            var uniqueCount = 0;
-
-            foreach (var file in Directory.GetFiles(path))
-            {
-                var data = File.ReadAllBytes(file);
-                var extension = Path.GetExtension(file);
-
-                var nameExtension = Path.GetFileName(file);
-                var nameNoExtension = Path.GetFileNameWithoutExtension(file);
-
-                if (!LoadedClips.ContainsKey(nameExtension)) LoadedClips.Add(nameExtension, new(data, extension));
-                if (!LoadedClips.ContainsKey(nameNoExtension)) LoadedClips.Add(nameNoExtension, new(data, extension));
-
-                uniqueCount++;
-            }
-
-            foreach (var directory in Directory.GetDirectories(path))
-            {
-                var name = Path.GetFileName(directory);
-
-                foreach (var file in Directory.GetFiles(directory))
-                {
-                    var data = File.ReadAllBytes(file);
-                    var extension = Path.GetExtension(file);
-
-                    var nameExtensionWithDirectory = $"{name}/{Path.GetFileName(file)}";
-                    var nameExtensionWithoutDirectory = Path.GetFileName(file);
-
-                    var nameNoExtensionWithDirectory = Path.GetFileNameWithoutExtension(file);
-                    var nameNoExtensionWithoutDirectory = $"{name}/{Path.GetFileNameWithoutExtension(file)}";
-
-                    if (!LoadedClips.ContainsKey(nameExtensionWithDirectory)) LoadedClips.Add(nameExtensionWithDirectory, new(data, extension));
-                    if (!LoadedClips.ContainsKey(nameExtensionWithoutDirectory)) LoadedClips.Add(nameExtensionWithoutDirectory, new(data, extension));
-
-                    if (!LoadedClips.ContainsKey(nameNoExtensionWithDirectory)) LoadedClips.Add(nameNoExtensionWithDirectory, new(data, extension));
-                    if (!LoadedClips.ContainsKey(nameNoExtensionWithoutDirectory)) LoadedClips.Add(nameNoExtensionWithoutDirectory, new(data, extension));
-
-                    uniqueCount++;
-                }
-            }
-
-            ApiLog.Info("PlaybackUtils", $"Loaded &a{uniqueCount}&r audio clips from &3{path}&r");
+            ReloadFiles();
         }
     }
 }

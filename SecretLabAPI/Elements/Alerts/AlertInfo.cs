@@ -8,17 +8,17 @@ public class AlertInfo
     /// <summary>
     /// The title of the alert.
     /// </summary>
-    public string Title { get; set; } = "Ｓ E R VＥ R • Z P R Á V A";
+    public string Title { get; set; }
 
     /// <summary>
     /// The content of the alert.
     /// </summary>
-    public string Content { get; set; } = string.Empty;
+    public string Content { get; set; }
 
     /// <summary>
     /// The formatted content of the alert.
     /// </summary>
-    public string FormattedContent { get; set; } = string.Empty;
+    public string? FormattedContent { get; set; }
 
     /// <summary>
     /// The type of the alert.

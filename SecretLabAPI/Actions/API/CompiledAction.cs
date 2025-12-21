@@ -39,6 +39,7 @@
         {
             Action = action;
             Parameters = parameters;
+            OutputVariableName = outputVariable;
         }
     }
 }

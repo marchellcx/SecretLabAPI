@@ -14,6 +14,7 @@ using UnityEngine;
 
 using SecretLabAPI.Levels.Storage;
 using SecretLabAPI.Levels.Events;
+using SecretLabAPI.Levels.Rewards;
 
 namespace SecretLabAPI.Levels
 {
@@ -241,8 +242,8 @@ namespace SecretLabAPI.Levels
             savedLevel.Experience += amount;
 
             LevelEvents.OnChangedExperience(new(savedLevel, userId, reason, changingExperienceArgs.CurrentExp, savedLevel.Experience), changingExperienceArgs.target);
+            
             LevelProgress.CheckProgress(userId, reason, savedLevel);
-
             return true;
         }
 
@@ -270,8 +271,8 @@ namespace SecretLabAPI.Levels
             savedLevel.Experience -= amount;
 
             LevelEvents.OnChangedExperience(new(savedLevel, userId, reason, changingExperienceArgs.CurrentExp, savedLevel.Experience), changingExperienceArgs.target);
+            
             LevelProgress.CheckProgress(userId, reason, savedLevel);
-
             return true;
         }
 
@@ -433,6 +434,8 @@ namespace SecretLabAPI.Levels
 
                 if (SecretLab.Config.LevelsShowInCustomInfo)
                     ExPlayerEvents.RefreshingCustomInfo += BuildingInfo;
+                
+                LevelRewards.InitializeRewards();
             }
         }
     }

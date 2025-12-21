@@ -207,6 +207,88 @@ namespace SecretLabAPI.Extensions
             StringBuilderPool.Shared.Return(currentItem);
             return ListPool<string>.Shared.ToArrayReturn(result);
         }
+        
+                /// <summary>
+        /// Splits the input string into substrings using the specified separator character, ignoring separators that
+        /// appear within double-quoted sections.
+        /// </summary>
+        /// <remarks>Double quotes are used to define quoted sections; separators inside quotes are
+        /// ignored. Escape characters (\) are handled according to <paramref name="preserveEscapeCharInQuotes"/>. This
+        /// method does not support nested or escaped quotes.</remarks>
+        /// <param name="source">The string to split. If <paramref name="source"/> is <see langword="null"/>, an empty array is returned.</param>
+        /// <param name="separator">The character used to separate substrings outside of quoted sections.</param>
+        /// <param name="trimSplits">Indicates whether to trim whitespace from each resulting substring. The default is <see langword="true"/>.</param>
+        /// <param name="ignoreEmptyResults">Indicates whether to exclude empty substrings from the result. The default is <see langword="true"/>.</param>
+        /// <param name="preserveEscapeCharInQuotes">Indicates whether to preserve the escape character (\) when it appears inside quoted sections. The default
+        /// is <see langword="true"/>.</param>
+        /// <returns>An array of substrings split from the input string. Substrings within double quotes are not split, and empty
+        /// results are excluded if <paramref name="ignoreEmptyResults"/> is <see langword="true"/>.</returns>
+        public static string[] SplitOutsideQuotes(this string source, char separator, char quote, bool trimSplits = true, bool ignoreEmptyResults = true, bool preserveEscapeCharInQuotes = true)
+        {
+            if (source == null)
+                return Array.Empty<string>();
+
+            var result = ListPool<string>.Shared.Rent();
+            var currentItem = StringBuilderPool.Shared.Rent();
+
+            var escapeFlag = false;
+            var quotesOpen = false;
+
+            foreach (var currentChar in source)
+            {
+                if (escapeFlag)
+                {
+                    currentItem.Append(currentChar);
+                    escapeFlag = false;
+
+                    continue;
+                }
+
+                if (currentChar == separator && !quotesOpen)
+                {
+                    var currentItemString = trimSplits
+                        ? currentItem.ToString().Trim()
+                        : currentItem.ToString();
+                    
+                    currentItem.Clear();
+
+                    if (string.IsNullOrEmpty(currentItemString) && ignoreEmptyResults)
+                        continue;
+
+                    result.Add(currentItemString);
+                    continue;
+                }
+
+                if (currentChar == '\\')
+                {
+                    if (quotesOpen && preserveEscapeCharInQuotes)
+                        currentItem.Append(currentChar);
+
+                    escapeFlag = true;
+                }
+                else if (currentChar == quote)
+                {
+                    quotesOpen = !quotesOpen;
+                }
+                else
+                {
+                    currentItem.Append(currentChar);
+                }
+            }
+
+            if (escapeFlag)
+                currentItem.Append("\\");
+
+            var lastCurrentItemString = trimSplits
+                ? currentItem.ToString().Trim()
+                : currentItem.ToString();
+
+            if (!(string.IsNullOrEmpty(lastCurrentItemString) && ignoreEmptyResults))
+                result.Add(lastCurrentItemString);
+
+            StringBuilderPool.Shared.Return(currentItem);
+            return ListPool<string>.Shared.ToArrayReturn(result);
+        }
 
         /// <summary>
         /// Splits the input string into substrings using the specified separator characters, ignoring separators that

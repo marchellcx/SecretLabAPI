@@ -1,13 +1,14 @@
-﻿using LabExtended.API;
+﻿using LabExtended.API.Hints;
 using LabExtended.API.Containers;
 using LabExtended.API.Custom.Items;
-using LabExtended.API.Hints;
 
 using LabExtended.Core;
 using LabExtended.Extensions;
+
 using MapGeneration;
+
 using PlayerRoles;
-using PlayerRoles.PlayableScps.Scp106;
+
 using SecretLabAPI.Actions.API;
 using SecretLabAPI.Actions.Enums;
 using SecretLabAPI.Actions.Attributes;
@@ -51,6 +52,7 @@ namespace SecretLabAPI.Actions.Functions
                     0 => p.EnsureCompiled(string.Empty),
                     1 => p.EnsureCompiled(float.TryParse, 1f),
                     2 => p.EnsureCompiled(bool.TryParse, false),
+                    3 => p.EnsureCompiled(float.TryParse, 1f),
                     
                     _ => false
                 };
@@ -59,8 +61,9 @@ namespace SecretLabAPI.Actions.Functions
             var name = context.GetValue(0);
             var volume = context.GetValue<float>(1);
             var personal = context.GetValue<bool>(2);
+            var amplification = context.GetValue<float>(3);
 
-            context.Player?.PlayClip(name, volume, personal);
+            context.Player?.PlayClip(name, volume, amplification, personal);
             return ActionResultFlags.SuccessDispose;
         }
 

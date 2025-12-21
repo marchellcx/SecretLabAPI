@@ -13,15 +13,6 @@ namespace SecretLabAPI.Levels.Storage
         private int experience = 0;
 
         /// <summary>
-        /// Gets a value indicating whether the level progression is capped.
-        /// </summary>
-        /// <remarks>
-        /// The level is considered capped if the required experience is set to -1
-        /// or if the next level exceeds the maximum level cap defined by <see cref="LevelProgress.Cap"/>.
-        /// </remarks>
-        public bool IsCapped => RequiredExperience == -1 || Level + 1 >= LevelProgress.Cap;
-
-        /// <summary>
         /// Gets or sets the current level value.
         /// </summary>
         public byte Level

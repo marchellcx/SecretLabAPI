@@ -1,6 +1,7 @@
 using LabExtended.API;
 using LabExtended.API.Hints;
 
+using LabExtended.Core;
 using LabExtended.Extensions;
 
 using NorthwoodLib.Pools;
@@ -46,65 +47,38 @@ public static class AlertExtensions
     /// The default title.
     /// </summary>
     public const string DefaultTitle = "server zpráva";
-    
+
     /// <summary>
-    /// Sends a new alert to a player.
+    /// Sends an alert to a player.
     /// </summary>
-    /// <param name="player">The player receiving the alert.</param>
-    /// <param name="type">The type of the alert.</param>
-    /// <param name="duration">The duration of the alert (in seconds) - must be at least one.</param>
-    /// <param name="content">The content of the alert.</param>
-    public static void SendAlert(this ExPlayer player, AlertType type, float duration, string? title, string content)
+    /// <param name="player">The player who will receive the alert.</param>
+    /// <param name="type">The type of the alert (e.g., informational or warning).</param>
+    /// <param name="duration">The duration of the alert in seconds. Must be at least 1.</param>
+    /// <param name="title">The title of the alert. If null, a default title is used.</param>
+    /// <param name="content">The content of the alert. Must not be empty or whitespace.</param>
+    /// <param name="overrideCurrent">Indicates whether to clear current alerts and display this one immediately.</param>
+    public static void SendAlert(this ExPlayer player, AlertType type, float duration, string? title, string content,
+        bool overrideCurrent = false)
     {
         if (player?.ReferenceHub == null)
-            return;
+            throw new ArgumentNullException(nameof(player));
 
         if (string.IsNullOrWhiteSpace(content))
-            return;
+            throw new ArgumentNullException(nameof(content));
 
         if (duration < 1f)
-            return;
+            throw new ArgumentOutOfRangeException(nameof(duration));
 
         if (!player.TryGetHintElement<AlertElement>(out var alertElement))
-            return;
-        
-        alertElement.Alerts.Add(new()
         {
-            Title = title ?? DefaultTitle,
+            ApiLog.Warn("Alerts", $"Player {player.ToLogString()} is missing the alert element!");
+            return;
+        }
+
+        if (alertElement.CurrentAlert == null || overrideCurrent)
+        {
+            alertElement.AlertTimer.Restart();
             
-            Type = type,
-            Content = content,
-            Duration = duration
-        });
-    }
-
-    /// <summary>
-    /// 
-    /// </summary>
-    /// <param name="player"></param>
-    /// <param name="type"></param>
-    /// <param name="duration"></param>
-    /// <param name="title"></param>
-    /// <param name="content"></param>
-    /// <param name="overrideCurrent"></param>
-    public static void SendAlert(this ExPlayer player, AlertType type, float duration, string? title, string content, bool overrideCurrent)
-    {
-        if (player?.ReferenceHub == null)
-            return;
-
-        if (string.IsNullOrWhiteSpace(content))
-            return;
-
-        if (duration < 1f)
-            return;
-
-        if (!player.TryGetHintElement<AlertElement>(out var alertElement))
-            return;
-
-        if (overrideCurrent)
-        {
-            alertElement.Alerts.Clear();
-
             alertElement.CurrentAlert = new()
             {
                 Title = title ?? DefaultTitle,
@@ -112,8 +86,6 @@ public static class AlertExtensions
                 Content = content,
                 Duration = duration
             };
-
-            alertElement.AlertTimer.Restart();
         }
         else
         {
@@ -163,17 +135,23 @@ public static class AlertExtensions
         if (string.IsNullOrWhiteSpace(title))
             return title;
 
-        var words = title.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
-        var letterGroups = new string[words.Length];
+        return string.Join(" • ", title.Split(' ').Select(ProcessTitleWord));
+    }
 
-        for (var i = 0; i < words.Length; i++) 
-            letterGroups[i] = words[i].ToUpperInvariant();
-        
-        var spacedWords = new string[words.Length];
-        
-        for (var i = 0; i < words.Length; i++)
-            spacedWords[i] = string.Join(" ", letterGroups[i].ToCharArray());
-        
-        return string.Join(" • ", spacedWords);
+    private static string ProcessTitleWord(string str)
+    {
+        var result = string.Empty;
+
+        for (var x = 0; x < str.Length; x++)
+        {
+            var c = str[x];
+            
+            result += char.ToUpperInvariant(c);
+
+            if (!char.IsWhiteSpace(c))
+                result += " ";
+        }
+
+        return result.Trim();
     }
 }

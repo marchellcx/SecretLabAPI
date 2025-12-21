@@ -10,6 +10,8 @@ using LabExtended.Events.Player;
 
 using System.ComponentModel;
 
+using LabExtended.Core.Configs.Objects;
+
 using UnityEngine;
 
 namespace SecretLabAPI.Items.Weapons.ItemLauncher
@@ -32,70 +34,65 @@ namespace SecretLabAPI.Items.Weapons.ItemLauncher
 
         /// <inheritdoc/>
         public override ItemType InventoryType { get; set; } = ItemType.GunCOM15;
+        
+        /// <summary>
+        /// Gets or sets the identifier of the item to be launched. The value can be a standard item type or a custom
+        /// item ID.
+        /// </summary>
+        [Description("Sets the item that will be launched.")]
+        public ItemType LaunchedItem { get; set; } = ItemType.GrenadeHE;
 
         /// <summary>
-        /// Gets or sets the default properties of the Item Launcher.
+        /// Gets or sets the force with which the item will be launched.
         /// </summary>
-        [Description("Sets the default properties of the Item Launcher.")]
-        public ItemLauncherProperties DefaultProperties { get; set; }
+        [Description("Sets the force with which the item will be launched. Default is 3.")]
+        public float Force { get; set; } = 3f;
 
-        /// <inheritdoc/>
-        public override ItemBase AddItem(ExPlayer target, object? itemData = null, bool setHeld = false)
-        {
-            if (itemData is not ItemLauncherProperties)
-                itemData = DefaultProperties;
+        /// <summary>
+        /// Gets or sets the fuse time, in seconds, for throwable projectiles after they are launched.
+        /// </summary>
+        [Description("Sets the fuse time for throwable projectiles when launched.")]
+        public float FuseTime { get; set; } = 3f;
 
-            return base.AddItem(target, itemData, setHeld);
-        }
+        /// <summary>
+        /// Gets or sets the number of items to launch per shot.
+        /// </summary>
+        [Description("Sets how many items to launch per shot.")]
+        public int Amount { get; set; } = 1;
 
-        /// <inheritdoc/>
-        public override ItemBase CreateItem(object? itemData = null)
-        {
-            if (itemData is not ItemLauncherProperties)
-                itemData = DefaultProperties;
-
-            return base.CreateItem(itemData);
-        }
-
-        /// <inheritdoc/>
-        public override ItemPickupBase SpawnItem(Vector3 position, Quaternion? rotation, object? pickupData = null)
-        {
-            if (pickupData is not ItemLauncherProperties)
-                pickupData = DefaultProperties;
-
-            return base.SpawnItem(position, rotation, pickupData);
-        }
+        /// <summary>
+        /// Gets or sets the scale applied to launched items.
+        /// </summary>
+        [Description("Sets the scale of launched items.")]
+        public YamlVector3 Scale { get; set; } = new(Vector3.one);
 
         /// <inheritdoc/>
         public override void OnShooting(PlayerShootingFirearmEventArgs args, ref object? firearmData)
         {
             base.OnShooting(args, ref firearmData);
 
-            if (firearmData is not ItemLauncherProperties properties)
-                properties = DefaultProperties;
-
             args.IsAllowed = false;
 
-            if (!properties.LaunchedItem.TryGetTemplate<ItemBase>(out var template))
+            if (!LaunchedItem.TryGetTemplate<ItemBase>(out var template))
                 return;
 
             if (template is ThrowableItem throwable)
-                ThrowProjectileItem(args.Player, throwable, properties);
+                ThrowProjectileItem(args.Player, throwable);
             else
-                ThrowBasicItem(args.Player, template, properties);
+                ThrowBasicItem(args.Player, template);
         }
 
-        private void ThrowBasicItem(ExPlayer player, ItemBase template, ItemLauncherProperties properties)
+        private void ThrowBasicItem(ExPlayer player, ItemBase template)
         {
-            for (var i = 0; i < properties.Amount; i++)
-                player.Inventory.ThrowItem<ItemPickupBase>(template.ItemTypeId, properties.Force, properties.Scale.Vector);
+            for (var i = 0; i < Amount; i++)
+                player.Inventory.ThrowItem<ItemPickupBase>(template.ItemTypeId, Force, Scale.Vector);
         }
 
-        private void ThrowProjectileItem(ExPlayer player, ThrowableItem template, ItemLauncherProperties properties)
+        private void ThrowProjectileItem(ExPlayer player, ThrowableItem template)
         {
-            for (var i = 0; i < properties.Amount; i++)
-                ExMap.SpawnProjectile(template.ItemTypeId, player.CameraTransform.position, properties.Scale.Vector,
-                    player.CameraTransform.forward * properties.Force, player.Rotation, properties.Force, properties.FuseTime);
+            for (var i = 0; i < Amount; i++)
+                ExMap.SpawnProjectile(template.ItemTypeId, player.CameraTransform.position, Scale.Vector,
+                    player.CameraTransform.forward * Force, player.Rotation, Force, FuseTime);
         }
 
         internal static void Initialize()
@@ -106,12 +103,11 @@ namespace SecretLabAPI.Items.Weapons.ItemLauncher
             if (!Directory.Exists(path))
                 Directory.CreateDirectory(path);
 
-            var exampleProps = new ItemLauncherProperties();
+            var exampleLauncher = new ItemLauncher();
 
-            exampleProps.Launcher.launcherId = "example_launcher";
-            exampleProps.Launcher.DefaultProperties = exampleProps;
+            exampleLauncher.launcherId = "example_launcher";
 
-            SecretLab.SaveConfigPath(false, example, new ItemLauncherProperties());
+            SecretLab.SaveConfigPath(false, example, exampleLauncher);
 
             foreach (var file in Directory.GetFiles(path, "*.yml"))
             {
@@ -119,11 +115,10 @@ namespace SecretLabAPI.Items.Weapons.ItemLauncher
                     continue;
 
                 var name = Path.GetFileNameWithoutExtension(file);
-                var props = SecretLab.LoadConfigPath(false, file, () => new ItemLauncherProperties());
-
-                props.Launcher.DefaultProperties = props;
-                props.Launcher.launcherId = name;
-                props.Launcher.Register();
+                var launcher = SecretLab.LoadConfigPath(false, file, () => new ItemLauncher());
+                
+                launcher.launcherId = name;
+                launcher.Register();
             }
         }
     }

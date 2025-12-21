@@ -120,14 +120,17 @@ namespace SecretLabAPI.Audio.Clips
         }
 
         /// <summary>
-        /// Starts playing a random clip for a player.
+        /// Plays an audio clip for a player with the specified settings.
         /// </summary>
-        /// <param name="player">The player to play the clip for.</param>
-        /// <param name="clipName">The name of the clip.</param>
-        /// <param name="volume">The volue of the clip.</param>
-        /// <returns>true if a clip started playing</returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public static bool PlayClip(this Player player, string clipName, float volume = 1f, bool isPersonal = false)
+        /// <param name="player">The player for whom the clip will be played.</param>
+        /// <param name="clipName">The name of the audio clip to play.</param>
+        /// <param name="volume">The volume at which the clip should be played. Defaults to 1.0.</param>
+        /// <param name="amplification">The amplification factor for the clip. Defaults to 1.0.</param>
+        /// <param name="isPersonal">Determines whether the audio should be heard only by the specified player. Defaults to false.</param>
+        /// <returns>Returns <c>true</c> if the clip was successfully played; otherwise, <c>false</c>.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="clipName"/> is null or consists only of whitespace.</exception>
+        public static bool PlayClip(this Player player, string clipName, float volume = 1f, float amplification = 1f,
+            bool isPersonal = false)
         {
             if (string.IsNullOrWhiteSpace(clipName))
                 throw new ArgumentNullException(nameof(clipName));
@@ -172,6 +175,7 @@ namespace SecretLabAPI.Audio.Clips
 
             state.Player.WithVolume(volume);
             state.Player.WithProvider(provider);
+            state.Player.WithMasterAmplification(amplification);
 
             state.Clip = clipName;
             state.Stream = stream;

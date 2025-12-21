@@ -1,6 +1,10 @@
 ﻿using LabExtended.API;
+
+using LabExtended.Core;
 using LabExtended.Core.Pooling.Pools;
+
 using NorthwoodLib.Pools;
+
 using SecretLabAPI.Extensions;
 
 namespace SecretLabAPI.Actions.API
@@ -90,9 +94,6 @@ namespace SecretLabAPI.Actions.API
         {
             if (string.IsNullOrWhiteSpace(variable))
                 throw new ArgumentNullException(nameof(variable));
-
-            if (variable[0] != '$')
-                variable = string.Concat("$", variable);
             
             if (!Memory.TryGetValue(variable, out var obj))
                 throw new($"Memory variable '{variable}' not found.");
@@ -115,26 +116,8 @@ namespace SecretLabAPI.Actions.API
                 throw new ArgumentNullException(nameof(variable));
 
             Memory[variable] = value!;
-        }
-
-        /// <summary>
-        /// Sets the specified value in memory if the variable name begins with a '$' character.
-        /// </summary>
-        /// <remarks>If <paramref name="variable"/> does not begin with a '$', the method does not perform
-        /// any operation.</remarks>
-        /// <typeparam name="T">The type of the value to store in memory.</typeparam>
-        /// <param name="variable">The name of the variable. Must begin with a '$' character to be stored in memory.</param>
-        /// <param name="value">The value to assign to the variable in memory.</param>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="variable"/> is null or an empty string.</exception>
-        public void SetIfMemory<T>(string variable, T value)
-        {
-            if (string.IsNullOrEmpty(variable))
-                throw new ArgumentNullException(nameof(variable));
-
-            if (variable[0] != '$')
-                return;
-
-            Memory[variable] = value!;
+            
+            ApiLog.Debug("Actions", $"Method &3{Current.Action.Id}&r saved a memory variable: &1{value}&r (&6{typeof(T).Name}&r)");
         }
 
         /// <summary>
@@ -268,10 +251,16 @@ namespace SecretLabAPI.Actions.API
         public bool SetMemory(object output)
         {
             if (output is null)
+            {
+                ApiLog.Warn("Actions", $"Method &3{Current.Action.Id}&r attempted to save a null output variable!");
                 return false;
+            }
 
             if (string.IsNullOrEmpty(Current.OutputVariableName))
+            {
+                ApiLog.Warn("Actions", $"Method &3{Current.Action.Id}&r attempted to save an output variable without having a name defined!");
                 return false;
+            }
 
             SetMemory(Current.OutputVariableName, output);
             return true;
@@ -300,13 +289,35 @@ namespace SecretLabAPI.Actions.API
             if (Memory.TryGetValue(variableName, out var memoryObj))
                 return memoryObj;
 
-            if (!ActionManager.Actions.TryGetValue(variableName, out var method))
-                throw new($"Memory variable '{variableName}' could not be loaded");
+            var outputName = $"Comp{variableName}_AutoGen";
+            var cleanName = variableName.Substring(1);
+            var methodParts = cleanName.SplitOutsideQuotes(' ', '\'');
+            var methodName = methodParts[0].Trim();
+            var methodArgs = methodParts.Skip(1).ToArray();
 
-            var compiled = GetMetadata($"Compiled{variableName}", () =>
+            if (!ActionManager.Actions.TryGetValue(methodName, out var method))
+                throw new($"Memory variable '{variableName} (method {methodName})' could not be loaded");
+
+            var compiled = GetMetadata(outputName, () =>
             {
-                return new CompiledAction(method, method.Parameters.Select(_ => new CompiledParameter() { Source = string.Empty }).ToArray(), "$CompResult_");
+                var array = new CompiledParameter[method.Parameters.Length];
+
+                for (var x = 0; x < method.Parameters.Length; x++)
+                {
+                    if (x >= methodArgs.Length)
+                    {
+                        array[x] = new() { Source = string.Empty };
+                    }
+                    else
+                    {
+                        array[x] = new() { Source = methodArgs[x].Trim() };
+                    }
+                }
+                
+                return new CompiledAction(method, array, outputName);
             });
+
+            compiled.OutputVariableName = outputName;
 
             var list = ListPool<CompiledAction>.Shared.Rent();
             var ctx = new ActionContext(list, Player);
@@ -328,11 +339,11 @@ namespace SecretLabAPI.Actions.API
             
             ListPool<CompiledAction>.Shared.Return(list);
 
-            if (!ctx.Memory.TryGetValue("$CompResult_", out memoryObj))
+            if (!ctx.Memory.TryGetValue(outputName, out memoryObj))
             {
                 ctx.Dispose();
                 
-                throw new($"Method '{variableName}' did not save an output variable");
+                throw new($"Method '{variableName} (method {methodName})' did not save an output variable");
             }
 
             return memoryObj;

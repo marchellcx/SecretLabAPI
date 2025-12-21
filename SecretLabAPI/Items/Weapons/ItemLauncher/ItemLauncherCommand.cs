@@ -32,20 +32,19 @@ namespace SecretLabAPI.Items.Weapons.ItemLauncher
                 return;
             }
 
-            if (scale == default)
-                scale = Vector3.one;
+            if (scale == default) scale = Vector3.one;
 
-            var props = new ItemLauncherProperties();
+            var launcher = new ItemLauncher();
 
-            props.Launcher.launcherId = launcherId;
+            launcher.launcherId = launcherId;
 
-            props.Launcher.PickupType = firearmType;
-            props.Launcher.InventoryType = firearmType;
+            launcher.PickupType = firearmType;
+            launcher.InventoryType = firearmType;
 
-            props.Launcher.DefaultProperties.LaunchedItem = launchedItem;
-            props.Launcher.DefaultProperties.Force = launchForce;
+            launcher.LaunchedItem = launchedItem;
+            launcher.Force = launchForce;
 
-            props.Launcher.DefaultProperties.Scale = new(scale);
+            launcher.Scale = new(scale);
 
             if (saveLauncher)
             {
@@ -55,10 +54,10 @@ namespace SecretLabAPI.Items.Weapons.ItemLauncher
                 if (!Directory.Exists(directory))
                     Directory.CreateDirectory(directory);
 
-                SecretLab.SaveConfigPath(false, path, props.Launcher.DefaultProperties);
+                SecretLab.SaveConfigPath(false, path, launcher);
             }
 
-            if (props.Launcher.Register())
+            if (launcher.Register())
                 Ok($"Registered a new launcher.");
             else
                 Fail("Failed to register the launcher.");

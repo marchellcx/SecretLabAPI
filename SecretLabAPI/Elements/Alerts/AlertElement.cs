@@ -5,7 +5,7 @@ using LabExtended.API.Enums;
 
 using LabExtended.API.Hints;
 using LabExtended.API.Hints.Elements.Personal;
-
+using LabExtended.Core;
 using LabExtended.Events;
 using LabExtended.Extensions;
 
@@ -96,9 +96,8 @@ public class AlertElement : PersonalHintElement
     {
         if (CurrentAlert is null)
             return false;
-
-        if (CurrentAlert.FormattedContent is null)
-            CurrentAlert.FormattedContent = CurrentAlert.FormatAlert();
+        
+        CurrentAlert.FormattedContent ??= CurrentAlert.FormatAlert();
 
         Builder?.AppendLine(CurrentAlert.FormattedContent);
         return true;

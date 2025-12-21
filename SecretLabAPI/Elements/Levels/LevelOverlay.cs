@@ -121,47 +121,21 @@ namespace SecretLabAPI.Elements.Levels
             if (value.Length < 1)
                 return;
 
-            var percentage = 0;
-            
-            var curXp = 0;
-            
-            var reqXp = 0;
-            var reqXpString = string.Empty;
+            var xp = (float)Level.Experience;
+            var reqXp = (float)Level.RequiredExperience;
 
-            var nextLevelString = (Level.Level + 1 > LevelProgress.Cap)
-                ? "MAX"
-                : (Level.Level + 1).ToString();
-
-            if (!Level.IsCapped)
-            {
-                percentage = Mathf.CeilToInt((Level.Experience / Level.RequiredExperience) * 100);
-                
-                curXp = Level.Experience;
-                
-                reqXp = Level.RequiredExperience;
-                reqXpString = reqXp.ToString();
-            }
-            else
-            {
-                percentage = 100;
-                
-                curXp = Level.Experience;
-                
-                reqXp = Level.Experience;
-                reqXpString = "MAX";
-            }
-
+            var percentage = Mathf.CeilToInt((xp / reqXp) * 100);
             var color = GetBarColor(percentage);
 
             value = value
                 .Replace("$BarColor", color)
                 .Replace("$BarString", RenderBar(percentage))
 
-                .Replace("$CurExp", curXp.ToString())
-                .Replace("$ReqExp", reqXpString)
+                .Replace("$CurExp", Level.Experience.ToString())
+                .Replace("$ReqExp", Level.RequiredExperience.ToString())
                 
                 .Replace("$CurLevel", Level.Level.ToString())
-                .Replace("$NextLevel", nextLevelString)
+                .Replace("$NextLevel", (Level.Level + 1 >= LevelProgress.Cap ? Level.ToString() : (Level.Level + 1).ToString()))
                 
                 .ReplaceEmojis();
 

@@ -345,7 +345,7 @@ namespace SecretLabAPI.Actions
 
                     if (flags.ShouldStop())
                     {
-                        if (flags.ShouldDispose())
+                        if (flags.ShouldDispose() && disposeContext)
                             context.Dispose();
 
                         return flags.IsSuccess();

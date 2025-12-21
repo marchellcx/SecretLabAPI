@@ -19,12 +19,12 @@ using SecretLabAPI.Patches.Overlays;
 using LabApi.Loader;
 using LabApi.Loader.Features.Yaml;
 using LabApi.Loader.Features.Plugins;
-
+using LabExtended.API.Custom.Effects;
 using LabExtended.Core;
 
 using LabExtended.API.Hints;
 using LabExtended.Attributes;
-
+using SecretLabAPI.Effects;
 using SecretLabAPI.Levels;
 using SecretLabAPI.RandomEvents;
 using SecretLabAPI.Roles.Misc;
@@ -111,6 +111,8 @@ public class SecretLab : Plugin<SecretLabConfig>
         SnakeExplosion.Internal_Init();
         PlayerInfoHealth.Internal_Init();
         PersistentOverwatch.Internal_Init();
+
+        CustomPlayerEffect.Effects.Add(typeof(RocketEffect));
     }
 
     /// <inheritdoc/>
