@@ -311,6 +311,72 @@ namespace SecretLabAPI.Actions
         }
 
         /// <summary>
+        /// Executes the actions in the specified context within the provided index range and optionally disposes of the context after execution.
+        /// </summary>
+        /// <param name="context">The action context containing the actions to be executed. Passed by reference.</param>
+        /// <param name="startIndex">The starting index of the actions to execute within the context.</param>
+        /// <param name="endIndex">The ending index (exclusive) of the actions to execute within the context.</param>
+        /// <param name="disposeContext">Indicates whether the context should be disposed after execution. Defaults to true.</param>
+        /// <returns>True if the actions within the specified range were executed successfully; otherwise, false.</returns>
+        /// <exception cref="ArgumentOutOfRangeException">Thrown if the start or end indexes are outside the bounds of the action list in the context.</exception>
+        public static bool ExecuteContext(ref ActionContext context, int startIndex, int endIndex,
+            bool disposeContext = true)
+        {
+            for (context.Index = startIndex; context.Index < endIndex; context.Index++)
+            {
+                if (context.Index < 0 || context.Index >= context.Actions.Count)
+                {
+                    if (disposeContext)
+                        context.Dispose();
+
+                    break;
+                }
+
+                var current = context.Actions[context.Index];
+
+                context.Previous = context.Current;
+                context.Current = current;
+                
+                context.Next = context.Index + 1 < context.Actions.Count 
+                    ? context.Actions[context.Index + 1] 
+                    : null;
+                
+                try
+                {
+                    var flags = current.Action.Delegate(ref context);
+
+                    if (flags.ShouldStop())
+                    {
+                        if (flags.ShouldDispose() && disposeContext)
+                            context.Dispose();
+
+                        return flags.IsSuccess();
+                    }
+
+                    if (flags.IsSuccess()) 
+                        continue;
+                    
+                    if (disposeContext)
+                        context.Dispose();
+
+                    ApiLog.Warn("ActionManager", $"Action &r{current.Action.Delegate.Method}&r returned unsuccessful result.");
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    ApiLog.Error("ActionManager", $"Error executing compiled action &r{current.Action.Delegate.Method}&r:\n{ex}");
+
+                    if (disposeContext)
+                        context.Dispose();
+                    
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <summary>
         /// Executes the actions within the given context in sequence and determines the success of the execution.
         /// </summary>
         /// <param name="context">A reference to the <see cref="ActionContext"/> containing the details of the actions to be executed. Cannot be null.</param>

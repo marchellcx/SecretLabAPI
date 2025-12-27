@@ -17,6 +17,7 @@ using SecretLabNAudio.Core;
 
 using SecretLabAPI.Audio.Clips;
 using SecretLabAPI.Audio.Playback;
+
 using SecretLabAPI.Elements.Alerts;
 
 namespace SecretLabAPI.Audio.Commands
@@ -49,7 +50,7 @@ namespace SecretLabAPI.Audio.Commands
             });
         }
 
-        [CommandOverload("download", "Downloads an audio file.")]
+        [CommandOverload("download", "Downloads an audio file.", null)]
         private void Download(
             [CommandParameter("Url", "The URL to download the audio file from.")] string url,
             [CommandParameter("Name", "Name of the file to be saved as - must include file type (mp3).")] string name)

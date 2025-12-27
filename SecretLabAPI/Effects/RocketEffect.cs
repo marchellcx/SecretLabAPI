@@ -1,5 +1,6 @@
+using LabExtended.API;
 using LabExtended.API.Custom.Effects;
-
+using LabExtended.Events;
 using UnityEngine;
 
 namespace SecretLabAPI.Effects
@@ -84,6 +85,16 @@ namespace SecretLabAPI.Effects
             pos.y += Step;
 
             Player.Position.Position = pos;
+        }
+
+        internal static void Initialize()
+        {
+            ExPlayerEvents.Joined += OnJoined;
+        }
+
+        private static void OnJoined(ExPlayer player)
+        {
+            player.Effects.AddCustomEffect<RocketEffect>();
         }
     }
 }

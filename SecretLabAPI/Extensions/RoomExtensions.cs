@@ -13,6 +13,8 @@ namespace SecretLabAPI.Extensions
     /// </summary>
     public static class RoomExtensions
     {
+        public const float MaxSurfaceY = 302f;
+        
         /// <summary>
         /// Finds a safe position within a specified room for the given player.
         /// </summary>
@@ -39,7 +41,10 @@ namespace SecretLabAPI.Extensions
                 ? 11f
                 : 45f;
             
-            return SafeLocationFinder.GetSafePositionForPose(pose, range, player.Role.MovementModule!.CharController);
+            var position = SafeLocationFinder.GetSafePositionForPose(pose, range, player.Role.MovementModule!.CharController);
+
+            if (room.Zone is FacilityZone.Surface) position.y = Mathf.Min(MaxSurfaceY, position.y);
+            return position;
         }
     }
 }

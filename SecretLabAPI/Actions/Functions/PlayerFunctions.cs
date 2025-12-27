@@ -1,4 +1,6 @@
-﻿using LabExtended.API.Hints;
+﻿using CustomPlayerEffects;
+using LabExtended.API;
+using LabExtended.API.Hints;
 using LabExtended.API.Containers;
 using LabExtended.API.Custom.Items;
 
@@ -989,6 +991,134 @@ namespace SecretLabAPI.Actions.Functions
         }
 
         /// <summary>
+        /// Enables a status effect on a player with specified intensity and duration, and optionally stacks the duration if the effect is already active.
+        /// </summary>
+        /// <remarks>This method retrieves values from the provided action context to determine the status effect, its intensity, duration, and whether to stack the duration. It validates the input parameters and applies the effect to the target player if valid.</remarks>
+        /// <param name="context">A reference to the action context containing the parameters for enabling the effect, including the effect object, intensity, duration, and stacking behavior.</param>
+        /// <returns>An ActionResultFlags value indicating the outcome of the operation. Returns SuccessDispose if the effect was successfully applied, or StopDispose if the operation could not proceed due to invalid parameters.</returns>
+        [Action("EnableEffect", "Enables a status effect.")]
+        [ActionParameter("Variable", "The name of the variable the effect is saved under (must be a StatusEffectBase).")]
+        [ActionParameter("Intensity", "The intensity to set to the effect.")]
+        [ActionParameter("Duration", "The duration to set (or add) to the effect.")]
+        [ActionParameter("Stack", "Whether or not to stack the effect's duration if it's already active.")]
+        public static ActionResultFlags EnableEffect(ref ActionContext context)
+        {
+            var effect = context.GetValue<StatusEffectBase>(0);
+            var intensity = context.GetValue<byte>(1);
+            var duration = context.GetValue<float>(2);
+            var stack = context.GetValue<bool>(3);
+
+            if (context.Player?.ReferenceHub == null)
+            {
+                ApiLog.Warn("Actions :: EnableEffect", $"A null player was provided.");
+                return ActionResultFlags.StopDispose;
+            }
+
+            if (effect == null)
+            {
+                ApiLog.Warn("Actions :: EnableEffect", "A null effect was provided.");
+                return ActionResultFlags.StopDispose;
+            }
+            
+            context.Player.EnableEffect(effect, intensity, duration, stack);
+            return ActionResultFlags.SuccessDispose;
+        }
+        
+        /// <summary>
+        /// Enables a list of status effects on a player with specified intensity and duration, and optionally stacks the duration if the effect is already active.
+        /// </summary>
+        /// <remarks>This method retrieves values from the provided action context to determine the status effect, its intensity, duration, and whether to stack the duration. It validates the input parameters and applies the effect to the target player if valid.</remarks>
+        /// <param name="context">A reference to the action context containing the parameters for enabling the effect, including the effect object, intensity, duration, and stacking behavior.</param>
+        /// <returns>An ActionResultFlags value indicating the outcome of the operation. Returns SuccessDispose if the effect was successfully applied, or StopDispose if the operation could not proceed due to invalid parameters.</returns>
+        [Action("EnableEffects", "Enables a list status effects.")]
+        [ActionParameter("Variable", "The name of the variable the effect is saved under (must be a List of StatusEffectBase).")]
+        [ActionParameter("Intensity", "The intensity to set to the effect.")]
+        [ActionParameter("Duration", "The duration to set (or add) to the effect.")]
+        [ActionParameter("Stack", "Whether or not to stack the effect's duration if it's already active.")]
+        public static ActionResultFlags EnableEffects(ref ActionContext context)
+        {
+            var effects = context.GetValue<List<StatusEffectBase>>(0);
+            var intensity = context.GetValue<byte>(1);
+            var duration = context.GetValue<float>(2);
+            var stack = context.GetValue<bool>(3);
+
+            if (context.Player?.ReferenceHub == null)
+            {
+                ApiLog.Warn("Actions :: EnableEffects", "A null player was provided.");
+                return ActionResultFlags.StopDispose;
+            }
+
+            if (effects?.Count < 1)
+            {
+                ApiLog.Warn("Actions :: EnableEffects", "An empty effect list was provided.");
+                return ActionResultFlags.StopDispose;
+            }
+
+            var player = context.Player;
+            
+            effects.ForEach(e => player.EnableEffect(e, intensity, duration, stack));
+            return ActionResultFlags.SuccessDispose;
+        }
+        
+        /// <summary>
+        /// Enables a status effect on a player with specified intensity and duration, and optionally stacks the duration if the effect is already active.
+        /// </summary>
+        /// <remarks>This method retrieves values from the provided action context to determine the status effect, its intensity, duration, and whether to stack the duration. It validates the input parameters and applies the effect to the target player if valid.</remarks>
+        /// <param name="context">A reference to the action context containing the parameters for enabling the effect, including the effect object, intensity, duration, and stacking behavior.</param>
+        /// <returns>An ActionResultFlags value indicating the outcome of the operation. Returns SuccessDispose if the effect was successfully applied, or StopDispose if the operation could not proceed due to invalid parameters.</returns>
+        [Action("DisableEffect", "Disables a status effect.")]
+        [ActionParameter("Variable", "The name of the variable the effect is saved under (must be a StatusEffectBase).")]
+        public static ActionResultFlags DisableEffect(ref ActionContext context)
+        {
+            var effect = context.GetValue<StatusEffectBase>(0);
+
+            if (context.Player?.ReferenceHub == null)
+            {
+                ApiLog.Warn("Actions :: DisableEffect", "A null player was provided.");
+                return ActionResultFlags.StopDispose;
+            }
+
+            if (effect == null)
+            {
+                ApiLog.Warn("Actions :: DisableEffect", "A null effect was provided.");
+                return ActionResultFlags.StopDispose;
+            }
+
+            context.Player.DisableEffect(effect);
+            return ActionResultFlags.SuccessDispose;
+        }
+        
+        /// <summary>
+        /// Disables a list of status effects on a player.
+        /// </summary>
+        /// <remarks>This method retrieves values from the provided action context to determine the status effect, its intensity, duration, and whether to stack the duration. It validates the input parameters and applies the effect to the target player if valid.</remarks>
+        /// <param name="context">A reference to the action context containing the parameters for enabling the effect, including the effect object, intensity, duration, and stacking behavior.</param>
+        /// <returns>An ActionResultFlags value indicating the outcome of the operation. Returns SuccessDispose if the effect was successfully applied, or StopDispose if the operation could not proceed due to invalid parameters.</returns>
+        [Action("DisableEffects", "Disables a list status effects.")]
+        [ActionParameter("Variable", "The name of the variable the effect is saved under (must be a List of StatusEffectBase).")]
+        public static ActionResultFlags DisableEffects(ref ActionContext context)
+        {
+            var effects = context.GetValue<List<StatusEffectBase>>(0);
+
+            if (context.Player?.ReferenceHub == null)
+            {
+                ApiLog.Warn("Actions :: EnableEffect", $"A null player was provided.");
+                return ActionResultFlags.StopDispose;
+            }
+
+            if (effects?.Count < 1)
+            {
+                ApiLog.Warn("Actions :: EnableEffect", "An empty effect list was provided.");
+                return ActionResultFlags.StopDispose;
+            }
+
+            var player = context.Player;
+            
+            effects.ForEach(e => player.DisableEffect(e));
+            return ActionResultFlags.SuccessDispose;
+        }
+
+        /// <summary>
         /// Teleports the specified player to the center position of a room defined by a RoomIdentifier.
         /// </summary>
         /// <remarks>
@@ -1013,6 +1143,43 @@ namespace SecretLabAPI.Actions.Functions
             if (context.Player?.ReferenceHub != null && context.Player.IsAlive)
             {
                 context.Player.Position.Position = room.GetSafePosition(context.Player);
+                return ActionResultFlags.SuccessDispose;
+            }
+
+            return ActionResultFlags.StopDispose;
+        }
+
+        /// <summary>
+        /// Teleports the executing player to the position of another specified player.
+        /// </summary>
+        /// <remarks>Validates the target player before performing the teleportation. It ensures the player
+        /// being teleported is alive and not the same as the target player, and handles position adjustment after teleportation.</remarks>
+        /// <param name="context">A reference to the action context that provides the current player,
+        /// target player, and positional data necessary for the teleport operation.</param>
+        /// <returns>An ActionResultFlags value indicating the result of the teleportation action.
+        /// Returns SuccessDispose if the operation is successful, or StopDispose if an error
+        /// (e.g., null or dead player) occurs.</returns>
+        [Action("TpToPlayer", "Teleports a player to another player.")]
+        [ActionParameter("Variable", "The name of the player variable (must be an ExPlayer!).")]
+        public static ActionResultFlags TpToPlayer(ref ActionContext context)
+        {
+            var player = context.GetValue<ExPlayer>(0);
+
+            if (player?.ReferenceHub == null)
+            {
+                ApiLog.Warn("Actions :: TpToPlayer", "A null player was provided");
+                return ActionResultFlags.StopDispose;
+            }
+
+            if (!player.IsAlive)
+            {
+                ApiLog.Warn("Actions :: TpToPlayer", "A dead player was provided");
+                return ActionResultFlags.StopDispose;
+            }
+
+            if (context.Player?.ReferenceHub != null && context.Player != player)
+            {
+                context.Player.Position.Position = player.PositionAdjustY(0.1f);
                 return ActionResultFlags.SuccessDispose;
             }
 

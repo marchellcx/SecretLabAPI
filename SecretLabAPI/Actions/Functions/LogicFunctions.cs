@@ -1,5 +1,7 @@
 ﻿using LabExtended.API;
+
 using LabExtended.Core;
+using LabExtended.Utilities;
 
 using MEC;
 
@@ -21,6 +23,70 @@ namespace SecretLabAPI.Actions.Functions
     /// </summary>
     public static class LogicFunctions
     {
+        /// <summary>
+        /// Delays the execution of one or multiple actions by a specified duration.
+        /// </summary>
+        /// <remarks>
+        /// This method introduces a delay before executing the next action or a sequence of actions
+        /// in the provided context. The delay duration and the number of delayed actions can be configured
+        /// through the parameters.
+        /// </remarks>
+        /// <param name="context">A reference to the action context containing the current execution state.
+        /// The context provides the delay duration (in milliseconds) and the number of actions to delay.
+        /// </param>
+        /// <returns>A flag indicating the result of the delay operation:
+        /// ActionResultFlags.SuccessDispose if the delay duration is less than 1 millisecond,
+        /// ActionResultFlags.SuccessStop if successfully delaying multiple actions,
+        /// or ActionResultFlags.Success when delaying the next single action.
+        /// </returns>
+        [Action("Delay", "Delays the execution of a singular or a sequence of actions.")]
+        [ActionParameter("Delay", "The delay to inject (in milliseconds).")]
+        [ActionParameter("Amount", "The amount of actions to delay (0 or less delays only the next one - default).")]
+        public static ActionResultFlags Delay(ref ActionContext context)
+        {
+            context.EnsureCompiled((_, p) => p.EnsureCompiled(int.TryParse, 0));
+
+            var delay = context.GetValue<float>(0);
+            var amount = context.GetValue<int>(1);
+            var ctx = context;
+
+            if (delay < 1)
+                return ActionResultFlags.SuccessDispose;
+
+            if (amount > 0)
+            {
+                var startIndex = context.Index + 1;
+                var endIndex = startIndex + amount;
+
+                if (startIndex >= context.Actions.Count)
+                {
+                    ApiLog.Warn("Actions :: Delay", $"Start index is out of range");
+                    return ActionResultFlags.StopDispose;
+                }
+
+                if (endIndex >= context.Actions.Count)
+                {
+                    ApiLog.Warn("Actions :: Delay", "End index is out of range");
+                    return ActionResultFlags.StopDispose;
+                }
+                
+
+                TimingUtils.AfterSeconds(() => ActionManager.ExecuteContext(ref ctx, startIndex, endIndex, false), delay / 1000f);
+                return ActionResultFlags.SuccessStop;
+            }
+
+            var action = context.Next;
+
+            if (action == null)
+            {
+                ApiLog.Warn("Actions :: Delay", "Next action is null");
+                return ActionResultFlags.StopDispose;
+            }
+            
+            TimingUtils.AfterSeconds(() => ActionManager.ExecuteContext(ref ctx, ctx.Index + 1, ctx.Index + 1, true), delay / 1000f);
+            return ActionResultFlags.Success;
+        }
+
         /// <summary>
         /// Halts the execution of the current action sequence if the specified variable evaluates to TRUE.
         /// </summary>
@@ -158,7 +224,7 @@ namespace SecretLabAPI.Actions.Functions
             });
 
             var actionId = context.GetValue(0);
-            var players = context.GetValue<List<ExPlayer>>(0);
+            var players = context.GetValue<List<ExPlayer>>(1);
             var argsOverflow = context.GetMetadata<List<string>>("ArgsOverflow", () => new());
 
             var compiledAction = context.GetMetadata("CompiledExecute", () =>
@@ -166,14 +232,14 @@ namespace SecretLabAPI.Actions.Functions
                 if (ActionManager.Actions.TryGetValue(actionId, out var action))
                     return action.CompileAction(argsOverflow.ToArray())!;
                 
-                ApiLog.Error("ActionManager", $"Could not execute the &3Execute&r action: Action &1{actionId}&r could not be found");
+                ApiLog.Error("ActionManager", $"Could not execute the &3ForEach&r action: Action &1{actionId}&r could not be found");
                 return null!;
 
             });
 
             if (compiledAction is null)
             {
-                ApiLog.Error("ActionManager", $"Could not execute the &3Execute&r action: Action &1{actionId}&r could not be compiled");
+                ApiLog.Error("ActionManager", $"Could not execute the &3ForEach&r action: Action &1{actionId}&r could not be compiled");
                 return ActionResultFlags.StopDispose;
             }
 
@@ -237,7 +303,7 @@ namespace SecretLabAPI.Actions.Functions
             });
 
             var actionId = context.GetValue(0);
-            var playerVar = context.GetValue(1);
+            var playerVar = context.GetValue<ExPlayer>(1);
 
             var argsOverflow = context.GetMetadata<List<string>>("ArgsOverflow", () => new());
 
@@ -258,7 +324,7 @@ namespace SecretLabAPI.Actions.Functions
             }
 
             var subList = ListPool<CompiledAction>.Shared.Rent(1);
-            var subContext = new ActionContext(subList, context.GetMemory<ExPlayer>(playerVar));
+            var subContext = new ActionContext(subList, playerVar);
 
             subList.Add(compiledAction);
 
@@ -431,10 +497,8 @@ namespace SecretLabAPI.Actions.Functions
                 };
             });
 
-            var source = context.GetValue(0);
+            var enumerable = context.GetValue<IEnumerable>(0);
             var amount = context.GetValue<int>(1);
-
-            var enumerable = context.GetMemory<IEnumerable>(source);
             var enumerator = enumerable.GetEnumerator();
 
             var count = 0;
@@ -462,8 +526,6 @@ namespace SecretLabAPI.Actions.Functions
                             list.Add(enumerator.Current);
                         }
                     }
-
-                    enumerator.Reset();
                 }
 
                 context.SetMemory(list);

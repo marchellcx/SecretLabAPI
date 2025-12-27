@@ -112,7 +112,11 @@ public class SecretLab : Plugin<SecretLabConfig>
         PlayerInfoHealth.Internal_Init();
         PersistentOverwatch.Internal_Init();
 
+        RocketEffect.Initialize();
+        
         CustomPlayerEffect.Effects.Add(typeof(RocketEffect));
+
+        new ReplicatingScp018().Register();
     }
 
     /// <inheritdoc/>
