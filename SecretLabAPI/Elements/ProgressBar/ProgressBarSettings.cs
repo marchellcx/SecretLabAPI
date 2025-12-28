@@ -10,10 +10,17 @@ namespace SecretLabAPI.Elements.ProgressBar
     public class ProgressBarSettings
     {
         /// <summary>
+        /// Gets the default configuration settings for the progress bar.
+        /// </summary>
+        /// <remarks>Use this property to obtain a standard set of settings when creating or resetting a
+        /// progress bar. The returned instance provides commonly used defaults suitable for most scenarios.</remarks>
+        public static ProgressBarSettings Default { get; } = new();
+
+        /// <summary>
         /// Gets or sets a value indicating whether the percentage value is displayed next to the progress bar.
         /// </summary>
         [Description("Show percentage value next to the progress bar.")]
-        public bool ShowPercent { get; set; } = true;
+        public bool ShowPercent { get; set; } = false;
 
         /// <summary>
         /// Gets or sets the format string used for displaying percentages.

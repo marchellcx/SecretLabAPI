@@ -8,6 +8,36 @@ namespace SecretLabAPI.Elements.ProgressBar
     public static class ProgressBarElement
     {
         /// <summary>
+        /// Returns a color code representing a bar's status based on the specified percentage value.
+        /// </summary>
+        /// <remarks>The returned color codes are intended for use in UI elements to visually represent
+        /// progress or status. Values outside the 0–100 range will still return a color, but may not correspond to an
+        /// expected status.</remarks>
+        /// <param name="percentage">The percentage value used to determine the bar color. Must be between 0 and 100.</param>
+        /// <returns>A hexadecimal color code as a string corresponding to the specified percentage. The color indicates the
+        /// status range, with higher percentages returning greener colors and lower percentages returning redder
+        /// colors.</returns>
+        public static string GetBarColor(int percentage)
+        {
+            if (percentage >= 85)
+                return "#1dde37";
+
+            if (percentage >= 70)
+                return "#9deb21";
+
+            if (percentage >= 50)
+                return "#d6f233";
+
+            if (percentage >= 30)
+                return "#f2dc33";
+
+            if (percentage >= 15)
+                return "#f27933";
+
+            return "#eb220c";
+        }
+
+        /// <summary>
         /// Renders a progress bar as a formatted string based on the specified percentage, color, and progress bar
         /// settings.
         /// </summary>

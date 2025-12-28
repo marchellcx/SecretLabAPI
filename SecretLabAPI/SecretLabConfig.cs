@@ -165,5 +165,11 @@ namespace SecretLabAPI
             { FacilityZone.HeavyContainment, 60f },
             { FacilityZone.LightContainment, 0f },
         };
+
+        /// <summary>
+        /// Gets or sets the maximum number of options that can be selected in a vote.
+        /// </summary>
+        [Description("Maximum number of options allowed in a vote.")]
+        public int VoteMaxOptions { get; set; } = 5;
     }
 }

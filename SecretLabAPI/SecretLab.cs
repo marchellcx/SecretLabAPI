@@ -33,6 +33,7 @@ using SecretLabAPI.Items.Weapons;
 using SecretLabAPI.Items.Weapons.ItemLauncher;
 
 using SecretLabAPI.Patches.Overlays;
+using SecretLabAPI.Voting;
 
 namespace SecretLabAPI;
 
@@ -105,6 +106,7 @@ public class SecretLab : Plugin<SecretLabConfig>
         RandomPickupManager.Initialize();
         DeveloperMode.Initialize();
         Scp914Teleport.Initialize();
+        VoteManager.Initialize();
 
         AlertElement.Initialize();
         LevelHandler.Initialize();
