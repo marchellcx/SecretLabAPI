@@ -16,6 +16,14 @@ namespace SecretLabAPI.Actions
     [Command("action", "Base command for all action related commands")]
     public class ActionCommand : CommandBase, IServerSideCommand
     {
+        [CommandOverload("reload", "Reloads the global action table.", null)]
+        private void Reload()
+        {
+            ActionManager.ReloadGlobalTable();
+
+            Ok("Reloaded global action table.");
+        }
+
         [CommandOverload("actions", "Lists all registered actions.", null)]
         private void Actions()
         {

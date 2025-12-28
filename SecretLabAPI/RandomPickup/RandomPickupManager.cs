@@ -77,7 +77,14 @@ namespace SecretLabAPI.RandomPickup
 
         internal static void Initialize()
         {
-            Config = SecretLab.LoadConfig(false, "random_pickup", () => new RandomPickupConfig());
+            if (FileUtils.TryLoadYamlFile<RandomPickupConfig>(SecretLab.RootDirectory, "random_pickup.yml", out var config))
+            {
+                Config = config;
+            }
+            else
+            {
+                FileUtils.TrySaveYamlFile(SecretLab.RootDirectory, "random_pickup.yml", Config = new());
+            }
 
             ExRoundEvents.Started += OnStarted;
             ExRoundEvents.Restarting += OnRestarting;

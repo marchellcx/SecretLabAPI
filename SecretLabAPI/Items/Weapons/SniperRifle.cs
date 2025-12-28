@@ -8,6 +8,7 @@ using LabExtended.API.Custom.Items.Events;
 using SecretLabAPI.Elements.Alerts;
 
 using System.ComponentModel;
+using LabExtended.Utilities;
 
 namespace SecretLabAPI.Items.Weapons
 {
@@ -70,7 +71,15 @@ namespace SecretLabAPI.Items.Weapons
 
         internal static void Initialize()
         {
-            Instance = SecretLab.LoadConfig(false, "sniper_rifle", () => new SniperRifle());
+            if (FileUtils.TryLoadYamlFile<SniperRifle>(SecretLab.RootDirectory, "sniper_rifle.yml", out var gun))
+            {
+                Instance = gun;
+            }
+            else
+            {
+                FileUtils.TrySaveYamlFile(SecretLab.RootDirectory, "sniper_rifle.yml", Instance = new());
+            }
+
             Instance.Register();
         }
     }

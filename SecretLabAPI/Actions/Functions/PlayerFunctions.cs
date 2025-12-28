@@ -2,6 +2,7 @@
 using LabExtended.API;
 using LabExtended.API.Hints;
 using LabExtended.API.Containers;
+using LabExtended.API.Custom.Effects;
 using LabExtended.API.Custom.Items;
 
 using LabExtended.Core;
@@ -1115,6 +1116,83 @@ namespace SecretLabAPI.Actions.Functions
             var player = context.Player;
             
             effects.ForEach(e => player.DisableEffect(e));
+            return ActionResultFlags.SuccessDispose;
+        }
+
+        /// <summary>
+        /// Enables a custom player effect for the specified player, optionally with a defined duration.
+        /// </summary>
+        /// <remarks>
+        /// The method retrieves the necessary parameters from the provided context, including the custom effect
+        /// type and its duration. If the effect is of type CustomDurationEffect, its remaining duration is adjusted.
+        /// This method ensures that both the player and effect are valid before activating the effect.
+        /// </remarks>
+        /// <param name="context">A reference to the action context which contains the player instance, the custom
+        /// effect type, and the optional duration parameter for the effect.</param>
+        /// <returns>An ActionResultFlags value indicating the outcome of the operation. Returns SuccessDispose
+        /// if the effect is successfully enabled, or StopDispose if the player is null. Returns SuccessDispose
+        /// if the effect is null but no further action can be taken.</returns>
+        [Action("EnableCustomEffect", "Enables a custom effect.")]
+        [ActionParameter("Variable", "The name of the variable that contains the effect (must be a CustomPlayerEffect).")]
+        [ActionParameter("Duration", "The duration of the custom effect (in seconds) if applicable.")]
+        public static ActionResultFlags EnableCustomEffect(ref ActionContext context)
+        {
+            context.EnsureCompiled((_, p) => p.EnsureCompiled(float.TryParse, 0f));
+            
+            var effect = context.GetValue<CustomPlayerEffect>(0);
+            var duration = context.GetValue<float>(1);
+
+            if (context.Player?.ReferenceHub == null)
+            {
+                ApiLog.Warn("Actions :: EnableCustomEffect", "A null player was provided");
+                return ActionResultFlags.StopDispose;
+            }
+
+            if (effect == null)
+            {
+                ApiLog.Warn("Actions :: EnableCustomEffect", "A null effect was provided");
+                return ActionResultFlags.SuccessDispose;
+            }
+
+            if (effect is CustomDurationEffect customDurationEffect)
+                customDurationEffect.RemainingDuration = duration;
+            
+            effect.Enable();
+            return ActionResultFlags.SuccessDispose;
+        }
+
+        /// <summary>
+        /// Disables the specified custom effect assigned to a player, if applicable.
+        /// </summary>
+        /// <remarks>
+        /// This method retrieves a custom player effect from the provided context and disables it for the target player.
+        /// Before proceeding, it validates the player reference and the effect to ensure they are not null. Logs warnings
+        /// in cases where invalid inputs are detected.
+        /// </remarks>
+        /// <param name="context">The action context containing the player and the effect variable to be disabled.
+        /// The effect variable must be of type CustomPlayerEffect.</param>
+        /// <returns>An ActionResultFlags value indicating the outcome of the operation. Returns SuccessDispose
+        /// if the effect was successfully disabled or if the effect was null. Returns StopDispose if the player reference
+        /// is invalid.</returns
+        [Action("DisableCustomEffect", "Disables a custom effect.")]
+        [ActionParameter("Variable", "The name of the variable that contains the effect (must be a CustomPlayerEffect).")]
+        public static ActionResultFlags DisableCustomEffect(ref ActionContext context)
+        {
+            var effect = context.GetValue<CustomPlayerEffect>(0);
+
+            if (context.Player?.ReferenceHub == null)
+            {
+                ApiLog.Warn("Actions :: DisableCustomEffect", "A null player was provided");
+                return ActionResultFlags.StopDispose;
+            }
+
+            if (effect == null)
+            {
+                ApiLog.Warn("Actions :: DisableCustomEffect", "A null effect was provided");
+                return ActionResultFlags.SuccessDispose;
+            }
+            
+            effect.Disable();
             return ActionResultFlags.SuccessDispose;
         }
 

@@ -9,7 +9,7 @@ using SecretLabAPI.Elements.Alerts;
 using SecretLabAPI.Utilities.Roles;
 
 using System.ComponentModel;
-
+using LabExtended.Utilities;
 using YamlDotNet.Serialization;
 
 namespace SecretLabAPI.Roles.Misc
@@ -108,7 +108,15 @@ namespace SecretLabAPI.Roles.Misc
 
         internal static void Initialize()
         {
-            Role = SecretLab.LoadConfig(false, "janitor", () => new JanitorRole());
+            if (FileUtils.TryLoadYamlFile<JanitorRole>(SecretLab.RootDirectory, "janitor.yml", out var role))
+            {
+                Role = role;
+            }
+            else
+            {
+                FileUtils.TrySaveYamlFile(SecretLab.RootDirectory, "janitor.yml", Role = new());
+            }
+
             Role.Register();
         }
     }

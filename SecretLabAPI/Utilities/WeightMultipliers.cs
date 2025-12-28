@@ -1,5 +1,7 @@
 ﻿using System.ComponentModel;
 
+using LabExtended.Utilities;
+
 namespace SecretLabAPI.Utilities
 {
     /// <summary>
@@ -72,7 +74,15 @@ namespace SecretLabAPI.Utilities
 
         internal static void Initialize()
         {
-            Groups = SecretLab.LoadConfig(false, "weight_groups", () => Groups);
+            if (FileUtils.TryLoadYamlFile<Dictionary<string, WeightMultipliers>>(SecretLab.RootDirectory,
+                    "weight_groups.yml", out var groups))
+            {
+                Groups = groups;
+            }
+            else
+            {
+                FileUtils.TrySaveYamlFile(SecretLab.RootDirectory, "weight_groups.yml", Groups);
+            }
         }
     }
 }

@@ -11,7 +11,7 @@ using LabExtended.Events.Player;
 using System.ComponentModel;
 
 using LabExtended.Core.Configs.Objects;
-
+using LabExtended.Utilities;
 using UnityEngine;
 
 namespace SecretLabAPI.Items.Weapons.ItemLauncher
@@ -107,17 +107,17 @@ namespace SecretLabAPI.Items.Weapons.ItemLauncher
 
             exampleLauncher.launcherId = "example_launcher";
 
-            SecretLab.SaveConfigPath(false, example, exampleLauncher);
+            FileUtils.TrySaveYamlFile(example, exampleLauncher);
 
             foreach (var file in Directory.GetFiles(path, "*.yml"))
             {
                 if (file == example)
                     continue;
-
-                var name = Path.GetFileNameWithoutExtension(file);
-                var launcher = SecretLab.LoadConfigPath(false, file, () => new ItemLauncher());
                 
-                launcher.launcherId = name;
+                if (!FileUtils.TryLoadYamlFile<ItemLauncher>(file, out var launcher))
+                    continue;
+                
+                launcher.launcherId = Path.GetFileNameWithoutExtension(file);
                 launcher.Register();
             }
         }

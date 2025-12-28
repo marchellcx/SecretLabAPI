@@ -4,6 +4,8 @@ using LabExtended.Commands;
 using LabExtended.Commands.Attributes;
 using LabExtended.Commands.Interfaces;
 
+using LabExtended.Utilities;
+
 using UnityEngine;
 
 namespace SecretLabAPI.Items.Weapons.ItemLauncher
@@ -54,7 +56,7 @@ namespace SecretLabAPI.Items.Weapons.ItemLauncher
                 if (!Directory.Exists(directory))
                     Directory.CreateDirectory(directory);
 
-                SecretLab.SaveConfigPath(false, path, launcher);
+                FileUtils.TrySaveYamlFile(path, launcher);
             }
 
             if (launcher.Register())

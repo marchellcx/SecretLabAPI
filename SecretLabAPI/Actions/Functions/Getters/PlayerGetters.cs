@@ -1,17 +1,18 @@
 using CustomPlayerEffects;
+
 using LabExtended.API;
-using LabExtended.API.Containers;
 using LabExtended.Extensions;
 
 using MapGeneration;
 
 using PlayerRoles;
-using ProjectMER.Commands.Utility;
+
 using SecretLabAPI.Actions.API;
 using SecretLabAPI.Actions.Enums;
 using SecretLabAPI.Actions.Attributes;
 
 using SecretLabAPI.Extensions;
+
 using StringExtensions = SecretLabAPI.Extensions.StringExtensions;
 
 namespace SecretLabAPI.Actions.Functions.Getters
@@ -30,7 +31,7 @@ namespace SecretLabAPI.Actions.Functions.Getters
             /// Represents the default set of player filters with no specific conditions applied.
             /// </summary>
             public static readonly PlayerFilters Default = new();
-            
+
             /// <summary>
             /// Whether or not the player has to be alive.
             /// </summary>
@@ -103,21 +104,22 @@ namespace SecretLabAPI.Actions.Functions.Getters
                 if (IgnoreNorthwoodStaff && player.IsNorthwoodStaff) return false;
                 if (IgnoreTutorial && player.Role.IsTutorial) return false;
                 if (IgnoreStaff && player.HasRemoteAdminAccess) return false;
-                
+
                 if (IsAlive.HasValue && player.Role.IsAlive != IsAlive.Value) return false;
                 if (IsGrounded.HasValue && IsGrounded.Value != player.Position.IsGrounded) return false;
-                
-                if (Groups?.Length > 0 && (string.IsNullOrEmpty(player.PermissionsGroupName) || !Groups.Contains(player.PermissionsGroupName))) return false;
+
+                if (Groups?.Length > 0 && (string.IsNullOrEmpty(player.PermissionsGroupName) ||
+                                           !Groups.Contains(player.PermissionsGroupName))) return false;
                 if (Teams?.Length > 0 && !Teams.Contains(player.Role.Team)) return false;
                 if (Roles?.Length > 0 && !Roles.Contains(player.Role.Type)) return false;
                 if (Factions?.Length > 0 && !Factions.Contains(player.Role.Faction)) return false;
                 if (Effects?.Length > 0 && !Effects.All(e => player.Effects.IsActive(e, true))) return false;
                 if (Zones?.Length > 0 && !Zones.Contains(player.Position.Position.GetZone())) return false;
                 if (Rooms?.Length > 0 && !Rooms.Contains(player.Position.Room?.Name ?? RoomName.Unnamed)) return false;
-                
+
                 return true;
             }
-            
+
             // $RandomPlayer = GetRandomPlayer "IsAlive,IgnoreNwStaff,Team:SCP NTF" 
             public static bool TryParse(string str, out PlayerFilters filters)
             {
@@ -155,18 +157,18 @@ namespace SecretLabAPI.Actions.Functions.Getters
                         {
                             case "ISALIVE":
                             {
-                                if (!bool.TryParse(value, out var isAlive)) 
+                                if (!bool.TryParse(value, out var isAlive))
                                     throw new($"Could not parse IsAlive value '{value}' to BOOLEAN");
-                                
+
                                 filters.IsAlive = isAlive;
                                 break;
                             }
-                            
+
                             case "ISGROUNDED":
                             {
-                                if (!bool.TryParse(value, out var isGrounded)) 
+                                if (!bool.TryParse(value, out var isGrounded))
                                     throw new($"Could not parse IsGrounded value '{value}' to BOOLEAN");
-                                
+
                                 filters.IsGrounded = isGrounded;
                                 break;
                             }
@@ -176,7 +178,7 @@ namespace SecretLabAPI.Actions.Functions.Getters
                                 filters.Groups = value.SplitEscaped(' ');
                                 break;
                             }
-                            
+
                             case "EFFECTS":
                             {
                                 filters.Effects = value.SplitEscaped(' ');
@@ -185,49 +187,49 @@ namespace SecretLabAPI.Actions.Functions.Getters
 
                             case "TEAMS":
                             {
-                                if (!value.TryParseEnumArray<Team>(out var teams)) 
+                                if (!value.TryParseEnumArray<Team>(out var teams))
                                     throw new($"Could not parse Teams value '{value}'");
-                                
+
                                 filters.Teams = teams;
                                 break;
                             }
-                            
+
                             case "ROLES":
                             {
                                 if (!value.TryParseEnumArray<RoleTypeId>(out var roles))
                                     throw new($"Could not parse Roles value '{value}'");
-                                
+
                                 filters.Roles = roles;
                                 break;
                             }
-                            
+
                             case "FACTIONS":
                             {
-                                if (!value.TryParseEnumArray<Faction>(out var factions)) 
+                                if (!value.TryParseEnumArray<Faction>(out var factions))
                                     throw new($"Could not parse Factions value '{value}'");
-                                
+
                                 filters.Factions = factions;
                                 break;
                             }
-                            
+
                             case "ZONES":
                             {
-                                if (!value.TryParseEnumArray<FacilityZone>(out var zones)) 
+                                if (!value.TryParseEnumArray<FacilityZone>(out var zones))
                                     throw new($"Could not parse Zones value '{value}'");
-                                
+
                                 filters.Zones = zones;
                                 break;
                             }
 
                             case "ROOMSBL" or "ROOMSWH":
                             {
-                                if (!value.TryParseEnumArray<RoomName>(out var rooms)) 
+                                if (!value.TryParseEnumArray<RoomName>(out var rooms))
                                     throw new($"Could not parse Rooms value '{value}'");
-                                
+
                                 filters.Rooms = value == "ROOMSBL"
                                     ? EnumUtils<RoomName>.Values.Except(rooms).ToArray()
                                     : rooms;
-                                
+
                                 break;
                             }
                         }
@@ -239,19 +241,19 @@ namespace SecretLabAPI.Actions.Functions.Getters
                             case "ISALIVE":
                                 filters.IsAlive = true;
                                 break;
-                            
+
                             case "ISGROUNDED":
                                 filters.IsGrounded = true;
                                 break;
-                            
+
                             case "IGNORESTAFF":
                                 filters.IgnoreStaff = true;
                                 break;
-                            
+
                             case "IGNORETUTORIAL":
                                 filters.IgnoreTutorial = true;
                                 break;
-                            
+
                             case "IGNORENWSTAFF":
                                 filters.IgnoreNorthwoodStaff = true;
                                 break;
@@ -274,9 +276,9 @@ namespace SecretLabAPI.Actions.Functions.Getters
         public static ActionResultFlags GetRandomPlayer(ref ActionContext context)
         {
             context.EnsureCompiled((_, p) => p.EnsureCompiled(string.Empty));
-            
+
             var input = context.GetValue(0);
-            
+
             var filters = context.GetMetadata("Filters", () =>
             {
                 if (PlayerFilters.TryParse(input, out var result))
@@ -313,14 +315,14 @@ namespace SecretLabAPI.Actions.Functions.Getters
                 {
                     0 => p.EnsureCompiled(int.TryParse, 1),
                     1 => p.EnsureCompiled(string.Empty),
-                    
+
                     _ => false
                 };
             });
 
             var count = context.GetValue<int>(0);
             var input = context.GetValue(1);
-            
+
             var filters = context.GetMetadata("Filters", () =>
             {
                 if (PlayerFilters.TryParse(input, out var result))
@@ -335,19 +337,19 @@ namespace SecretLabAPI.Actions.Functions.Getters
             var list = new List<ExPlayer>(count);
 
             // kinda expensive ik
-            while (list.Count < count && ExPlayer.Players.Any(p => 
-                       p?.ReferenceHub != null 
+            while (list.Count < count && ExPlayer.Players.Any(p =>
+                       p?.ReferenceHub != null
                        && !list.Contains(p)
                        && filters.IsValid(p)))
             {
                 var random = ExPlayer.Players.GetRandomItem(p => filters.IsValid(p));
-                
+
                 if (random?.ReferenceHub == null)
                     continue;
-                
+
                 if (list.Contains(random))
                     continue;
-                
+
                 list.Add(random);
             }
 
@@ -376,19 +378,20 @@ namespace SecretLabAPI.Actions.Functions.Getters
             {
                 return i switch
                 {
-                    0 => p.EnsureCompiled(StringExtensions.TryParseEnumArray, new StatusEffectBase.EffectClassification[] { }),
+                    0 => p.EnsureCompiled(StringExtensions.TryParseEnumArray,
+                        new StatusEffectBase.EffectClassification[] { }),
                     1 => p.EnsureCompiled(bool.TryParse, false),
                     2 => p.EnsureCompiled(bool.TryParse, false),
-                    
+
                     _ => false
                 };
             });
 
             if (context.Player?.ReferenceHub == null)
                 return ActionResultFlags.StopDispose;
-            
+
             var classifications = context.GetValue<StatusEffectBase.EffectClassification[]>(0);
-            
+
             var onlyActive = context.GetValue<bool>(1);
             var onlyInactive = context.GetValue<bool>(2);
 
@@ -398,7 +401,7 @@ namespace SecretLabAPI.Actions.Functions.Getters
 
             if (onlyInactive && !onlyActive)
                 effects = effects.Where(e => !e.IsEnabled);
-            
+
             effects = effects.Where(e => classifications?.Length < 1 || classifications.Contains(e.Classification));
 
             if (effects.Any())
@@ -409,7 +412,7 @@ namespace SecretLabAPI.Actions.Functions.Getters
 
             return ActionResultFlags.StopDispose;
         }
-        
+
         /// <summary>
         /// Selects a list of random status effects based on the specified parameters and classifications.
         /// </summary>
@@ -427,10 +430,11 @@ namespace SecretLabAPI.Actions.Functions.Getters
                 return i switch
                 {
                     0 => p.EnsureCompiled(int.TryParse, 1),
-                    1 => p.EnsureCompiled(StringExtensions.TryParseEnumArray, new StatusEffectBase.EffectClassification[] { }),
+                    1 => p.EnsureCompiled(StringExtensions.TryParseEnumArray,
+                        new StatusEffectBase.EffectClassification[] { }),
                     2 => p.EnsureCompiled(bool.TryParse, false),
                     3 => p.EnsureCompiled(bool.TryParse, false),
-                    
+
                     _ => false
                 };
             });
@@ -440,7 +444,7 @@ namespace SecretLabAPI.Actions.Functions.Getters
 
             var amount = context.GetValue<int>(0);
             var classifications = context.GetValue<StatusEffectBase.EffectClassification[]>(1);
-            
+
             var onlyActive = context.GetValue<bool>(2);
             var onlyInactive = context.GetValue<bool>(3);
 
@@ -450,7 +454,7 @@ namespace SecretLabAPI.Actions.Functions.Getters
 
             if (onlyInactive && !onlyActive)
                 effects = effects.Where(e => !e.IsEnabled);
-            
+
             effects = effects.Where(e => classifications?.Length < 1 || classifications.Contains(e.Classification));
 
             if (effects.Any())
@@ -552,6 +556,33 @@ namespace SecretLabAPI.Actions.Functions.Getters
                 return ActionResultFlags.StopDispose;
 
             context.SetMemory(effect);
+            return ActionResultFlags.SuccessDispose;
+        }
+
+        /// <summary>
+        /// Retrieves a player's custom effect by its name.
+        /// </summary>
+        /// <param name="context">The action context containing the player's information and the effect to retrieve.</param>
+        /// <returns>
+        /// <c>ActionResultFlags.SuccessDispose</c> if the custom effect is successfully retrieved and stored in memory;
+        /// <c>ActionResultFlags.StopDispose</c> if the player does not exist or if the specified effect is not found.
+        /// </returns>
+        [Action("GetCustomEffect", "Get's a player's custom effect by name.")]
+        [ActionParameter("Name", "Name of the effect to get.")]
+        public static ActionResultFlags GetCustomEffect(ref ActionContext context)
+        {
+            context.EnsureCompiled((_, p) => p.EnsureCompiled(string.Empty));
+
+            if (context.Player?.ReferenceHub == null)
+                return ActionResultFlags.StopDispose;
+
+            var name = context.GetValue(0);
+
+            if (!context.Player.Effects.CustomEffects.TryGetFirst(
+                    p => string.Equals(p.Key.Name, name, StringComparison.InvariantCultureIgnoreCase), out var effect))
+                return ActionResultFlags.StopDispose;
+
+            context.SetMemory(effect.Value);
             return ActionResultFlags.SuccessDispose;
         }
     }

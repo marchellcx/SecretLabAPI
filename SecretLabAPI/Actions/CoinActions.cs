@@ -63,6 +63,8 @@ namespace SecretLabAPI.Actions
         {
             if (context.Player?.ReferenceHub != null)
                 PausedPlayers.Remove(context.Player.UserId);
+            else
+                return ActionResultFlags.StopDispose;
 
             return ActionResultFlags.SuccessDispose;
         }
@@ -77,16 +79,20 @@ namespace SecretLabAPI.Actions
         public static ActionResultFlags RollCoin(ref ActionContext context)
         {
             context.EnsureCompiled((_, p) => p.EnsureCompiled(bool.TryParse, false));
-            
+
             if (context.Player?.ReferenceHub != null)
             {
                 var isTails = context.GetValue<bool>(0);
-                
+
                 var prefix = isTails
                     ? "CoinTails_"
                     : "CoinHead_";
-                
+
                 ActionManager.Table.SelectAndExecuteTable(context.Player, str => str.StartsWith(prefix));
+            }
+            else
+            {
+                return ActionResultFlags.StopDispose;
             }
 
             return ActionResultFlags.SuccessDispose;

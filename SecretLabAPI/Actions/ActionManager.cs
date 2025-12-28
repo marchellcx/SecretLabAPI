@@ -20,6 +20,7 @@ using System.Reflection;
 using SecretLabAPI.Actions.Enums;
 
 using Utils.NonAllocLINQ;
+using SecretLabAPI.Actions.Functions;
 
 namespace SecretLabAPI.Actions
 {
@@ -385,60 +386,7 @@ namespace SecretLabAPI.Actions
         /// <exception cref="ArgumentNullException">Thrown if the provided <paramref name="context"/> is null.</exception>
         /// <exception cref="Exception">Thrown if an unhandled exception occurs while executing any action in the context.</exception>
         public static bool ExecuteContext(ref ActionContext context, bool disposeContext = true)
-        {
-            for (context.Index = 0; context.Index < context.Actions.Count; context.Index++)
-            {
-                if (context.Index < 0 || context.Index >= context.Actions.Count)
-                {
-                    if (disposeContext)
-                        context.Dispose();
-
-                    break;
-                }
-
-                var current = context.Actions[context.Index];
-
-                context.Previous = context.Current;
-                context.Current = current;
-                
-                context.Next = context.Index + 1 < context.Actions.Count 
-                    ? context.Actions[context.Index + 1] 
-                    : null;
-                
-                try
-                {
-                    var flags = current.Action.Delegate(ref context);
-
-                    if (flags.ShouldStop())
-                    {
-                        if (flags.ShouldDispose() && disposeContext)
-                            context.Dispose();
-
-                        return flags.IsSuccess();
-                    }
-
-                    if (flags.IsSuccess()) 
-                        continue;
-                    
-                    if (disposeContext)
-                        context.Dispose();
-
-                    ApiLog.Warn("ActionManager", $"Action &r{current.Action.Delegate.Method}&r returned unsuccessful result.");
-                    return false;
-                }
-                catch (Exception ex)
-                {
-                    ApiLog.Error("ActionManager", $"Error executing compiled action &r{current.Action.Delegate.Method}&r:\n{ex}");
-
-                    if (disposeContext)
-                        context.Dispose();
-                    
-                    return false;
-                }
-            }
-
-            return true;
-        }
+            => ExecuteContext(ref context, 0, context.Actions.Count - 1, disposeContext);
 
         /// <summary>
         /// Parses the provided lines into a list of action methods, assigning an optional identifier prefix
@@ -598,17 +546,14 @@ namespace SecretLabAPI.Actions
                         && part.StartsWith($"{varParts[0].Trim()} ="))
                     {
                         var varName = varParts[0].Trim();
-                        var varAction = varParts[1].Trim();
-                        
-                        var varArgs = part
-                            .Replace($"{varName} = {varAction}", "")
-                            .Trim()
-                            .SplitOutsideQuotes(' ');
+                        var remParts = varParts[1].Trim().SplitOutsideQuotes(' ', true, true, true);
+                        var varAction = remParts[0];
+                        var varArgs = remParts.Skip(1).ToArray();
                         
                         if (!Actions.TryGetValue(varAction, out var action))
                         {
                             ApiLog.Error("ActionManager",
-                                $"Failed to compile action &3{part}&r: unknown action ID (&6{varAction}&r)");
+                                $"Failed to compile action &3{part}&r: unknown action ID for variable {varName} (&6{varAction}&r)");
                             continue;
                         }
                         
@@ -730,6 +675,28 @@ namespace SecretLabAPI.Actions
             return comp;
         }
 
+        /// <summary>
+        /// Reloads the global action table from the YAML file, replacing any existing data.
+        /// </summary>
+        /// <remarks>If the action table file does not exist or cannot be loaded, a new file is created
+        /// with the current table data. This method clears and repopulates the global table, which may affect any
+        /// consumers relying on its contents.</remarks>
+        public static void ReloadGlobalTable()
+        {
+            Table.Source.Clear();
+            Table.Parsed.Clear();
+
+            if (FileUtils.TryLoadYamlFile<ActionTable>(SecretLab.RootDirectory, "action_table.yml", out var actionTable))
+            {
+                Table.Source.AddRange(actionTable.Source);
+                Table.CacheTables();
+            }
+            else
+            {
+                FileUtils.TrySaveYamlFile(SecretLab.RootDirectory, "action_table.yml", Table);
+            }
+        }
+
         private static ActionParameter[] GetParameters(MethodInfo method)
         {
             var attributes = method.GetCustomAttributes<ActionParameterAttribute>();
@@ -812,6 +779,7 @@ namespace SecretLabAPI.Actions
             
             ActionEvents.Initialize();
             CoinActions.Initialize();
+            StateFunctions.Initialize();
         }
     }
 }

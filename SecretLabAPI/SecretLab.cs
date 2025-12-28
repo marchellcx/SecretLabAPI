@@ -1,8 +1,26 @@
+using LabApi.Loader;
+using LabApi.Loader.Features.Plugins;
+
+using LabExtended.API;
+using LabExtended.API.Hints;
+using LabExtended.API.Custom.Effects;
+
+using LabExtended.Events;
+using LabExtended.Utilities;
+using LabExtended.Attributes;
+
+using SecretLabAPI.Rays;
 using SecretLabAPI.Misc;
+using SecretLabAPI.Levels;
+using SecretLabAPI.Effects;
 using SecretLabAPI.Actions;
 using SecretLabAPI.Textures;
 using SecretLabAPI.Utilities;
+using SecretLabAPI.RandomEvents;
 using SecretLabAPI.RandomPickup;
+
+using SecretLabAPI.Roles.Misc;
+using SecretLabAPI.Roles.ChaosSpy;
 
 using SecretLabAPI.Elements;
 using SecretLabAPI.Elements.Alerts;
@@ -15,21 +33,6 @@ using SecretLabAPI.Items.Weapons;
 using SecretLabAPI.Items.Weapons.ItemLauncher;
 
 using SecretLabAPI.Patches.Overlays;
-
-using LabApi.Loader;
-using LabApi.Loader.Features.Yaml;
-using LabApi.Loader.Features.Plugins;
-using LabExtended.API.Custom.Effects;
-using LabExtended.Core;
-
-using LabExtended.API.Hints;
-using LabExtended.Attributes;
-using SecretLabAPI.Effects;
-using SecretLabAPI.Levels;
-using SecretLabAPI.RandomEvents;
-using SecretLabAPI.Roles.Misc;
-using SecretLabAPI.Roles.ChaosSpy;
-using SecretLabAPI.Rays;
 
 namespace SecretLabAPI;
 
@@ -49,6 +52,9 @@ public class SecretLab : Plugin<SecretLabConfig>
     /// </summary>
     public static new SecretLabConfig Config { get; private set; }
 
+    /// <summary>
+    /// Gets the root directory path of SecretLabAPI's global config.
+    /// </summary>
     public static string RootDirectory { get; private set; }
 
     /// <inheritdoc/>
@@ -105,18 +111,19 @@ public class SecretLab : Plugin<SecretLabConfig>
 
         RayManager.Initialize();
         RandomEventManager.Initialize();
+        
+        CustomPlayerEffect.Effects.Add(typeof(RocketEffect));
+        CustomPlayerEffect.Effects.Add(typeof(DoorInteractExplosionEffect));
+
+        new ReplicatingScp018().Register();
+
+        ExPlayerEvents.Verified += AddCustomEffects;
 
         // Old init
 
         SnakeExplosion.Internal_Init();
         PlayerInfoHealth.Internal_Init();
         PersistentOverwatch.Internal_Init();
-
-        RocketEffect.Initialize();
-        
-        CustomPlayerEffect.Effects.Add(typeof(RocketEffect));
-
-        new ReplicatingScp018().Register();
     }
 
     /// <inheritdoc/>
@@ -125,170 +132,13 @@ public class SecretLab : Plugin<SecretLabConfig>
 
     }
 
-    /// <summary>
-    /// Saves the specified configuration object to a file in either JSON or YAML format.
-    /// </summary>
-    /// <remarks>The configuration file is saved to the plugin's configuration directory. If an error occurs
-    /// during saving, the failure is logged but no exception is thrown.</remarks>
-    /// <param name="json">A value indicating whether to save the configuration as JSON. If <see langword="true"/>, the file is saved in
-    /// JSON format; otherwise, it is saved in YAML format.</param>
-    /// <param name="configName">The name of the configuration file to create, without extension. The appropriate file extension is added based
-    /// on the format.</param>
-    /// <param name="config">The configuration object to be saved. This object is serialized to the selected format.</param>
-    public static void SaveConfigPath(bool json, string path, object config)
+    private static void AddCustomEffects(ExPlayer player)
     {
-        try
-        {
-            if (json)
-            {
-                if (!path.EndsWith(".json"))
-                    path += ".json";
+        var rocketEffect = FileUtils.LoadYamlFileOrDefault(RootDirectory, "rocket_effect.yml", new RocketEffect(), true);
+        var doorInteractExplosionEffect = FileUtils.LoadYamlFileOrDefault(RootDirectory, "door_interact_explosion_effect.yml", new DoorInteractExplosionEffect(), true);
 
-                JsonFile.WriteFile(path, config);
-            }
-            else
-            {
-                if (!path.EndsWith(".yml"))
-                    path += ".yml";
-
-                File.WriteAllText(path, YamlConfigParser.Serializer.Serialize(config));
-            }
-        }
-        catch (Exception ex)
-        {
-            ApiLog.Error("SecretLabAPI", $"Failed to save config file '{path}':\n{ex}");
-        }
-    }
-
-    /// <summary>
-    /// Saves the specified configuration object to a file in either JSON or YAML format.
-    /// </summary>
-    /// <remarks>The configuration file is saved to the plugin's configuration directory. If an error occurs
-    /// during saving, the failure is logged but no exception is thrown.</remarks>
-    /// <param name="json">A value indicating whether to save the configuration as JSON. If <see langword="true"/>, the file is saved in
-    /// JSON format; otherwise, it is saved in YAML format.</param>
-    /// <param name="configName">The name of the configuration file to create, without extension. The appropriate file extension is added based
-    /// on the format.</param>
-    /// <param name="config">The configuration object to be saved. This object is serialized to the selected format.</param>
-    public static void SaveConfig(bool json, string configName, object config)
-    {
-        var path = Path.Combine(RootDirectory, configName + (json
-            ? ".json"
-            : ".yml"));
-
-        try
-        {
-            if (json)
-            {
-                JsonFile.WriteFile(path, config);
-            }
-            else
-            {
-                File.WriteAllText(path, YamlConfigParser.Serializer.Serialize(config));
-            }
-        }
-        catch (Exception ex)
-        {
-            ApiLog.Error("SecretLabAPI", $"Failed to save config file '{configName}':\n{ex}");
-        }
-    }
-
-    /// <summary>
-    /// Loads a configuration object of the specified type from a file in the application's root directory, using either
-    /// JSON or YAML format.
-    /// </summary>
-    /// <remarks>The method searches for the configuration file in the application's root directory. If the
-    /// file is missing or invalid, the defaultFactory is invoked to supply a fallback configuration.</remarks>
-    /// <typeparam name="T">The type of the configuration object to load.</typeparam>
-    /// <param name="json">true to load the configuration from a JSON file; false to load from a YAML file.</param>
-    /// <param name="configName">The base name of the configuration file, without extension. The appropriate file extension is appended based on
-    /// the format.</param>
-    /// <param name="defaultFactory">A function that provides a default instance of the configuration object if the file does not exist or cannot be
-    /// loaded.</param>
-    /// <returns>An instance of the configuration object loaded from the specified file, or the default instance provided by
-    /// defaultFactory if the file is not found or cannot be loaded.</returns>
-    public static T LoadConfig<T>(bool json, string configName, Func<T> defaultFactory)
-    {
-        var path = Path.Combine(RootDirectory, configName);
-        return LoadConfigPath(json, path, defaultFactory);
-    }
-
-    /// <summary>
-    /// Loads a configuration file in either JSON or YAML format, returning its contents as an object of type T. If the
-    /// file does not exist or cannot be loaded, a default configuration is created and returned.
-    /// </summary>
-    /// <remarks>If the configuration file is missing, a new file is created with the default configuration.
-    /// If a YAML file cannot be deserialized, the original file is renamed with a '.yml.error' extension and replaced
-    /// with a default configuration. The method does not throw exceptions for file read or parse errors; instead, it
-    /// logs errors and returns a default configuration.</remarks>
-    /// <typeparam name="T">The type of the configuration object to load or create.</typeparam>
-    /// <param name="json">Indicates whether to load the configuration file in JSON format. If <see langword="true"/>, the file is expected
-    /// to be JSON; otherwise, YAML format is used.</param>
-    /// <param name="configName">The base name of the configuration file, without extension. The appropriate file extension is appended based on
-    /// the format.</param>
-    /// <param name="defaultFactory">A function that creates a default configuration object of type T if the file does not exist or cannot be loaded.</param>
-    /// <returns>An object of type T containing the loaded configuration. If the file is missing or invalid, a default
-    /// configuration is returned and written to disk.</returns>
-    public static T LoadConfigPath<T>(bool json, string path, Func<T> defaultFactory)
-    {
-        ApiLog.Debug("SecretLabAPI", $"Loading config file &3{Path.GetFileName(path)}&r (&6{typeof(T).Name}&r)");
-
-        if (json)
-        {
-            if (!path.EndsWith(".json"))
-                path += ".json";
-
-            return JsonFile.ReadFile(path, defaultFactory());
-        }
-        else
-        {
-            if (!path.EndsWith(".yml"))
-                path += ".yml";
-
-            if (File.Exists(path))
-            {
-                try
-                {
-                    return YamlConfigParser.Deserializer.Deserialize<T>(File.ReadAllText(path));
-                }
-                catch (Exception ex)
-                {
-                    ApiLog.Error("SecretLabAPI", $"Failed to load config file '{path}':\n{ex}");
-
-                    var defaultConfig = defaultFactory();
-                    var errorPath = Path.Combine(Path.GetDirectoryName(path), Path.GetFileName(path) + ".error");
-
-                    try { File.Delete(errorPath); } catch { }
-                    try { File.Move(path, errorPath); } catch { }
-
-                    try
-                    {
-                        File.WriteAllText(path, YamlConfigParser.Serializer.Serialize(defaultConfig));
-                    }
-                    catch (Exception subEx)
-                    {
-                        ApiLog.Error("SecretLabAPI", $"Failed to save default config file '{path}':\n{subEx}");
-                    }
-
-                    return defaultConfig;
-                }
-            }
-            else
-            {
-                var defaultConfig = defaultFactory();
-
-                try
-                {
-                    File.WriteAllText(path, YamlConfigParser.Serializer.Serialize(defaultConfig));
-                }
-                catch (Exception ex)
-                {
-                    ApiLog.Error("SecretLabAPI", $"Failed to save default config file '{path}':\n{ex}");
-                }
-
-                return defaultConfig;
-            }
-        }
+        player.Effects.AddCustomEffect(rocketEffect, false);
+        player.Effects.AddCustomEffect(doorInteractExplosionEffect, false);
     }
 
     private static void InitCustomOverlays()

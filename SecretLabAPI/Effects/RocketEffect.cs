@@ -1,6 +1,7 @@
-using LabExtended.API;
 using LabExtended.API.Custom.Effects;
-using LabExtended.Events;
+
+using System.ComponentModel;
+
 using UnityEngine;
 
 namespace SecretLabAPI.Effects
@@ -10,36 +11,13 @@ namespace SecretLabAPI.Effects
     /// Gradually elevates the player's vertical position over time with a consistent step value
     /// and applies disintegration upon completion or when the effect is removed.
     /// </summary>
-    public class RocketEffect : CustomTickingEffect
+    public class RocketEffect : CustomDurationEffect
     {
-        private float delay;
-        private float time;
-        
         /// <summary>
         /// Gets or sets the increase in Y axis per frame.
         /// </summary>
+        [Description("The increase in Y axis per frame.")]
         public float Step { get; set; } = 15f;
-
-        /// <summary>
-        /// Gets or sets the duration of the rocket before being killed (in seconds).
-        /// </summary>
-        public float Duration { get; set; } = 30f;
-
-        /// <summary>
-        /// Gets or sets the per-frame delay.
-        /// </summary>
-        public new float Delay
-        {
-            get => delay;
-            set => delay = value;
-        }
-
-        /// <inheritdoc />
-        public override void ApplyEffects()
-        {
-            base.ApplyEffects();
-            time = delay;
-        }
 
         /// <inheritdoc />
         public override void RemoveEffects()
@@ -57,26 +35,9 @@ namespace SecretLabAPI.Effects
         {
             base.Tick();
 
-            if (delay > 0f)
-            {
-                if (time > 0f)
-                {
-                    time -= Time.deltaTime;
-                    return;
-                }
-
-                time = delay;
-            }
-
             if (Player?.ReferenceHub == null || !Player.IsAlive)
             {
-                RemoveEffects();
-                return;
-            }
-
-            if (Duration <= 0f)
-            {
-                RemoveEffects();
+                Disable();
                 return;
             }
             
@@ -85,16 +46,6 @@ namespace SecretLabAPI.Effects
             pos.y += Step;
 
             Player.Position.Position = pos;
-        }
-
-        internal static void Initialize()
-        {
-            ExPlayerEvents.Joined += OnJoined;
-        }
-
-        private static void OnJoined(ExPlayer player)
-        {
-            player.Effects.AddCustomEffect<RocketEffect>();
         }
     }
 }

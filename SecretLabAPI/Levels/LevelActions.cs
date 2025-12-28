@@ -36,7 +36,7 @@ namespace SecretLabAPI.Levels
             var xp = context.GetValue<int>(1);
 
             if (xp <= 0 || context.Player?.ReferenceHub == null)
-                return ActionResultFlags.SuccessDispose;
+                return ActionResultFlags.StopDispose;
 
             context.Player.SubtractExperience(reason, xp);
             return ActionResultFlags.SuccessDispose;
@@ -67,7 +67,7 @@ namespace SecretLabAPI.Levels
             var xp = context.GetValue<int>(1);
 
             if (xp <= 0 || context.Player?.ReferenceHub == null)
-                return ActionResultFlags.SuccessDispose;
+                return ActionResultFlags.StopDispose;
 
             context.Player.AddExperience(reason, xp);
             return ActionResultFlags.SuccessDispose;

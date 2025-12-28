@@ -75,16 +75,8 @@ namespace SecretLabAPI.Actions.Functions
                 return ActionResultFlags.SuccessStop;
             }
 
-            var action = context.Next;
-
-            if (action == null)
-            {
-                ApiLog.Warn("Actions :: Delay", "Next action is null");
-                return ActionResultFlags.StopDispose;
-            }
-            
-            TimingUtils.AfterSeconds(() => ActionManager.ExecuteContext(ref ctx, ctx.Index + 1, ctx.Index + 1, true), delay / 1000f);
-            return ActionResultFlags.Success;
+            TimingUtils.AfterSeconds(() => ActionManager.ExecuteContext(ref ctx, ctx.Index + 1, ctx.Actions.Count - 1, true), delay / 1000f);
+            return ActionResultFlags.SuccessStop;
         }
 
         /// <summary>
@@ -153,47 +145,8 @@ namespace SecretLabAPI.Actions.Functions
                 return ActionResultFlags.StopDispose;
             }
 
-            for (var x = startIndex; x < endIndex; x++)
-            {
-                context.Index = x;
-                context.Current = context.Actions[x];
-
-                if (x > 0) 
-                    context.Previous = context.Actions[x - 1];
-                else 
-                    context.Previous = null;
-
-                if (x + 1 < context.Actions.Count) 
-                    context.Next = context.Actions[x + 1];
-                else 
-                    context.Next = null;
-
-                try
-                {
-                    var flags = context.Current.Action.Delegate(ref context);
-                    
-                    if (flags.ShouldStop())
-                    {
-                        if (flags.ShouldDispose())
-                            context.Dispose();
-
-                        context.Index = endIndex + 1;
-                        return flags;
-                    }
-
-                    if (flags.IsSuccess()) 
-                        continue;
-                    
-                    return ActionResultFlags.StopDispose;
-                }
-                catch (Exception ex)
-                {
-                    ApiLog.Error("Actions :: StopIfAndExecute", ex);
-                    return ActionResultFlags.StopDispose;
-                }
-            }
-
-            return ActionResultFlags.SuccessDispose | ActionResultFlags.Stop;
+            ActionManager.ExecuteContext(ref context, startIndex, endIndex, true);
+            return ActionResultFlags.SuccessStop;
         }
         
         /// <summary>
