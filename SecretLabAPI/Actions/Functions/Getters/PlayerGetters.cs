@@ -14,6 +14,8 @@ using SecretLabAPI.Actions.Attributes;
 using SecretLabAPI.Extensions;
 
 using StringExtensions = SecretLabAPI.Extensions.StringExtensions;
+using LabExtended.Core;
+using UnityEngine;
 
 namespace SecretLabAPI.Actions.Functions.Getters
 {
@@ -118,6 +120,31 @@ namespace SecretLabAPI.Actions.Functions.Getters
                 if (Rooms?.Length > 0 && !Rooms.Contains(player.Position.Room?.Name ?? RoomName.Unnamed)) return false;
 
                 return true;
+            }
+
+            /// <summary>
+            /// Returns a string that represents the current object, including the values of its key properties and
+            /// collections.
+            /// </summary>
+            /// <remarks>The returned string lists each property on a separate line in the format
+            /// "PropertyName: value". This can be useful for debugging or logging the object's state.</remarks>
+            /// <returns>A multi-line string containing the names and values of the object's main properties and collections.
+            /// Properties that are null are represented as "(null)".</returns>
+            public override string ToString()
+            {
+                return 
+                    $"IgnoreNorthwoodStaff: {IgnoreNorthwoodStaff}\n" +
+                    $"IgnoreTutorial: {IgnoreTutorial}\n" +
+                    $"IgnoreStaff: {IgnoreStaff}\n" +
+                    $"IsAlive: {IsAlive?.ToString() ?? "(null)"}\n" +
+                    $"IsGrounded: {IsGrounded?.ToString() ?? "(null)"}\n" +
+                    $"Groups: {Groups?.AsString(",") ?? "(null)"}\n" +
+                    $"Teams: {Teams?.AsString(t => t.ToString(), ",") ?? "(null)"}\n" +
+                    $"Roles: {Roles?.AsString(t => t.ToString(), ",") ?? "(null)"}\n" +
+                    $"Factions: {Factions?.AsString(t => t.ToString(), ",") ?? "(null)"}\n" +
+                    $"Effects: {Effects?.AsString(",") ?? "(null)"}\n" +
+                    $"Zones: {Zones?.AsString(t => t.ToString(), ",") ?? "(null)"}\n" +
+                    $"Rooms: {Rooms?.AsString(t => t.ToString(), ",") ?? "(null)"}";
             }
 
             // $RandomPlayer = GetRandomPlayer "IsAlive,IgnoreNwStaff,Team:SCP NTF" 
@@ -266,6 +293,30 @@ namespace SecretLabAPI.Actions.Functions.Getters
         }
 
         /// <summary>
+        /// Calculates and stores the player's current health percentage in the action context.
+        /// </summary>
+        /// <remarks>If the player is not alive, the stored health percentage will be 0. The calculated
+        /// percentage is rounded up to the nearest whole number. The result is stored in the context's memory for use
+        /// by subsequent actions.</remarks>
+        /// <param name="context">A reference to the action context containing player information. The context must have a valid player with a
+        /// non-null ReferenceHub.</param>
+        /// <returns>An ActionResultFlags value indicating the outcome of the operation. Returns SuccessDispose if the health
+        /// percentage was calculated and stored; otherwise, returns StopDispose if the player or ReferenceHub is not
+        /// available.</returns>
+        [Action("GetHealthPercentage", "Gets the health percentage of a player.")]
+        public static ActionResultFlags GetHealthPercentage(ref ActionContext context)
+        {
+            if (context.Player?.ReferenceHub == null)
+                return ActionResultFlags.StopDispose;
+
+            context.SetMemory(!context.Player.IsAlive
+                ? 0
+                : Mathf.CeilToInt((context.Player.Health / context.Player.MaxHealth) * 100));
+
+            return ActionResultFlags.SuccessDispose;
+        }
+
+        /// <summary>
         /// Selects a random player that matches the specified filter.
         /// </summary>
         /// <param name="context">The action context that contains necessary data and metadata for the operation.</param>
@@ -282,7 +333,10 @@ namespace SecretLabAPI.Actions.Functions.Getters
             var filters = context.GetMetadata("Filters", () =>
             {
                 if (PlayerFilters.TryParse(input, out var result))
+                {
+                    ApiLog.Debug("Actions :: GetRandomPlayer", $"Parsed player filters (&6{input}&r):\n{result}");
                     return result;
+                }
 
                 throw new Exception($"Could not parse player filters from string '{input}'");
             });
@@ -326,7 +380,10 @@ namespace SecretLabAPI.Actions.Functions.Getters
             var filters = context.GetMetadata("Filters", () =>
             {
                 if (PlayerFilters.TryParse(input, out var result))
+                {
+                    ApiLog.Debug("Actions :: GetRandomPlayers", $"Parsed player filters (&6{input}&r):\n{result}");
                     return result;
+                }
 
                 throw new Exception($"Could not parse player filters from string '{input}'");
             });
@@ -553,7 +610,10 @@ namespace SecretLabAPI.Actions.Functions.Getters
             var name = context.GetValue(0);
 
             if (!context.Player.Effects.TryGetEffect(name, true, out var effect))
+            {
+                ApiLog.Warn("Actions :: GetEffect", $"Could not get effect &3{name}&r for player {context.Player?.ToLogString() ?? "(null)"}");
                 return ActionResultFlags.StopDispose;
+            }
 
             context.SetMemory(effect);
             return ActionResultFlags.SuccessDispose;
@@ -579,8 +639,12 @@ namespace SecretLabAPI.Actions.Functions.Getters
             var name = context.GetValue(0);
 
             if (!context.Player.Effects.CustomEffects.TryGetFirst(
-                    p => string.Equals(p.Key.Name, name, StringComparison.InvariantCultureIgnoreCase), out var effect))
+                    p => string.Equals(p.Key.Name, name, StringComparison.InvariantCultureIgnoreCase), out var effect)
+                || effect.Value == null)
+            {
+                ApiLog.Warn("Actions :: GetCustomEffect", $"Could not get custom effect &3{name}&r for player {context.Player?.ToLogString() ?? "(null)"}");
                 return ActionResultFlags.StopDispose;
+            }
 
             context.SetMemory(effect.Value);
             return ActionResultFlags.SuccessDispose;

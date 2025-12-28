@@ -320,12 +320,13 @@ namespace SecretLabAPI.Actions
         /// <param name="disposeContext">Indicates whether the context should be disposed after execution. Defaults to true.</param>
         /// <returns>True if the actions within the specified range were executed successfully; otherwise, false.</returns>
         /// <exception cref="ArgumentOutOfRangeException">Thrown if the start or end indexes are outside the bounds of the action list in the context.</exception>
-        public static bool ExecuteContext(ref ActionContext context, int startIndex, int endIndex,
-            bool disposeContext = true)
+        public static bool ExecuteContext(ref ActionContext context, int startIndex, int endIndex, bool disposeContext = true)
         {
-            for (context.Index = startIndex; context.Index < endIndex; context.Index++)
+            context.Index = startIndex;
+
+            while (true)
             {
-                if (context.Index < 0 || context.Index >= context.Actions.Count)
+                if (context.Index < 0 || context.Index >= context.Actions.Count || context.Index > endIndex)
                 {
                     if (disposeContext)
                         context.Dispose();
@@ -351,16 +352,24 @@ namespace SecretLabAPI.Actions
                         if (flags.ShouldDispose() && disposeContext)
                             context.Dispose();
 
-                        return flags.IsSuccess();
+                        var success = flags.IsSuccess();
+
+                        if (!success)
+                            ApiLog.Warn("ActionManager", $"Action &r{current.Action.Delegate.Method}&r returned unsuccessful result with a STOP flag (player valid: {context.Player?.ReferenceHub != null}).");
+
+                        return success;
                     }
 
-                    if (flags.IsSuccess()) 
+                    if (flags.IsSuccess())
+                    {
+                        context.Index++;
                         continue;
+                    }
                     
                     if (disposeContext)
                         context.Dispose();
 
-                    ApiLog.Warn("ActionManager", $"Action &r{current.Action.Delegate.Method}&r returned unsuccessful result.");
+                    ApiLog.Warn("ActionManager", $"Action &r{current.Action.Delegate.Method}&r returned unsuccessful result (player valid: {context.Player?.ReferenceHub != null}).");
                     return false;
                 }
                 catch (Exception ex)

@@ -117,7 +117,7 @@ namespace SecretLabAPI.Actions.API
 
             Memory[variable] = value!;
             
-            ApiLog.Debug("Actions", $"Method &3{Current.Action.Id}&r saved a memory variable: &1{value}&r (&6{typeof(T).Name}&r)");
+            ApiLog.Debug("Actions", $"Method &3{Current.Action.Id}&r saved a memory variable (&6{variable}&r): &1{value}&r (&6{typeof(T).Name}&r / &6{value?.GetType()?.Name ?? "(null)"}&r)");
         }
 
         /// <summary>

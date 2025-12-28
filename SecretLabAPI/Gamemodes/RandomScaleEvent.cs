@@ -10,11 +10,12 @@ using LabExtended.Core.Configs.Objects;
 
 using PlayerRoles;
 
+using SecretLabAPI.RandomEvents;
 using SecretLabAPI.Elements.Alerts;
 
 using UnityEngine;
 
-namespace SecretLabAPI.RandomEvents.Features.RandomScale
+namespace SecretLabAPI.Gamemodes
 {
     public class RandomScaleEvent : RandomEventBase
     {

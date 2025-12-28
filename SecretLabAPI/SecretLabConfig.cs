@@ -1,4 +1,6 @@
-﻿using SecretLabAPI.Elements.Levels;
+﻿using MapGeneration;
+using Scp914;
+using SecretLabAPI.Elements.Levels;
 using SecretLabAPI.Utilities.Configs;
 
 using System.ComponentModel;
@@ -134,6 +136,34 @@ namespace SecretLabAPI
             "Ignore Raycast",
             "Water",
             "UI"
+        };
+
+        /// <summary>
+        /// Gets or sets the probability that SCP-914 will teleport players during operation.
+        /// </summary>
+        [Description("Sets the chance for SCP-914 to teleport players.")]
+        public float Scp914TeleportChance { get; set; } = 0f;
+
+        /// <summary>
+        /// Gets or sets the knob setting that enables SCP-914 to teleport players.
+        /// </summary>
+        [Description("Sets the knob setting which allows SCP-914 to teleport players.")]
+        public Scp914KnobSetting Scp914TeleportSetting { get; set; } = Scp914KnobSetting.Coarse;
+
+        /// <summary>
+        /// Gets or sets the mapping of facility zones to the minimum round duration, in seconds, required for SCP-914
+        /// teleportation to be enabled in each zone.
+        /// </summary>
+        /// <remarks>Modify this dictionary to control which facility zones are eligible for SCP-914
+        /// teleportation based on the elapsed round time. Zones become eligible when the round duration meets or
+        /// exceeds the specified value.</remarks>
+        [Description("Sets SCP-914 teleport zone whitelists based on round duration (in seconds).")]
+        public Dictionary<FacilityZone, float> Scp914TeleportZones { get; set; } = new()
+        {
+            { FacilityZone.Surface, 300f },
+            { FacilityZone.Entrance, 120f },
+            { FacilityZone.HeavyContainment, 60f },
+            { FacilityZone.LightContainment, 0f },
         };
     }
 }

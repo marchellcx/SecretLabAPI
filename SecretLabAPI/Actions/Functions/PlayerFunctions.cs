@@ -1,4 +1,5 @@
 ﻿using CustomPlayerEffects;
+
 using LabExtended.API;
 using LabExtended.API.Hints;
 using LabExtended.API.Containers;
@@ -492,7 +493,9 @@ namespace SecretLabAPI.Actions.Functions
         [Action("DropHeldItem", "Drops the currently held item from a player's inventory.")]
         public static ActionResultFlags DropHeldItem(ref ActionContext context)
         {
-            context.Player?.Inventory.DropHeldItem();
+            if (context.Player?.ReferenceHub != null && context.Player.Inventory.CurrentItem != null)
+                context.Player.Inventory.DropHeldItem();
+
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -505,7 +508,9 @@ namespace SecretLabAPI.Actions.Functions
         [Action("RemoveHeldItem", "Removes the currently held item from the player's inventory.")]
         public static ActionResultFlags RemoveHeldItem(ref ActionContext context)
         {
-            context.Player?.Inventory.RemoveHeldItem();
+            if (context.Player?.ReferenceHub != null && context.Player.Inventory.CurrentItem != null)
+                context.Player.Inventory.RemoveHeldItem();
+
             return ActionResultFlags.SuccessDispose;
         }
 
@@ -1004,6 +1009,19 @@ namespace SecretLabAPI.Actions.Functions
         [ActionParameter("Stack", "Whether or not to stack the effect's duration if it's already active.")]
         public static ActionResultFlags EnableEffect(ref ActionContext context)
         {
+            context.EnsureCompiled((i, p) =>
+            {
+                return i switch
+                {
+                    0 => p.EnsureCompiled(string.Empty),
+                    1 => p.EnsureCompiled(byte.TryParse, (byte)0),
+                    2 => p.EnsureCompiled(float.TryParse, 0f),
+                    3 => p.EnsureCompiled(bool.TryParse, false),
+
+                    _ => false
+                };
+            });
+            
             var effect = context.GetValue<StatusEffectBase>(0);
             var intensity = context.GetValue<byte>(1);
             var duration = context.GetValue<float>(2);
@@ -1038,6 +1056,19 @@ namespace SecretLabAPI.Actions.Functions
         [ActionParameter("Stack", "Whether or not to stack the effect's duration if it's already active.")]
         public static ActionResultFlags EnableEffects(ref ActionContext context)
         {
+            context.EnsureCompiled((i, p) =>
+            {
+                return i switch
+                {
+                    0 => p.EnsureCompiled(string.Empty),
+                    1 => p.EnsureCompiled(byte.TryParse, (byte)0),
+                    2 => p.EnsureCompiled(float.TryParse, 0f),
+                    3 => p.EnsureCompiled(bool.TryParse, false),
+
+                    _ => false
+                };
+            });
+
             var effects = context.GetValue<List<StatusEffectBase>>(0);
             var intensity = context.GetValue<byte>(1);
             var duration = context.GetValue<float>(2);

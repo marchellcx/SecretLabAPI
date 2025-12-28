@@ -71,8 +71,11 @@ public static class AlertExtensions
 
         if (!player.TryGetHintElement<AlertElement>(out var alertElement))
         {
-            ApiLog.Warn("Alerts", $"Player {player.ToLogString()} is missing the alert element!");
-            return;
+            if (!player.AddHintElement(alertElement = new()))
+            {
+                ApiLog.Warn("Alerts", $"Player {player.ToLogString()} is missing the alert element!");
+                return;
+            }
         }
 
         if (alertElement.CurrentAlert == null || overrideCurrent)

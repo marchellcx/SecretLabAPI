@@ -44,7 +44,16 @@ namespace SecretLabAPI.Actions.Functions
         [ActionParameter("Amount", "The amount of actions to delay (0 or less delays only the next one - default).")]
         public static ActionResultFlags Delay(ref ActionContext context)
         {
-            context.EnsureCompiled((_, p) => p.EnsureCompiled(int.TryParse, 0));
+            context.EnsureCompiled((i, p) =>
+            {
+                return i switch
+                {
+                    0 => p.EnsureCompiled(float.TryParse, 0f),
+                    1 => p.EnsureCompiled(int.TryParse, 0),
+
+                    _ => false
+                };
+            });
 
             var delay = context.GetValue<float>(0);
             var amount = context.GetValue<int>(1);

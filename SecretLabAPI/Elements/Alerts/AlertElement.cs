@@ -5,7 +5,7 @@ using LabExtended.API.Enums;
 
 using LabExtended.API.Hints;
 using LabExtended.API.Hints.Elements.Personal;
-using LabExtended.Core;
+
 using LabExtended.Events;
 using LabExtended.Extensions;
 

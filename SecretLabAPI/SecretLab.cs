@@ -103,6 +103,8 @@ public class SecretLab : Plugin<SecretLabConfig>
         ItemLauncher.Initialize();
 
         RandomPickupManager.Initialize();
+        DeveloperMode.Initialize();
+        Scp914Teleport.Initialize();
 
         AlertElement.Initialize();
         LevelHandler.Initialize();

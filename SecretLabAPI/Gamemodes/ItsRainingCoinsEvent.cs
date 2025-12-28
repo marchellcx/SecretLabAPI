@@ -3,17 +3,18 @@ using System.ComponentModel;
 using LabExtended.API;
 
 using SecretLabAPI.Elements.Alerts;
+using SecretLabAPI.RandomEvents;
+
+using SecretLabAPI.Utilities;
 using SecretLabAPI.Utilities.Configs;
 
-namespace SecretLabAPI.RandomEvents.Features.ItsRainingCoins
+namespace SecretLabAPI.Gamemodes
 {
     /// <summary>
     /// An event where it literally just rains coins.
     /// </summary>
     public class ItsRainingCoinsEvent : RandomEventBase
     {
-        private Dictionary<ExPlayer, CoinRain> rains = new();
-
         /// <summary>
         /// Gets or sets the delay, in milliseconds, between each tick during the raining coins event.
         /// </summary>
@@ -60,14 +61,7 @@ namespace SecretLabAPI.RandomEvents.Features.ItsRainingCoins
             
             foreach (var player in ExPlayer.Players)
             {
-                var rain = new CoinRain();
-
-                rain.Event = this;
-                rain.Player = player;
-                
-                rain.Start();
-
-                rains[player] = rain;
+                ItemRain.StartItemRain(player, ItemType.Coin, CurrentCount, CurrentDelay);
                 
                 ShowHint(player, false);
             }
@@ -80,38 +74,18 @@ namespace SecretLabAPI.RandomEvents.Features.ItsRainingCoins
 
             CurrentDelay = int.MaxValue;
             CurrentCount = 0;
-
-            foreach (var pair in rains)
-                pair.Value.Stop();
-            
-            rains.Clear();
-        }
-
-        /// <inheritdoc />
-        public override void OnPlayerLeft(ExPlayer player)
-        {
-            base.OnPlayerLeft(player);
-            
-            if (rains.TryGetValue(player, out var rain))
-                rain.Stop();
-
-            rains.Remove(player);
+           
+            foreach (var player in ExPlayer.Players)
+                ItemRain.StopItemRainIf(player, ItemType.Coin);
         }
 
         /// <inheritdoc />
         public override void OnPlayerJoined(ExPlayer player)
         {
             base.OnPlayerJoined(player);
-            
-            var rain = new CoinRain();
 
-            rain.Event = this;
-            rain.Player = player;
-                
-            rain.Start();
+            ItemRain.StartItemRain(player, ItemType.Coin, CurrentCount, CurrentDelay);
 
-            rains[player] = rain;
-            
             ShowHint(player, true);
         }
 

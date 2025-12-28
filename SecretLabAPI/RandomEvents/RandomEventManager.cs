@@ -8,8 +8,7 @@ using LabExtended.Utilities;
 using SecretLabAPI.Actions;
 using SecretLabAPI.Actions.API;
 
-using SecretLabAPI.RandomEvents.Features.ItsRainingCoins;
-using SecretLabAPI.RandomEvents.Features.RandomScale;
+using SecretLabAPI.Gamemodes;
 
 namespace SecretLabAPI.RandomEvents
 {
@@ -24,8 +23,14 @@ namespace SecretLabAPI.RandomEvents
         {
             { "its_raining_coins", typeof(ItsRainingCoinsEvent) },
             { "random_scale", typeof(RandomScaleEvent) },
+            { "switched_spawns", typeof(SwitchedSpawnsEvent) },
+            { "blackout",  typeof(BlackoutEvent) },
+            { "scp_infection", typeof(ScpInfectionEvent) },
         };
         
+        /// <summary>
+        /// Gets the global configuration settings for random events.
+        /// </summary>
         public static RandomEventConfig Config { get; private set; }
 
         private static void OnRoundStart()
