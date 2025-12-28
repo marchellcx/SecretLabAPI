@@ -78,7 +78,7 @@ public class DoorInteractExplosionEffect : CustomPlayerEffect
     }
 
     private void OnInteracted(PlayerInteractedDoorEventArgs args)
-    {
+{
         if (Player?.ReferenceHub == null || !IsActive) 
             return;
         
@@ -95,7 +95,7 @@ public class DoorInteractExplosionEffect : CustomPlayerEffect
             breakableDoor.Network_destroyed = true;
         else if (args.Door.Base is not PryableDoor)
             NetworkServer.Destroy(args.Door.Base.gameObject);
-
+    
         if (GrenadeAmount > 0)
             player.Explode(GrenadeAmount, GrenadeType, DeathReason, IsEffectOnly, IsDeath, VelocityMultiplier);
     }
