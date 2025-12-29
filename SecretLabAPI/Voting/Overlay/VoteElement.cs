@@ -44,7 +44,7 @@ namespace SecretLabAPI.Voting.Overlay
 
             if (VoteManager.CurrentVote.Starter?.ReferenceHub != null)
             {
-                Builder.Append($"<size=15>Hlasování ({VoteManager.CurrentVote.Starter.Nickname})</size>");
+                Builder.Append($"<b><size=18><color=red>📊</color> | <color=red>Hlasování</color> (<color=yellow>{VoteManager.CurrentVote.Starter.Nickname}</color>)</size> | ");
                 Builder.AppendLine();
             }
 
@@ -57,7 +57,7 @@ namespace SecretLabAPI.Voting.Overlay
             Builder.Append(Mathf.CeilToInt((float)VoteManager.Remaining.TotalSeconds));
             Builder.Append("s | ");
             Builder.Append(VoteManager.CurrentVote.Title);
-            Builder.Append("</color></b></size>");
+            Builder.Append("</color></b></size> | ");
             Builder.AppendLine();
 
             for (var x = 0; x < VoteManager.CurrentVote.Options.Count; x++)

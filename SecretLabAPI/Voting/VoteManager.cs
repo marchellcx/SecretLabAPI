@@ -65,11 +65,11 @@ namespace SecretLabAPI.Voting
             {
                 if (player?.ReferenceHub != null)
                 {
-                    if (player.TryGetMenu<VoteMenu>(out var menu))
-                        menu.SyncMenu(vote);
-
                     if (!player.AddHintElement(new VoteElement()))
                         return false;
+
+                    if (player.TryGetMenu<VoteMenu>(out var menu))
+                        menu.SyncMenu(vote);
                 }
             }
 
@@ -87,8 +87,6 @@ namespace SecretLabAPI.Voting
         {
             if (CurrentVote == null)
                 return;
-
-            HintController.RemoveHintElement<VoteElement>();
 
             voteTimer.Stop();
             voteTimer.Reset();
@@ -131,6 +129,11 @@ namespace SecretLabAPI.Voting
             }
         }
 
+        private static void OnRestarting()
+        {
+            StopVote();
+        }
+
         private static void OnVerified(ExPlayer player)
         {
             if (player.TryGetMenu<VoteMenu>(out var menu))
@@ -138,6 +141,14 @@ namespace SecretLabAPI.Voting
 
             if (CurrentVote != null)
                 player.AddHintElement(new VoteElement());
+        }
+
+        private static void OnLeft(ExPlayer player)
+        {
+            if (CurrentVote != null)
+            {
+                CurrentVote.Votes.Remove(player);
+            }
         }
 
         internal static void OnButtonInteracted(SettingsButton button)
@@ -166,7 +177,10 @@ namespace SecretLabAPI.Voting
         {
             PlayerUpdateHelper.OnLateUpdate += OnUpdate;
 
+            ExPlayerEvents.Left += OnLeft;
             ExPlayerEvents.Verified += OnVerified;
+
+            ExRoundEvents.Restarting += OnRestarting;
 
             SettingsManager.AddBuilder(new SettingsBuilder("secretlabapi.vote.builder").WithMenu(() => new VoteMenu()));
         }

@@ -22,7 +22,7 @@ namespace SecretLabAPI.Voting.API
         /// <summary>
         /// Gets the localized header text for the voting section.
         /// </summary>
-        public override string Header { get; } = "Hlasování";
+        public override string Header { get; } = "<color=yellow>🔔</color> | <color=red>Hlasování</color>";
 
         /// <summary>
         /// Gets the priority value for this instance.
@@ -88,7 +88,7 @@ namespace SecretLabAPI.Voting.API
                 settings.Add(SettingsButton.Create(
                     $"secretlabapi.votemenu.buttons.{x}",
                     $"Možnost {x + 1}",
-                    "<color=green>Hlasovat</color>",
+                    "<color=green>📥 Hlasovat</color>",
                     "Stisknutím tohoto tlačítka hlasuješ pro danou možnost."));
             }
         }
