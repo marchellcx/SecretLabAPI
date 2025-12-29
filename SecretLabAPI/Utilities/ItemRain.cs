@@ -1,6 +1,9 @@
 using System.Diagnostics;
 
+using InventorySystem.Items.ThrowableProjectiles;
+
 using LabExtended.API;
+using LabExtended.Extensions;
 
 using SecretLabAPI.Extensions;
 
@@ -19,6 +22,8 @@ namespace SecretLabAPI.Utilities
     public class ItemRain : MonoBehaviour
     {
         private Stopwatch watch = new();
+        private int droppedItems = 0;
+        private bool isProjectile;
 
         /// <summary>
         /// The player targeted by this instance.
@@ -36,6 +41,16 @@ namespace SecretLabAPI.Utilities
         public int Delay { get; set; }
 
         /// <summary>
+        /// Gets or sets the limit of items to drop. A value of 0 means no limit.
+        /// </summary>
+        public int Limit { get; set; } = 0;
+
+        /// <summary>
+        /// Gets or sets the fuse time for grenades.
+        /// </summary>
+        public float Fuse { get; set; } = 3f;
+
+        /// <summary>
         /// Gets or sets the item type to drop.
         /// </summary>
         public ItemType Item { get; set; }
@@ -44,6 +59,11 @@ namespace SecretLabAPI.Utilities
         /// Gets or sets the scale of the dropped item.
         /// </summary>
         public Vector3 Scale { get; set; } = Vector3.one;
+
+        /// <summary>
+        /// Whether or not to spawn grenades as active projectiles.
+        /// </summary>
+        public bool SpawnActive { get; set; }
 
         /// <summary>
         /// Whether or not the rain is in progress.
@@ -55,6 +75,10 @@ namespace SecretLabAPI.Utilities
         /// </summary>
         public void Enable()
         {
+            droppedItems = 0;
+
+            isProjectile = Item.TryGetItemPrefab(out var prefab) && prefab is ThrowableItem;
+
             watch.Restart();
         }
 
@@ -83,6 +107,12 @@ namespace SecretLabAPI.Utilities
             if (!IsRunning)
                 return;
 
+            if (Limit > 0 && droppedItems >= Limit)
+            {
+                Disable();
+                return;
+            }
+
             if (Player?.ReferenceHub == null)
                 return;
 
@@ -96,7 +126,30 @@ namespace SecretLabAPI.Utilities
                 return;
 
             for (var x = 0; x < Count; x++)
-                ExMap.SpawnItem(ItemType.Coin, Player.PositionAdjustY(0.5f), Vector3.one, Player.Rotation);
+            {
+                if (SpawnActive && isProjectile)
+                {
+                    if (ExMap.SpawnProjectile(Item, Player.PositionAdjustY(0.5f), Scale, Vector3.zero, Player.Rotation, 0f, Fuse) != null)
+                    {
+                        droppedItems++;
+                    }
+                }
+                else
+                {
+                    if (ExMap.SpawnItem(Item, Player.PositionAdjustY(0.5f), Scale, Player.Rotation) != null)
+                    {
+                        droppedItems++;
+                    }
+                }
+
+                if (Limit <= 0 || droppedItems < Limit)
+                {
+                    continue;
+                }
+
+                Disable();
+                break;
+            }
         }
 
         void OnDestroy()
@@ -164,19 +217,24 @@ namespace SecretLabAPI.Utilities
         }
 
         /// <summary>
-        /// Starts an item rain effect for the specified player, causing items of the given type to spawn repeatedly at
-        /// set intervals.
+        /// Starts an item rain effect for the specified player, spawning multiple items of the given type at set
+        /// intervals.
         /// </summary>
-        /// <remarks>If the player already has an active ItemRain component, its parameters will be
-        /// updated and the effect restarted. Otherwise, a new ItemRain component will be added to the player.</remarks>
-        /// <param name="player">The player for whom the item rain effect will be started. Must be a valid player with an initialized
-        /// reference hub.</param>
-        /// <param name="type">The type of item to spawn during the item rain effect.</param>
-        /// <param name="amount">The total number of items to spawn over the duration of the effect. Must be a non-negative integer.</param>
-        /// <param name="delay">The delay, in milliseconds, between each item spawn. Must be a non-negative integer.</param>
-        /// <returns>An ItemRain instance representing the active item rain effect for the specified player.</returns>
-        /// <exception cref="ArgumentException">Thrown if the specified player is null or does not have a valid reference hub.</exception>
-        public static ItemRain StartItemRain(ExPlayer player, ItemType type, int amount = 1, int delay = 0, Vector3? scale = null)
+        /// <remarks>If an item rain effect is already active for the player, its parameters are updated
+        /// and the effect is restarted. Otherwise, a new item rain effect is created and started.</remarks>
+        /// <param name="player">The player for whom the item rain effect will be started. Must not be null and must reference a valid
+        /// player.</param>
+        /// <param name="type">The type of item to spawn during the item rain.</param>
+        /// <param name="amount">The number of items to spawn in each rain cycle. Must be greater than zero.</param>
+        /// <param name="delay">The delay, in seconds, between each item spawn. Set to 0 for immediate spawning.</param>
+        /// <param name="limit">The maximum number of items to spawn in total. Set to 0 for no limit.</param>
+        /// <param name="spawnActive">A value indicating whether the spawned items should be active upon creation. Set to <see langword="true"/>
+        /// to spawn active items; otherwise, <see langword="false"/>.</param>
+        /// <param name="fuseTime">The fuse time, in seconds, for each spawned item. Determines how long the item exists before expiring.</param>
+        /// <param name="scale">The scale to apply to each spawned item. If null, the default scale is used.</param>
+        /// <returns>An <see cref="ItemRain"/> instance representing the active item rain effect for the player.</returns>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="player"/> is null or does not reference a valid player.</exception>
+        public static ItemRain StartItemRain(ExPlayer player, ItemType type, int amount = 1, int delay = 0, int limit = 0, bool spawnActive = true, float fuseTime = 3f, Vector3? scale = null)
         {
             if (player?.ReferenceHub == null)
                 throw new ArgumentException("Player is not valid.", nameof(player));
@@ -187,6 +245,9 @@ namespace SecretLabAPI.Utilities
                 itemRain.Count = amount;
                 itemRain.Delay = delay;
                 itemRain.Scale = scale ?? Vector3.one;
+                itemRain.Limit = limit;
+                itemRain.SpawnActive = spawnActive;
+                itemRain.Fuse = fuseTime;
 
                 itemRain.Enable();
                 return itemRain;
@@ -199,6 +260,9 @@ namespace SecretLabAPI.Utilities
                 itemRain.Count = amount;
                 itemRain.Delay = delay;
                 itemRain.Scale = scale ?? Vector3.one;
+                itemRain.Limit = limit;
+                itemRain.SpawnActive = spawnActive;
+                itemRain.Fuse = fuseTime;
 
                 itemRain.Enable();
                 return itemRain;

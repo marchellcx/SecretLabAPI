@@ -429,16 +429,23 @@ namespace SecretLabAPI.Actions.Functions.Getters
         [ActionParameter("Classification", "A list of valid classifications.")]
         [ActionParameter("OnlyActive", "Whether or not to select only from effects that are currently active.")]
         [ActionParameter("OnlyInactive", "Whether or not to select only from effects that are currently inactive.")]
+        [ActionParameter("Blacklist", "A list of effect names to exclude from selection.")]
         public static ActionResultFlags GetRandomEffect(ref ActionContext context)
         {
             context.EnsureCompiled((i, p) =>
             {
                 return i switch
                 {
-                    0 => p.EnsureCompiled(StringExtensions.TryParseEnumArray,
-                        new StatusEffectBase.EffectClassification[] { }),
+                    0 => p.EnsureCompiled(StringExtensions.TryParseEnumArray, new StatusEffectBase.EffectClassification[] { }),
+
                     1 => p.EnsureCompiled(bool.TryParse, false),
                     2 => p.EnsureCompiled(bool.TryParse, false),
+
+                    3 => p.EnsureCompiled((string str, out string[] result) =>
+                    {
+                        result = (str ?? string.Empty).SplitEscaped(',');
+                        return result != null;
+                    }, Array.Empty<string>()),
 
                     _ => false
                 };
@@ -451,6 +458,8 @@ namespace SecretLabAPI.Actions.Functions.Getters
 
             var onlyActive = context.GetValue<bool>(1);
             var onlyInactive = context.GetValue<bool>(2);
+            
+            var blacklist = context.GetValue<string[]>(3);
 
             var effects = onlyActive
                 ? context.Player.Effects.ActiveEffects
@@ -458,6 +467,9 @@ namespace SecretLabAPI.Actions.Functions.Getters
 
             if (onlyInactive && !onlyActive)
                 effects = effects.Where(e => !e.IsEnabled);
+
+            if (blacklist?.Length > 0)
+                effects = effects.Where(e => !blacklist.Contains(e.GetType().Name));
 
             effects = effects.Where(e => classifications?.Length < 1 || classifications.Contains(e.Classification));
 
@@ -480,6 +492,7 @@ namespace SecretLabAPI.Actions.Functions.Getters
         [ActionParameter("Classification", "A list of valid classifications.")]
         [ActionParameter("OnlyActive", "Whether or not to select only from effects that are currently active.")]
         [ActionParameter("OnlyInactive", "Whether or not to select only from effects that are currently inactive.")]
+        [ActionParameter("Blacklist", "A list of effect names to exclude from selection.")]
         public static ActionResultFlags GetRandomEffects(ref ActionContext context)
         {
             context.EnsureCompiled((i, p) =>
@@ -491,6 +504,12 @@ namespace SecretLabAPI.Actions.Functions.Getters
                         new StatusEffectBase.EffectClassification[] { }),
                     2 => p.EnsureCompiled(bool.TryParse, false),
                     3 => p.EnsureCompiled(bool.TryParse, false),
+
+                    4 => p.EnsureCompiled((string str, out string[] result) =>
+                    {
+                        result = (str ?? string.Empty).SplitEscaped(',');
+                        return result != null;
+                    }, Array.Empty<string>()),
 
                     _ => false
                 };
@@ -505,12 +524,17 @@ namespace SecretLabAPI.Actions.Functions.Getters
             var onlyActive = context.GetValue<bool>(2);
             var onlyInactive = context.GetValue<bool>(3);
 
+            var blacklist = context.GetValue<string[]>(4);
+
             var effects = onlyActive
                 ? context.Player.Effects.ActiveEffects
                 : context.Player.Effects.Effects.Values;
 
             if (onlyInactive && !onlyActive)
                 effects = effects.Where(e => !e.IsEnabled);
+
+            if (blacklist?.Length > 0)
+                effects = effects.Where(e => !blacklist.Contains(e.GetType().Name));
 
             effects = effects.Where(e => classifications?.Length < 1 || classifications.Contains(e.Classification));
 
@@ -557,16 +581,23 @@ namespace SecretLabAPI.Actions.Functions.Getters
         [ActionParameter("Classification", "A list of valid classifications.")]
         [ActionParameter("OnlyActive", "Whether or not to select only from effects that are currently active.")]
         [ActionParameter("OnlyInactive", "Whether or not to select only from effects that are currently inactive.")]
+        [ActionParameter("Blacklist", "A list of effect names to exclude from selection.")]
         public static ActionResultFlags GetEffects(ref ActionContext context)
         {
             context.EnsureCompiled((i, p) =>
             {
                 return i switch
                 {
-                    0 => p.EnsureCompiled(StringExtensions.TryParseEnumArray,
-                        new StatusEffectBase.EffectClassification[] { }),
+                    0 => p.EnsureCompiled(StringExtensions.TryParseEnumArray,  new StatusEffectBase.EffectClassification[] { }),
+
                     1 => p.EnsureCompiled(bool.TryParse, false),
                     2 => p.EnsureCompiled(bool.TryParse, false),
+
+                    3 => p.EnsureCompiled((string str, out string[] result) =>
+                    {
+                        result = (str ?? string.Empty).SplitEscaped(',');
+                        return result != null;
+                    }, Array.Empty<string>()),
 
                     _ => false
                 };
@@ -580,12 +611,17 @@ namespace SecretLabAPI.Actions.Functions.Getters
             var onlyActive = context.GetValue<bool>(1);
             var onlyInactive = context.GetValue<bool>(2);
 
+            var blacklist = context.GetValue<string[]>(3);
+
             var effects = onlyActive
                 ? context.Player.Effects.ActiveEffects
                 : context.Player.Effects.Effects.Values;
 
             if (onlyInactive && !onlyActive)
                 effects = effects.Where(e => !e.IsEnabled);
+
+            if (blacklist?.Length > 0)
+                effects = effects.Where(e => !blacklist.Contains(e.GetType().Name));
 
             effects = effects.Where(e => classifications?.Length < 1 || classifications.Contains(e.Classification));
 

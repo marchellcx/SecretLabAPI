@@ -4,6 +4,8 @@ using LabExtended.Commands;
 using LabExtended.Commands.Attributes;
 using LabExtended.Commands.Interfaces;
 
+using LabExtended.Core;
+
 using SecretLabAPI.Utilities;
 
 using UnityEngine;
@@ -25,16 +27,25 @@ namespace SecretLabAPI.Commands
             [CommandParameter("Targets", "List of players to start the rain on.")] List<ExPlayer> targets, 
             [CommandParameter("Type", "The item type that should rain.")] ItemType item,
             [CommandParameter("Amount", "The amount of items that should be spawned per drop.")] int amount,
-            [CommandParameter("Delay", "The delay between each drop (in milliseconds).")] int delay, 
+            [CommandParameter("Delay", "The delay between each drop (in milliseconds).")] int delay,
+            [CommandParameter("Limit", "The maximum amount of items to drop (0 for infinite).")] int limit,
+            [CommandParameter("Fuse", "The duration of a projectile's fuse time - will be spawned as a regular grenade if less than zero (in seconds).")] float fuse,
             [CommandParameter("Scale", "Scale of dropped items (defaults to one)")] Vector3 scale = default)
         {
-            if (scale == default)
-                scale = Vector3.one;
+            try
+            {
+                if (scale == default)
+                    scale = Vector3.one;
 
-            foreach (ExPlayer target in targets)
-                ItemRain.StartItemRain(target, item, amount, delay, scale);
+                foreach (var target in targets)
+                    ItemRain.StartItemRain(target, item, amount, delay, limit, fuse >= 0f, fuse, scale);
 
-            Ok("Started item rain on " + targets.Count + " players.");
+                Ok("Started item rain on " + targets.Count + " players.");
+            }
+            catch (Exception ex)
+            {
+                ApiLog.Error("ItemRainCommand", ex);
+            }
         }
 
         [CommandOverload("stop", "Stops an item rain on the specified players.", null)]
