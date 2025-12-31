@@ -125,6 +125,8 @@ namespace SecretLabAPI.Utilities
             if (Delay > 0 && watch.ElapsedMilliseconds < Delay)
                 return;
 
+            watch.Restart();
+
             for (var x = 0; x < Count; x++)
             {
                 if (SpawnActive && isProjectile)

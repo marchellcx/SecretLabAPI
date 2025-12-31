@@ -72,20 +72,33 @@ namespace SecretLabAPI.Gamemodes
             var infectRole = Roles.GetRandomItem();
             var patientZero = ExPlayer.Players.GetRandomItem(p => p.ReferenceHub != null && !string.IsNullOrEmpty(p.UserId));
 
-            patientZero.Role.Set(infectRole, RoleChangeReason.RoundStart, RoleSpawnFlags.None);
+            patientZero.Role.Set(infectRole, RoleChangeReason.RoundStart, RoleSpawnFlags.UseSpawnpoint);
 
-            var patientZeroSpawnPos = ExMap.GetPocketExitPosition(patientZero, FacilityZone.LightContainment);
-
-            patientZero.Position.Position = patientZeroSpawnPos;
+            var patientZeroSpawnPos = Map.Rooms
+                .GetRandomItem(r => r != null && r.Zone == FacilityZone.LightContainment && r.Name != RoomName.Pocket).Base
+                .GetSafePosition(patientZero);
 
             var validPlayers = ExPlayer.Players.Where(p => p.ReferenceHub != null && !string.IsNullOrEmpty(p.UserId) && p != patientZero);
-            var startPos = ExMap.GetPocketExitPosition(validPlayers.First(), FacilityZone.LightContainment);
+            var validPlayer = validPlayers.First();
 
             foreach (var player in validPlayers)
+                player.Role.Set(RoleTypeId.ClassD, RoleChangeReason.RemoteAdmin, RoleSpawnFlags.UseSpawnpoint);
+
+            var startPos = Map.Rooms
+                .GetRandomItem(r => r != null && r.Zone == FacilityZone.LightContainment && r.Name != RoomName.Pocket).Base
+                .GetSafePosition(validPlayer);
+
+            while (startPos == patientZeroSpawnPos)
             {
-                player.Role.Set(RoleTypeId.ClassD, RoleChangeReason.RemoteAdmin, RoleSpawnFlags.None);
-                player.Position.Position = startPos;
+                startPos = Map.Rooms
+                    .GetRandomItem(r => r != null && r.Zone == FacilityZone.LightContainment && r.Name != RoomName.Pocket).Base
+                    .GetSafePosition(validPlayer);
             }
+
+            foreach (var player in validPlayers)
+                player.Position.Position = startPos;
+
+            patientZero.Position.Position = patientZeroSpawnPos;
 
             ExPlayer.Players.ForEach(p =>
             {

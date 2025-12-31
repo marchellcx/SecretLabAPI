@@ -72,6 +72,9 @@ namespace SecretLabAPI.Utilities
                         if (!typeof(EventArgs).IsAssignableFrom(type))
                             continue;
 
+                        if (type.IsGenericTypeDefinition)
+                            continue;
+
                         var target = invokeMethod.MakeGenericMethod(type);
                         var replacement = replacementMethod.MakeGenericMethod(type);
 
