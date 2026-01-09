@@ -49,7 +49,7 @@ namespace SecretLabAPI.Gamemodes
                     }
                 }
 
-                player.SendAlert(AlertType.Info, 10f, "Blackout Event", "<b>Vypadá to že někdo nezaplatil účet za elektřinu ..</b>", true);
+                player.SendAlert(AlertType.Info, 10f, "Náhodné Eventy", "<b>Vypadá to že někdo nezaplatil účet za elektřinu ..</b>");
             }
         }
 
@@ -68,7 +68,7 @@ namespace SecretLabAPI.Gamemodes
         {
             base.OnPlayerJoined(player);
 
-            player.SendAlert(AlertType.Info, 10f, "Blackout Event", "<b>Na serveru právě probíhá event <color=red>Blackout</color>!</b>", true);
+            player.SendAlert(AlertType.Info, 10f, "Náhodné Eventy", "<b>Na serveru právě probíhá event <color=red>Blackout</color>!</b>");
         }
 
         private void OnChangedRole(PlayerChangedRoleEventArgs args)

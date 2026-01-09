@@ -27,11 +27,6 @@ namespace SecretLabAPI.Gamemodes
     /// Represents the SCP Infection random event, in which one player becomes an SCP and others attempt to escape while
     /// avoiding infection.
     /// </summary>
-    /// <remarks>During the SCP Infection event, a randomly selected player is assigned an SCP role as
-    /// 'patient zero', while all other players become Class D personnel. Players who are killed by an SCP are
-    /// transformed into the same SCP type as the attacker. Only keycards can be picked up, and all keycard doors are
-    /// permanently opened. The event awards experience points for escaping and for SCPs killing other players. The
-    /// event is designed to encourage strategic escapes and infection spread among players.</remarks>
     public class ScpInfectionEvent : RandomEventBase
     {
         /// <inheritdoc/>
@@ -42,6 +37,9 @@ namespace SecretLabAPI.Gamemodes
 
         /// <inheritdoc/>
         public override bool PreventWaveSpawns { get; set; } = true;
+
+        /// <inheritdoc/>
+        public override bool CanBeGrouped { get; set; } = false;
 
         /// <inheritdoc/>
         public override int? MinPlayers { get; set; } = 2;
@@ -102,7 +100,7 @@ namespace SecretLabAPI.Gamemodes
 
             ExPlayer.Players.ForEach(p =>
             {
-                p.SendAlert(AlertType.Info, 10f, "Scp Infection",
+                p.SendAlert(AlertType.Info, 10f, "Náhodné Eventy",
                     $"<b>Začal event <color=yellow>SCP Infekce</color></b>!\n" +
                     $"<b>Po smrti se změníte ve stejné SCP jako pacient nula (<color=red>{infectRole.GetName()}</color> <color=orange>{patientZero.Nickname}</color>)</b>\n" +
                     $"<b>Vaším cílem je utéct, můžete brát pouze karty, dveře na karty jsou permanentně otevřené!</b>\n" +
@@ -136,18 +134,26 @@ namespace SecretLabAPI.Gamemodes
 
         private void OnEscaped(PlayerEscapedEventArgs args)
         {
+            if (!IsActive)
+                return;
+
             if (args.Player is not ExPlayer player)
                 return;
 
             player.Role.Set(RoleTypeId.Spectator, RoleChangeReason.Escaped, RoleSpawnFlags.None);
-            player.SendAlert(AlertType.Info, 10f, "Scp Infection", $"<b>Za úspěšný útěk dostáváš <color=yellow>{EscapeExpReward} XP</color>!</b>");
 
             if (EscapeExpReward > 0)
+            {
+                player.SendAlert(AlertType.Info, 10f, "Náhodné Eventy", $"<b>Za úspěšný útěk dostáváš <color=yellow>{EscapeExpReward} XP</color>!</b>");
                 player.AddExperience("Scp Infection Escape", EscapeExpReward);
+            }
         }
 
         private void OnHurting(PlayerHurtingEventArgs args)
         {
+            if (!IsActive)
+                return;
+
             args.IsAllowed = false;
 
             if (args.Attacker is ExPlayer attacker
@@ -165,6 +171,9 @@ namespace SecretLabAPI.Gamemodes
 
         private void OnPickingUpItem(PlayerPickingUpItemEventArgs args)
         {
+            if (!IsActive)
+                return;
+
             if (args.Pickup?.Base == null)
                 return;
 

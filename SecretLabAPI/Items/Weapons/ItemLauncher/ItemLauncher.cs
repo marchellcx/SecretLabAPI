@@ -6,12 +6,12 @@ using InventorySystem.Items.ThrowableProjectiles;
 using LabExtended.API;
 using LabExtended.API.Custom.Items;
 
+using LabExtended.Utilities;
 using LabExtended.Events.Player;
+using LabExtended.Core.Configs.Objects;
 
 using System.ComponentModel;
 
-using LabExtended.Core.Configs.Objects;
-using LabExtended.Utilities;
 using UnityEngine;
 
 namespace SecretLabAPI.Items.Weapons.ItemLauncher
@@ -64,7 +64,7 @@ namespace SecretLabAPI.Items.Weapons.ItemLauncher
         /// Gets or sets the scale applied to launched items.
         /// </summary>
         [Description("Sets the scale of launched items.")]
-        public YamlVector3 Scale { get; set; } = new(Vector3.one);
+        public YamlVector3 ItemScale { get; set; } = new(Vector3.one);
 
         /// <inheritdoc/>
         public override void OnShooting(PlayerShootingFirearmEventArgs args, ref object? firearmData)
@@ -85,13 +85,13 @@ namespace SecretLabAPI.Items.Weapons.ItemLauncher
         private void ThrowBasicItem(ExPlayer player, ItemBase template)
         {
             for (var i = 0; i < Amount; i++)
-                player.Inventory.ThrowItem<ItemPickupBase>(template.ItemTypeId, Force, Scale.Vector);
+                player.Inventory.ThrowItem<ItemPickupBase>(template.ItemTypeId, Force, ItemScale.Vector);
         }
 
         private void ThrowProjectileItem(ExPlayer player, ThrowableItem template)
         {
             for (var i = 0; i < Amount; i++)
-                ExMap.SpawnProjectile(template.ItemTypeId, player.CameraTransform.position, Scale.Vector,
+                ExMap.SpawnProjectile(template.ItemTypeId, player.CameraTransform.position, ItemScale.Vector,
                     player.CameraTransform.forward * Force, player.Rotation, Force, FuseTime);
         }
 

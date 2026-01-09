@@ -3,11 +3,10 @@
 using LabExtended.API.Toys;
 
 using LabExtended.Core;
-
 using LabExtended.Events;
-using LabExtended.Extensions;
 using LabExtended.Utilities;
-using SecretLabAPI.Utilities;
+using LabExtended.Extensions;
+
 using System.Collections.Concurrent;
 using System.Diagnostics;
 
@@ -345,8 +344,8 @@ namespace SecretLabAPI.Textures
                 Directory.CreateDirectory(settingsPath);
             }
 
-            defaultSettings = JsonFile.ReadFile<TextureSettings>(defaultSettingsPath, new());
-            defaultAnimatedSettings = JsonFile.ReadFile<AnimatedTextureSettings>(defaultGifSettingsPath, new());
+            defaultSettings = FileUtils.LoadJsonFileOrDefault<TextureSettings>(defaultSettingsPath, new());
+            defaultAnimatedSettings = FileUtils.LoadJsonFileOrDefault<AnimatedTextureSettings>(defaultGifSettingsPath, new());
 
             TextureSettings.Clear();
 
@@ -360,7 +359,7 @@ namespace SecretLabAPI.Textures
                 if (TextureSettings.ContainsKey(name))
                     continue;
 
-                TextureSettings.TryAdd(name, JsonFile.ReadFile(file, DefaultSettings));
+                TextureSettings.TryAdd(name, FileUtils.LoadJsonFileOrDefault(file, DefaultSettings));
             }
         }
 

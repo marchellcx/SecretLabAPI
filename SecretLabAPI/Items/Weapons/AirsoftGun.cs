@@ -6,7 +6,6 @@ using LabExtended.API.Custom.Items.Events;
 using SecretLabAPI.Elements.Alerts;
 
 using System.ComponentModel;
-using LabExtended.Utilities;
 
 namespace SecretLabAPI.Items.Weapons
 {
@@ -41,6 +40,13 @@ namespace SecretLabAPI.Items.Weapons
             return Damage;
         }
 
+        public override void OnRegistered()
+        {
+            base.OnRegistered();
+
+            Instance = this;
+        }
+
         /// <inheritdoc/>
         public override void OnItemAdded(CustomItemAddedEventArgs args)
         {
@@ -49,20 +55,6 @@ namespace SecretLabAPI.Items.Weapons
             args.Player.SendAlert(AlertType.Info, 10f, "Custom Items",
                 $"Dostal si <color=red>Airsoft Gun</color>!\n" +
                 $"Tato zbraň dává damage <color=yellow>5 HP</color> při <b>každé</b> ráně!", false);
-        }
-
-        internal static void Initialize()
-        {
-            if (FileUtils.TryLoadYamlFile<AirsoftGun>(SecretLab.RootDirectory, "airsoft_gun.yml", out var gun))
-            {
-                Instance = gun;
-            }
-            else
-            {
-                FileUtils.TrySaveYamlFile(SecretLab.RootDirectory, "airsoft_gun.yml", Instance = new());
-            }
-
-            Instance.Register();
         }
     }
 }

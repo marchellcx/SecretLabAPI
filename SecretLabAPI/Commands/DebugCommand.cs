@@ -13,7 +13,9 @@ using System.Text;
 
 using PlayerRoles;
 using PlayerRoles.PlayableScps.Scp079;
+
 using MEC;
+
 using PlayerStatsSystem;
 
 namespace SecretLabAPI.Commands
@@ -31,6 +33,9 @@ namespace SecretLabAPI.Commands
         {
             { "gen_engage", Engage },
             { "gen_overcharge", Overcharge },
+
+            { "round_reset_start", ResetStart  },
+            { "round_remove_start", RemoveStart },
 
             { "door_debug", Door },
             { "door_locks", DoorLocks }
@@ -62,6 +67,32 @@ namespace SecretLabAPI.Commands
                     return;
                 }
             });
+        }
+
+        private static void ResetStart(ExPlayer player, string[] args, StringBuilder builder)
+        {
+            if (!ExRound.IsWaitingForPlayers)
+            {
+                builder.AppendLine("Round has already started.");
+                return;
+            }
+
+            ExRound.ShowRoundStartBackground();
+
+            builder.AppendLine("Round start background reset.");
+        }
+
+        private static void RemoveStart(ExPlayer player, string[] args, StringBuilder builder)
+        {
+            if (!ExRound.IsWaitingForPlayers)
+            {
+                builder.AppendLine("Round has already started.");
+                return;
+            }
+
+            ExRound.HideRoundStartBackground();
+
+            builder.AppendLine("Round start background removed.");
         }
 
         private static void Overcharge(ExPlayer player, string[] args, StringBuilder builder)

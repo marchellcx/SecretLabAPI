@@ -8,7 +8,7 @@ using UnityEngine;
 using PlayerRoles;
 using PlayerRoles.PlayableScps.Scp3114;
 
-namespace SecretLabAPI.Misc
+namespace SecretLabAPI.Misc.Tools
 {
     /// <summary>
     /// Tracks player's health and updates their custom info display accordingly.

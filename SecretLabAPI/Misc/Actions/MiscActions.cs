@@ -9,7 +9,7 @@ using PlayerRoles;
 using LabExtended.API;
 using LabExtended.Extensions;
 
-namespace SecretLabAPI.Misc
+namespace SecretLabAPI.Misc.Actions
 {
     /// <summary>
     /// Provides static methods for evaluating and performing team-switching actions between Foundation Forces and Chaos

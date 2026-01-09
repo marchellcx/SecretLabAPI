@@ -20,7 +20,7 @@ using SecretLabAPI.Audio.Playback;
 
 using SecretLabAPI.Elements.Alerts;
 
-namespace SecretLabAPI.Audio.Commands
+namespace SecretLabAPI.Audio
 {
     /// <summary>
     /// Audio playback commands.

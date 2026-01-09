@@ -10,9 +10,7 @@ using LabExtended.Utilities;
 using LabExtended.Attributes;
 
 using SecretLabAPI.Rays;
-using SecretLabAPI.Misc;
 using SecretLabAPI.Levels;
-using SecretLabAPI.Effects;
 using SecretLabAPI.Actions;
 using SecretLabAPI.Textures;
 using SecretLabAPI.Utilities;
@@ -34,6 +32,13 @@ using SecretLabAPI.Items.Weapons.ItemLauncher;
 
 using SecretLabAPI.Patches.Overlays;
 using SecretLabAPI.Voting;
+using SecretLabAPI.Roles;
+using SecretLabAPI.Effects.Misc;
+using SecretLabAPI.Effects;
+using SecretLabAPI.Items;
+using SecretLabAPI.Misc.Tools;
+using SecretLabAPI.Misc.Functions;
+using SecretLabAPI.Misc.Grabbing;
 
 namespace SecretLabAPI;
 
@@ -99,14 +104,15 @@ public class SecretLab : Plugin<SecretLabConfig>
         JanitorRole.Initialize();
         GuardCommanderRole.Initialize();
 
-        SniperRifle.Initialize();
-        AirsoftGun.Initialize();
-        ItemLauncher.Initialize();
-
         RandomPickupManager.Initialize();
         DeveloperMode.Initialize();
         Scp914Teleport.Initialize();
         VoteManager.Initialize();
+        GrabHandler.Initialize();
+
+        CustomRoleSpawner.Initialize();
+        CustomItemsHandler.Initialize();
+        CustomEffectsHandler.Initialize();
 
         AlertElement.Initialize();
         LevelHandler.Initialize();
@@ -115,13 +121,6 @@ public class SecretLab : Plugin<SecretLabConfig>
 
         RayManager.Initialize();
         RandomEventManager.Initialize();
-        
-        CustomPlayerEffect.Effects.Add(typeof(RocketEffect));
-        CustomPlayerEffect.Effects.Add(typeof(DoorInteractExplosionEffect));
-
-        new ReplicatingScp018().Register();
-
-        ExPlayerEvents.Verified += AddCustomEffects;
 
         // Old init
 
@@ -134,15 +133,6 @@ public class SecretLab : Plugin<SecretLabConfig>
     public override void Disable()
     {
 
-    }
-
-    private static void AddCustomEffects(ExPlayer player)
-    {
-        var rocketEffect = FileUtils.LoadYamlFileOrDefault(RootDirectory, "rocket_effect.yml", new RocketEffect(), true);
-        var doorInteractExplosionEffect = FileUtils.LoadYamlFileOrDefault(RootDirectory, "door_interact_explosion_effect.yml", new DoorInteractExplosionEffect(), true);
-
-        player.Effects.AddCustomEffect(rocketEffect, false);
-        player.Effects.AddCustomEffect(doorInteractExplosionEffect, false);
     }
 
     private static void InitCustomOverlays()

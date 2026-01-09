@@ -4,7 +4,7 @@ using System.ComponentModel;
 
 using UnityEngine;
 
-namespace SecretLabAPI.Effects
+namespace SecretLabAPI.Effects.Misc
 {
     /// <summary>
     /// Represents a custom ticking effect that simulates a "rocket" effect on a player.

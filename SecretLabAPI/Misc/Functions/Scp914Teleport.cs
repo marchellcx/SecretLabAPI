@@ -17,7 +17,7 @@ using Scp914;
 
 using SecretLabAPI.Extensions;
 
-namespace SecretLabAPI.Misc
+namespace SecretLabAPI.Misc.Functions
 {
     public static class Scp914Teleport
     {

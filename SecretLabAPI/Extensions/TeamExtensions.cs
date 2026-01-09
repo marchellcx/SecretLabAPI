@@ -1,4 +1,5 @@
-﻿using PlayerRoles;
+﻿using LabExtended.Extensions;
+using PlayerRoles;
 
 namespace SecretLabAPI.Extensions
 {
@@ -35,20 +36,40 @@ namespace SecretLabAPI.Extensions
         public static RoleTypeId[] ScpRoles = [RoleTypeId.Scp049, RoleTypeId.Scp096, RoleTypeId.Scp106, RoleTypeId.Scp173, RoleTypeId.Scp939, RoleTypeId.Scp3114, RoleTypeId.Scp049];
 
         /// <summary>
-        /// Returns a random role associated with the specified team, excluding any roles provided.
+        /// Selects a random role from a randomly chosen team, excluding any specified roles.
+        /// </summary>
+        /// <param name="teams">The collection of teams from which to select a random team. Must contain at least one team.</param>
+        /// <param name="excludedRoles">An array of roles to exclude from selection. If specified, these roles will not be considered when choosing
+        /// a random role.</param>
+        /// <returns>A randomly selected role from one of the teams, excluding any roles specified in <paramref
+        /// name="excludedRoles"/>.</returns>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="teams"/> is null or contains no teams.</exception>
+        public static RoleTypeId GetRandomRole(this IEnumerable<Team> teams, params RoleTypeId[] excludedRoles)
+        {
+            if (teams == null || !teams.Any())
+                throw new ArgumentException("The teams collection must contain at least one team.", nameof(teams));
+
+            var team = teams.GetRandomItem();
+            return team.GetRandomRole(excludedRoles);
+        }
+
+        /// <summary>
+        /// Selects a random role associated with the specified team, excluding any roles provided.
         /// </summary>
         /// <param name="team">The team for which to select a random role.</param>
-        /// <param name="exludedRoles">An optional array of roles to exclude from the selection. If specified, the returned role will not be any of
-        /// these.</param>
-        /// <returns>A randomly selected role of type <see cref="RoleTypeId"/> that belongs to the specified team and is not in
-        /// the excluded roles list.</returns>
-        /// <exception cref="NotImplementedException">Thrown if <paramref name="team"/> is not a recognized team value.</exception>
+        /// <param name="exludedRoles">An array of roles to exclude from selection. If all roles for the team are excluded, an exception is thrown.</param>
+        /// <returns>A randomly selected role for the specified team that is not in the excluded roles list.</returns>
+        /// <exception cref="InvalidOperationException">Thrown if all possible roles for the specified team are excluded, leaving no available roles to select.</exception>
+        /// <exception cref="NotImplementedException">Thrown if the specified team is not supported by this method.</exception>
         public static RoleTypeId GetRandomRole(this Team team, params RoleTypeId[] exludedRoles)
         {
             switch (team)
             {
                 case Team.ChaosInsurgency:
                     {
+                        if (ChaosRoles.All(r => exludedRoles.Contains(r)))
+                            throw new InvalidOperationException("No available roles to select from for Chaos Insurgency.");
+
                         var role = ChaosRoles.RandomItem();
 
                         while (exludedRoles.Contains(role))
@@ -59,6 +80,9 @@ namespace SecretLabAPI.Extensions
 
                 case Team.FoundationForces:
                     {
+                        if (NtfRoles.All(r => exludedRoles.Contains(r)))
+                            throw new InvalidOperationException("No available roles to select from for Foundation Forces.");
+
                         var role = NtfRoles.RandomItem();
 
                         while (exludedRoles.Contains(role))
@@ -69,6 +93,9 @@ namespace SecretLabAPI.Extensions
 
                 case Team.SCPs:
                     {
+                        if (ScpRoles.All(r => exludedRoles.Contains(r)))
+                            throw new InvalidOperationException("No available roles to select from for SCPs.");
+
                         var role = ScpRoles.RandomItem();
 
                         while (exludedRoles.Contains(role))
@@ -77,10 +104,25 @@ namespace SecretLabAPI.Extensions
                         return role;
                     }
 
-                case Team.ClassD: return RoleTypeId.ClassD;
-                case Team.Dead: return RoleTypeId.Spectator;
-                case Team.OtherAlive: return RoleTypeId.Tutorial;
-                case Team.Scientists: return RoleTypeId.Scientist;
+                case Team.ClassD: 
+                    return exludedRoles.Contains(RoleTypeId.ClassD) 
+                        ? throw new InvalidOperationException($"No available roles to select from for Class D.") 
+                        : RoleTypeId.ClassD;
+
+                case Team.Dead:
+                    return exludedRoles.Contains(RoleTypeId.Spectator) 
+                        ? throw new InvalidOperationException($"No available roles to select from for Dead.") 
+                        : RoleTypeId.Spectator;
+
+                case Team.OtherAlive:
+                    return exludedRoles.Contains(RoleTypeId.Tutorial) 
+                        ? throw new InvalidOperationException($"No available roles to select from for Other Alive.") 
+                        : RoleTypeId.Tutorial;
+
+                case Team.Scientists: 
+                    return exludedRoles.Contains(RoleTypeId.Scientist)
+                        ? throw new InvalidOperationException($"No available roles to select from for Scientists.") 
+                        : RoleTypeId.Scientist;
 
                 default: throw new NotImplementedException(team.ToString());
             }

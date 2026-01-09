@@ -51,7 +51,7 @@ namespace SecretLabAPI.Gamemodes
             {
                 p.SendAlert(AlertType.Info, 10f, "Náhodné Eventy",
                     $"<b>Začal event <color=red>Náhodná velikost</color>!</b>\n" +
-                    $"<b>Po každém respawnu dostanete náhodný scale.</b>", true);
+                    $"<b>Po každém respawnu dostanete náhodný scale.</b>");
 
                 if (!p.Role.IsAlive || p.Role.IsTutorial)
                     return;
@@ -81,7 +81,7 @@ namespace SecretLabAPI.Gamemodes
             
             player.SendAlert(AlertType.Info, 10f, "Náhodné Eventy",
                 $"<b>Na serveru právě probíhá event <color=red>Náhodná velikost</color></b>\n" +
-                $"<b>Po každém respawnu dostanete náhodný scale.</b>", true);
+                $"<b>Po každém respawnu dostanete náhodný scale.</b>");
         }
 
         private void OnChangedRole(PlayerChangedRoleEventArgs args)

@@ -17,8 +17,8 @@ namespace SecretLabAPI.RandomEvents
     /// </summary>
     public static class RandomEventManager
     {
-        private static CustomGamemode? previousEvent = null;
-        
+        private static List<CustomGamemode> previousEvents = new();
+
         private static Dictionary<string, Type> baseEvents = new ()
         {
             { "its_raining_coins", typeof(ItsRainingCoinsEvent) },
@@ -37,65 +37,151 @@ namespace SecretLabAPI.RandomEvents
         {
             if (Config.EventWeight <= 0f)
             {
-                previousEvent = null;
+                previousEvents.Clear();
                 return;
             }
 
             if (Config.EventWeight < 100f && !WeightUtils.GetBool(Config.EventWeight))
             {
-                previousEvent = null;
+                previousEvents.Clear();
                 return;
             }
 
-            var randomEvent = CustomGamemode.RegisteredObjects.GetRandomWeighted(y =>
+            if (Config.GroupWeight > 0f && WeightUtils.GetBool(Config.GroupWeight))
             {
-                if (previousEvent != null && previousEvent == y.Value)
-                    return 0f;
+                var groupCount = Config.GroupSize.GetRandom();
 
-                if (!y.Value.CanActivateMidRound)
-                    return 0f;
-                
-                if (y.Value is RandomEventBase x)
+                if (groupCount < 1)
                 {
-                    if (x.Weight <= 0f)
-                        return 0f;
-
-                    if (x.MinPlayers != null && ExPlayer.Count < x.MinPlayers)
-                        return 0f;
-
-                    if (x.MaxPlayers != null && ExPlayer.Count > x.MaxPlayers)
-                        return 0f;
-
-                    if (x.Weight >= 100f)
-                        return 100f;
-
-                    return x.Weight;
+                    previousEvents.Clear();
+                    return;
                 }
 
-                if (Config.Weights.TryGetValue(y.Value.Id, out var weight))
+                var availableEvents = CustomGamemode.RegisteredObjects.Values.ToList();
+
+                availableEvents.RemoveAll(x =>
                 {
-                    if (weight <= 0f)
-                        return 0f;
+                    if (!x.CanActivateMidRound)
+                        return true;
 
-                    if (weight >= 100f)
-                        return 100f;
+                    if (previousEvents.Contains(x))
+                        return true;
 
-                    return weight;
+                    if (x is RandomEventBase randomEventBase)
+                    {
+                        if (!randomEventBase.CanBeGrouped)
+                            return true;
+
+                        if (randomEventBase.MinPlayers != null && ExPlayer.Count < randomEventBase.MinPlayers)
+                            return true;
+
+                        if (randomEventBase.MaxPlayers != null && ExPlayer.Count > randomEventBase.MaxPlayers)
+                            return true;
+
+                        if (randomEventBase.Weight <= 0f)
+                            return true;
+
+                        if (randomEventBase.Weight >= 100f)
+                            return false;
+
+                        if (!WeightUtils.GetBool(randomEventBase.Weight))
+                            return true;
+                    }
+                    else if (Config.Weights.TryGetValue(x.Id, out var weight))
+                    {
+                        if (weight <= 0f)
+                            return true;
+
+                        if (weight >= 100f)
+                            return false;
+
+                        if (!WeightUtils.GetBool(weight))
+                            return true;
+                    }
+
+                    return false;
+                });
+
+                if (availableEvents.Count == 0)
+                {
+                    previousEvents.Clear();
+                    return;
                 }
 
-                return 0f;
-            });
+                var groupEvents = new List<CustomGamemode>();
 
-            if (randomEvent.Value == null)
-            {
-                previousEvent = null;
-                return;
+                while (groupEvents.Count < groupCount && availableEvents.Count > 0)
+                {
+                    var selectedEvent = availableEvents.RandomItem();
+
+                    if (selectedEvent == null)
+                        continue;
+
+                    groupEvents.Add(selectedEvent);
+                    availableEvents.Remove(selectedEvent);
+                }
+
+                if (groupEvents.Count == 0)
+                {
+                    previousEvents.Clear();
+                    return;
+                }
+
+                previousEvents.Clear();
+                previousEvents.AddRange(groupEvents);
+
+                groupEvents.ForEach(x => x.Enable());
             }
+            else
+            {
+                var randomEvent = CustomGamemode.RegisteredObjects.GetRandomWeighted(y =>
+                {
+                    if (!y.Value.CanActivateMidRound)
+                        return 0f;
 
-            if (!CustomGamemode.Enable(randomEvent.Value, false))
-                return;
+                    if (previousEvents.Contains(y.Value))
+                        return 0f;
 
-            previousEvent = randomEvent.Value;
+                    if (y.Value is RandomEventBase x)
+                    {
+                        if (x.Weight <= 0f)
+                            return 0f;
+
+                        if (x.MinPlayers != null && ExPlayer.Count < x.MinPlayers)
+                            return 0f;
+
+                        if (x.MaxPlayers != null && ExPlayer.Count > x.MaxPlayers)
+                            return 0f;
+
+                        if (x.Weight >= 100f)
+                            return 100f;
+
+                        return x.Weight;
+                    }
+
+                    if (Config.Weights.TryGetValue(y.Value.Id, out var weight))
+                    {
+                        if (weight <= 0f)
+                            return 0f;
+
+                        if (weight >= 100f)
+                            return 100f;
+
+                        return weight;
+                    }
+
+                    return 0f;
+                });
+
+                previousEvents.Clear();
+
+                if (randomEvent.Value == null)
+                    return;
+
+                previousEvents.Add(randomEvent.Value);
+
+                randomEvent.Value.Enable();
+            }
         }
 
         internal static void Initialize()

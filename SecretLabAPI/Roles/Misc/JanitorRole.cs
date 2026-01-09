@@ -1,16 +1,16 @@
 ﻿using LabExtended.API;
 using LabExtended.API.Custom.Roles;
 
+using LabExtended.Utilities;
 using LabExtended.Extensions;
 
 using PlayerRoles;
 
+using SecretLabAPI.Utilities;
 using SecretLabAPI.Elements.Alerts;
-using SecretLabAPI.Utilities.Roles;
 
 using System.ComponentModel;
-using LabExtended.Utilities;
-using YamlDotNet.Serialization;
+using SecretLabAPI.Extensions;
 
 namespace SecretLabAPI.Roles.Misc
 {
@@ -47,7 +47,7 @@ namespace SecretLabAPI.Roles.Misc
         /// Janitor spawn conditions.
         /// </summary>
         [Description("Sets the Janitor spawn conditions.")]
-        public List<RoleRange> Conditions { get; set; } = new()
+        public List<SpawnRange> Conditions { get; set; } = new()
         {
             new()
             { 
@@ -82,41 +82,23 @@ namespace SecretLabAPI.Roles.Misc
             }
         };
 
-        /// <summary>
-        /// Gets the selector for player spawns.
-        /// </summary>
-        [YamlIgnore]
-        public RoleSelector Selector { get; private set; }
-
-        /// <inheritdoc/>
         public override void OnRegistered()
         {
-            Selector = new RoleSelector(Conditions,
-                player => Give(player),
-                (player, role) => role is RoleTypeId.ClassD);
-
             base.OnRegistered();
+            this.RegisterForSpawning(Conditions, p => p.Role.Type is RoleTypeId.ClassD);
         }
 
         public override void OnSpawned(ExPlayer player, ref object? data)
         {
             base.OnSpawned(player, ref data);
 
-            player.Position.Position = RoleTypeId.Scientist.GetSpawnPosition().position;
+            player.RandomSpawnPositionTeleport([Team.Scientists]);
             player.SendAlert(AlertType.Info, 10f, "Custom Role", "<b>Tvoje role je</b>\n<size=30><color=yellow><b>UKLÍZEČ</b></color></size>!");
         }
 
         internal static void Initialize()
         {
-            if (FileUtils.TryLoadYamlFile<JanitorRole>(SecretLab.RootDirectory, "janitor.yml", out var role))
-            {
-                Role = role;
-            }
-            else
-            {
-                FileUtils.TrySaveYamlFile(SecretLab.RootDirectory, "janitor.yml", Role = new());
-            }
-
+            Role = FileUtils.LoadYamlFileOrDefault(FileUtils.CreatePath(SecretLab.RootDirectory, "roles", "janitor.yml"), new JanitorRole(), true);
             Role.Register();
         }
     }

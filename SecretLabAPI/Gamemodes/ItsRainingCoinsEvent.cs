@@ -8,6 +8,8 @@ using SecretLabAPI.RandomEvents;
 using SecretLabAPI.Utilities;
 using SecretLabAPI.Utilities.Configs;
 
+using YamlDotNet.Serialization;
+
 namespace SecretLabAPI.Gamemodes
 {
     /// <summary>
@@ -34,15 +36,17 @@ namespace SecretLabAPI.Gamemodes
             MinValue = 1,
             MaxValue = 2
         };
-        
+
         /// <summary>
         /// Gets or sets the current rain delay.
         /// </summary>
+        [YamlIgnore]
         public int CurrentDelay { get; private set; }
-        
+
         /// <summary>
         /// Gets or sets the current amount of coins dropped per tick.
         /// </summary>
+        [YamlIgnore]
         public int CurrentCount { get; private set; }
         
         /// <inheritdoc />
@@ -95,15 +99,13 @@ namespace SecretLabAPI.Gamemodes
             {
                 player.SendAlert(AlertType.Info, 15f, "Náhodné Eventy",
                     $"<b>Na serveru aktuálně probíhá event <color=red>Život na žida</color></b>\n" +
-                    $"<b>Každých <color=yellow>{CurrentDelay / 1000} sekund</color> se spawne nad každým živím hráčem <color=yellow>{CurrentCount}</color> coinů.</b>",
-                    true);
+                    $"<b>Každých <color=yellow>{CurrentDelay / 1000} sekund</color> se spawne nad každým živím hráčem <color=yellow>{CurrentCount}</color> coinů.</b>");
             }
             else
             {
                 player.SendAlert(AlertType.Info, 15f, "Náhodné Eventy",
                     $"<b>Začal event <color=red>Život na žida</color></b>\n" +
-                    $"<b>Každých <color=yellow>{CurrentDelay / 1000} sekund</color> se spawne nad každým živím hráčem <color=yellow>{CurrentCount}</color> coinů!</b>",
-                    true);
+                    $"<b>Každých <color=yellow>{CurrentDelay / 1000} sekund</color> se spawne nad každým živím hráčem <color=yellow>{CurrentCount}</color> coinů!</b>");
             }
         }
     }

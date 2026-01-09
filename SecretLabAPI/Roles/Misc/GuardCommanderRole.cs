@@ -1,14 +1,14 @@
 ﻿using LabExtended.API;
 using LabExtended.API.Custom.Roles;
 
+using LabExtended.Utilities;
+
 using PlayerRoles;
 
+using SecretLabAPI.Utilities;
 using SecretLabAPI.Elements.Alerts;
-using SecretLabAPI.Utilities.Roles;
 
 using System.ComponentModel;
-using LabExtended.Utilities;
-using YamlDotNet.Serialization;
 
 namespace SecretLabAPI.Roles.Misc
 {
@@ -56,7 +56,7 @@ namespace SecretLabAPI.Roles.Misc
         /// Guard Commander spawn conditions.
         /// </summary>
         [Description("Sets the Guard Commander spawn conditions.")]
-        public List<RoleRange> Conditions { get; set; } = new()
+        public List<SpawnRange> Conditions { get; set; } = new()
         {
             new()
             {
@@ -99,20 +99,11 @@ namespace SecretLabAPI.Roles.Misc
             }
         };
 
-        /// <summary>
-        /// Gets the selector for player spawns.
-        /// </summary>
-        [YamlIgnore]
-        public RoleSelector Selector { get; private set; }
-
         /// <inheritdoc/>
         public override void OnRegistered()
         {
-            Selector = new RoleSelector(Conditions,
-                player => Give(player),
-                (player, role) => role is RoleTypeId.FacilityGuard);
-
             base.OnRegistered();
+            this.RegisterForSpawning(Conditions, p => p.Role.Type is RoleTypeId.FacilityGuard);
         }
 
         public override void OnSpawned(ExPlayer player, ref object? data)
@@ -124,15 +115,7 @@ namespace SecretLabAPI.Roles.Misc
 
         internal static void Initialize()
         {
-            if (FileUtils.TryLoadYamlFile<GuardCommanderRole>(SecretLab.RootDirectory, "guard_commander.yml", out var role))
-            {
-                Role = role;
-            }
-            else
-            {
-                FileUtils.TrySaveYamlFile(SecretLab.RootDirectory, "guard_commander.yml", Role = new());
-            }
-
+            Role = FileUtils.LoadYamlFileOrDefault(FileUtils.CreatePath(SecretLab.RootDirectory, "roles", "guard_commander.yml"), new GuardCommanderRole(), true);
             Role.Register();
         }
     }

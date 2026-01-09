@@ -20,6 +20,12 @@ namespace SecretLabAPI.RandomEvents
         public virtual float Weight { get; set; } = 0f;
 
         /// <summary>
+        /// Gets or sets a value indicating whether this event can be grouped with other events.
+        /// </summary>
+        [Description("Determines whether this event can be grouped with other events.")]
+        public virtual bool CanBeGrouped { get; set; } = true;
+
+        /// <summary>
         /// Gets or sets the minimum number of players required for the event to be eligible for activation.
         /// </summary>
         /// <remarks>

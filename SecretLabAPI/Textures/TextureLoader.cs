@@ -1,7 +1,7 @@
-﻿using LabExtended.API.Images;
-using LabExtended.Core;
+﻿using LabExtended.Core;
+using LabExtended.Utilities;
 
-using SecretLabAPI.Utilities;
+using LabExtended.API.Images;
 
 using System.Collections.Concurrent;
 
@@ -40,7 +40,7 @@ namespace SecretLabAPI.Textures
             var gifSettings = TextureManager.DefaultAnimatedSettings;
             var gifSettingsPath = Path.GetFullPath(Path.Combine(TextureManager.settingsPath, $"gif_{gifName}.json"));
 
-            gifSettings = JsonFile.ReadFile(gifSettingsPath, TextureManager.DefaultAnimatedSettings);
+            gifSettings = FileUtils.LoadJsonFileOrDefault(gifSettingsPath, TextureManager.DefaultAnimatedSettings);
 
             gifInfo.path = directoryPath;
             gifInfo.settings = gifSettings.FrameSettings;

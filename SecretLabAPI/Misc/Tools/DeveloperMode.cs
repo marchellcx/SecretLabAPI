@@ -9,7 +9,7 @@ using LabExtended.Utilities;
 using SecretLabAPI.Elements.Alerts;
 using System.ComponentModel;
 
-namespace SecretLabAPI.Misc
+namespace SecretLabAPI.Misc.Tools
 {
     /// <summary>
     /// Provides functionality for enabling and managing developer mode on the server, restricting access to authorized

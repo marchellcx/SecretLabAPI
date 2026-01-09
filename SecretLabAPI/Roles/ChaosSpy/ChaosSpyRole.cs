@@ -226,15 +226,7 @@ namespace SecretLabAPI.Roles.ChaosSpy
 
         internal static void Initialize()
         {
-            if (FileUtils.TryLoadYamlFile<ChaosSpyRole>(SecretLab.RootDirectory, "chaos_spy.yml", out var role))
-            {
-                Instance = role;
-            }
-            else
-            {
-                FileUtils.TrySaveYamlFile(SecretLab.RootDirectory, "chaos_spy.yml", Instance = new());
-            }
-
+            Instance = FileUtils.LoadYamlFileOrDefault(FileUtils.CreatePath(SecretLab.RootDirectory, "roles", "ci_spy.yml"), new ChaosSpyRole(), true);
             Instance.Register();
         }
     }

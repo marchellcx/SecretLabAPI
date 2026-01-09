@@ -7,7 +7,7 @@ using LabApi.Events.Arguments.PlayerEvents;
 
 using PlayerRoles;
 
-namespace SecretLabAPI.Misc
+namespace SecretLabAPI.Misc.Tools
 {
     /// <summary>
     /// Keeps the player¨s role as Overwatch between round restarts.

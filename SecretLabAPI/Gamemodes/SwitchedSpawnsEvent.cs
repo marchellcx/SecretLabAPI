@@ -27,10 +27,7 @@ namespace SecretLabAPI.Gamemodes
         {
             base.OnEnabled();
 
-            if (ExRound.IsWaitingForPlayers)
-                return;
-
-            ExPlayer.Players.ForEach(p => p.SendAlert(AlertType.Info, 10f, "Random Event",
+            ExPlayer.Players.ForEach(p => p.SendAlert(AlertType.Info, 10f, "Náhodné Eventy",
                 "<b>Vypadá to že si <color=green>Chaos Insurgency</color> a <color=blue>Nine-Tailed Fox</color> " +
                 "vyměnili spawn pozice!</b>"));
         }
@@ -40,10 +37,7 @@ namespace SecretLabAPI.Gamemodes
         {
             base.OnPlayerJoined(player);
 
-            if (ExRound.IsWaitingForPlayers)
-                return;
-
-            player.SendAlert(AlertType.Info, 10f, "Random Event",
+            player.SendAlert(AlertType.Info, 10f, "Náhodné Eventy",
                 "<b>Vypadá to že si <color=green>Chaos Insurgency</color> a <color=blue>Nine-Tailed Fox</color> " +
                 "vyměnili spawn pozice!</b>");
         }
@@ -55,7 +49,7 @@ namespace SecretLabAPI.Gamemodes
 
             if (args.Wave.Faction is Faction.FoundationEnemy)
             {
-                RoleTypeId[] chaosRoles = [RoleTypeId.ChaosRifleman, RoleTypeId.ChaosRepressor, RoleTypeId.ChaosMarauder, RoleTypeId.ChaosConscript] ;
+                RoleTypeId[] chaosRoles = [RoleTypeId.ChaosRifleman, RoleTypeId.ChaosRepressor, RoleTypeId.ChaosMarauder, RoleTypeId.ChaosConscript];
 
                 args.Players.ForEach(p => p.Position = chaosRoles.GetRandomItem().GetSpawnPosition().position);
             }

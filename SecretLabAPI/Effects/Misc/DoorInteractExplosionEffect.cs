@@ -8,11 +8,11 @@ using LabExtended.API.Custom.Effects;
 
 using Mirror;
 
-using SecretLabAPI.Utilities;
+using SecretLabAPI.Extensions;
 
 using System.ComponentModel;
 
-namespace SecretLabAPI.Effects;
+namespace SecretLabAPI.Effects.Misc;
 
 /// <summary>
 /// Represents a custom player effect that triggers an explosion upon interacting with a door.

@@ -1,9 +1,9 @@
 ﻿using LabExtended.Events;
 using LabExtended.Events.Player.Snake;
 
-using SecretLabAPI.Utilities;
+using SecretLabAPI.Extensions;
 
-namespace SecretLabAPI.Misc
+namespace SecretLabAPI.Misc.Functions
 {
     /// <summary>
     /// Makes the player playing the Snake minigame explode upon death.
@@ -12,7 +12,7 @@ namespace SecretLabAPI.Misc
     {
         private static void Internal_SnakeGameOver(PlayerSnakeGameOverEventArgs args)
         {
-            ExplosionEffects.Explode(args.Player, 1, ItemType.GrenadeHE, "Game Over", true, true);
+            args.Player.Explode(1, ItemType.GrenadeHE, "Game Over", true, true, 10f);
         }
 
         internal static void Internal_Init()

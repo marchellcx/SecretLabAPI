@@ -1,11 +1,11 @@
 using System.ComponentModel;
 
-namespace SecretLabAPI.Utilities.Roles;
+namespace SecretLabAPI.Utilities;
 
 /// <summary>
 /// Defines a range of player count for role properties.
 /// </summary>
-public class RoleRange
+public class SpawnRange
 {
     /// <summary>
     /// Gets or sets the minimum required amount of players.
