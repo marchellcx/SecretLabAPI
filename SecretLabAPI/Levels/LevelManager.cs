@@ -14,8 +14,17 @@ using SecretLabAPI.Levels.Interfaces;
 
 using SecretLabAPI.Elements.Levels;
 
+using System.Reflection;
+
+using LabApi.Loader;
+
+using Utils.NonAllocLINQ;
+
 namespace SecretLabAPI.Levels
 {
+    /// <summary>
+    /// Manages player levels, experience points, and level rewards within the game.
+    /// </summary>
     public static class LevelManager
     {
         public const string DataEntry = "LevelManager";
@@ -81,6 +90,95 @@ namespace SecretLabAPI.Levels
         /// Gets a dictionary of all loaded player levels.
         /// </summary>
         public static Dictionary<ExPlayer, LevelData> Levels { get; } = new();
+
+        /// <summary>
+        /// Scans the specified assembly for concrete types implementing the ILevelReward interface and adds them as
+        /// rewards. Returns the number of reward types successfully added.
+        /// </summary>
+        /// <remarks>Only non-abstract, non-interface types with a public parameterless constructor that
+        /// implement ILevelReward are considered. Types that are the LevelReward base class itself are
+        /// excluded.</remarks>
+        /// <param name="assembly">The assembly to scan for eligible ILevelReward implementations. Cannot be null.</param>
+        /// <returns>The number of reward types that were successfully added from the specified assembly.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if the assembly parameter is null.</exception>
+        public static int AddRewards(Assembly assembly)
+        {
+            if (assembly == null)
+                throw new ArgumentNullException(nameof(assembly));
+
+            var rewardTypes = assembly.GetTypes();
+            var addedCount = 0;
+
+            foreach (var type in rewardTypes)
+            {
+                if (type.IsAbstract || type.IsInterface || type == typeof(LevelReward))
+                    continue;
+
+                if (!typeof(ILevelReward).IsAssignableFrom(type))
+                    continue;
+
+                var constructor = type.GetConstructor(Type.EmptyTypes);
+
+                if (constructor == null || !constructor.IsPublic)
+                    continue;
+
+                if (AddReward(type) != null)
+                    addedCount++;
+            }
+
+            return addedCount;
+        }
+
+        /// <summary>
+        /// Adds a new reward of the specified type to the collection of level rewards.
+        /// </summary>
+        /// <remarks>The specified type must have a public parameterless constructor. The method creates
+        /// an instance of the specified type and adds it as a reward. This method is typically used to register custom
+        /// reward types at runtime.</remarks>
+        /// <param name="type">The type of the reward to add. Must implement the ILevelReward interface and have a public parameterless
+        /// constructor.</param>
+        /// <returns>An instance of ILevelReward representing the added reward.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="type"/> is null.</exception>
+        /// <exception cref="ArgumentException">Thrown if <paramref name="type"/> does not implement the ILevelReward interface.</exception>
+        public static ILevelReward AddReward(Type type)
+        {
+            if (type == null)
+                throw new ArgumentNullException(nameof(type));
+
+            if (!typeof(ILevelReward).IsAssignableFrom(type))
+                throw new ArgumentException("Type must implement ILevelReward interface.", nameof(type));
+
+            var reward = (ILevelReward)Activator.CreateInstance(type)!;
+            return AddReward(reward);
+        }
+
+        /// <summary>
+        /// Creates and adds a new reward of the specified type to the collection.
+        /// </summary>
+        /// <typeparam name="T">The type of reward to add. Must implement the ILevelReward interface and have a parameterless constructor.</typeparam>
+        /// <returns>The newly created reward of type T after it has been added to the collection.</returns>
+        public static T AddReward<T>() where T : ILevelReward, new()
+            => (T)AddReward(new T());
+
+        /// <summary>
+        /// Adds the specified reward to the collection of level rewards if it is not already present and enables it.
+        /// </summary>
+        /// <param name="reward">The reward to add and enable. Cannot be null.</param>
+        /// <returns>The reward that was added or, if the reward was already present, the existing reward instance.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="reward"/> is null.</exception>
+        public static ILevelReward AddReward(ILevelReward reward)
+        {
+            if (reward == null)
+                throw new ArgumentNullException(nameof(reward));
+
+            if (Rewards.Contains(reward))
+                return reward;
+
+            Rewards.Add(reward);
+
+            reward.EnableReward();
+            return reward;
+        }
 
         /// <summary>
         /// Retrieves the saved level data associated with the specified player.
@@ -363,6 +461,17 @@ namespace SecretLabAPI.Levels
             LoadLevel(player, false);
         }
 
+        private static void OnToggled(ExPlayer player, DataCollectionEntry entry, bool isEnabled)
+        {
+            if (player?.ReferenceHub == null)
+                return;
+
+            if (entry.Id != DataEntry)
+                return;
+
+            LoadLevel(player, true);
+        }
+
         internal static void Initialize()
         {
             new DataCollectionEntry(
@@ -376,8 +485,12 @@ namespace SecretLabAPI.Levels
 
             GenerateLevels();
 
+            DataCollection.EntryToggled += OnToggled;
+
             ExPlayerEvents.Left += OnLeft;
             ExPlayerEvents.Verified += OnVerified;
+
+            PluginLoader.Plugins.ForEachValue(asm => AddRewards(asm));
         }
     }
 }
