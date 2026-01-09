@@ -148,6 +148,38 @@ namespace SecretLabAPI.Extensions
         }
 
         /// <summary>
+        /// Calculates the total multiplier value for the specified player based on user ID and permissions group, using
+        /// the provided multipliers dictionary.
+        /// </summary>
+        /// <remarks>If both a user ID and a permissions group name match entries in the multipliers
+        /// dictionary, their values are added together. If neither matches, the default value is returned.</remarks>
+        /// <param name="player">The player for whom to calculate the multiplier. Cannot be null.</param>
+        /// <param name="multipliers">A dictionary mapping user IDs or permissions group names to their corresponding multiplier values. Cannot be
+        /// null or empty.</param>
+        /// <param name="defaultValue">The default multiplier value to use if no applicable multipliers are found or if the player or multipliers
+        /// are invalid. The default is 0.</param>
+        /// <returns>The sum of the multipliers associated with the player's user ID and permissions group name. Returns the
+        /// specified default value if the player or multipliers are invalid or if no applicable multipliers are found.</returns>
+        public static int GetValidInt32Multipliers(this ExPlayer player, IDictionary<string, int> multipliers, int defaultValue = 0)
+        {
+            if (player?.ReferenceHub == null)
+                return defaultValue;
+            
+            if (multipliers == null || multipliers.Count == 0)
+                return defaultValue;
+
+            var multiplier = defaultValue;
+
+            if (multipliers.TryGetValue(player.UserId, out var userIdMultiplier))
+                multiplier += userIdMultiplier;
+
+            if (!string.IsNullOrEmpty(player.PermissionsGroupName) && multipliers.TryGetValue(player.PermissionsGroupName, out var groupMultiplier))
+                multiplier += groupMultiplier;
+
+            return multiplier;
+        }
+
+        /// <summary>
         /// Calculates a modified velocity for the player by applying the specified multiplier to each component of the vector.
         /// </summary>
         /// <param name="player">The player whose velocity is to be modified.</param>

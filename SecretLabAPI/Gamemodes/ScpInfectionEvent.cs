@@ -142,11 +142,13 @@ namespace SecretLabAPI.Gamemodes
 
             player.Role.Set(RoleTypeId.Spectator, RoleChangeReason.Escaped, RoleSpawnFlags.None);
 
+            /*
             if (EscapeExpReward > 0)
             {
                 player.SendAlert(AlertType.Info, 10f, "Náhodné Eventy", $"<b>Za úspěšný útěk dostáváš <color=yellow>{EscapeExpReward} XP</color>!</b>");
                 player.AddExperience("Scp Infection Escape", EscapeExpReward);
             }
+            */
         }
 
         private void OnHurting(PlayerHurtingEventArgs args)
@@ -161,8 +163,10 @@ namespace SecretLabAPI.Gamemodes
                 && attacker.Role.IsScp
                 && args.Player is ExPlayer target)
             {
+                /*
                 if (KillExpReward > 0)
                     attacker.AddExperience("Scp Infection Kill", KillExpReward);
+                */
 
                 target.Role.Set(attacker.Role.Type, RoleChangeReason.Died, RoleSpawnFlags.None);
                 return;

@@ -115,7 +115,6 @@ public class SecretLab : Plugin<SecretLabConfig>
         CustomEffectsHandler.Initialize();
 
         AlertElement.Initialize();
-        LevelHandler.Initialize();
 
         InitCustomOverlays();
 

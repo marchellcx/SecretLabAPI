@@ -1,341 +1,230 @@
-﻿using LabApi.Features.Wrappers;
-
-using LabExtended.API;
-using LabExtended.Core.Storage;
+﻿using LabExtended.API;
+using LabExtended.API.Hints;
 
 using LabExtended.Events;
+using LabExtended.Utilities;
 using LabExtended.Extensions;
+using LabExtended.Core.Storage;
 
 using SecretLabAPI.Data;
 
-using System.Text;
-
-using UnityEngine;
-
-using SecretLabAPI.Levels.Storage;
+using SecretLabAPI.Levels.IO;
 using SecretLabAPI.Levels.Events;
-using SecretLabAPI.Levels.Rewards;
+using SecretLabAPI.Levels.Interfaces;
+
+using SecretLabAPI.Elements.Levels;
 
 namespace SecretLabAPI.Levels
 {
-    /// <summary>
-    /// Manages player levels and experience points.
-    /// </summary>
     public static class LevelManager
     {
-        /// <summary>
-        /// Gets the singleton instance of the storage.
-        /// </summary>
-        public static StorageInstance Storage { get; private set; }
+        public const string DataEntry = "LevelManager";
+
+        internal static LevelConfig config;
+        internal static StorageInstance storage;
 
         /// <summary>
-        /// Gets the collection of saved levels, indexed by their user IDs.
+        /// Occurs when a player's data is removed either due to leaving the server -or- due to enabling Do Not Track.
         /// </summary>
-        public static Dictionary<string, SavedLevel> Levels { get; } = new();
+        public static event Action<ExPlayer>? DataRemoved;
 
         /// <summary>
-        /// Retrieves the saved level associated with the specified player.
+        /// Occurs when level data has been loaded for a player.
         /// </summary>
-        /// <param name="player">The player whose saved level is to be retrieved. Cannot be null.</param>
-        /// <returns>The saved level of the player if it exists; otherwise, <see langword="null"/>.</returns>
-        public static SavedLevel? GetSavedLevel(this Player player)
-            => GetSavedLevel(player.UserId);
+        public static event Action<ExPlayer, LevelData>? DataLoaded;
 
         /// <summary>
-        /// Resets the player's level to the initial state.
+        /// Occurs when experience is about to be added, allowing handlers to inspect or modify the experience addition
+        /// process.
         /// </summary>
-        /// <param name="player">The player whose level is to be reset. Cannot be null.</param>
-        /// <returns><see langword="true"/> if the level was successfully reset; otherwise, <see langword="false"/>.</returns>
-        public static bool ResetLevel(this Player player)
-            => ResetLevel(player.UserId);
+        public static event Action<AddingExperienceEventArgs>? AddingExperience;
 
         /// <summary>
-        /// Retrieves the level of the specified player based on their user ID.
+        /// Occurs when experience points have been added.
         /// </summary>
-        /// <param name="player">The player whose level is to be retrieved. Cannot be null.</param>
-        /// <returns>The level of the player as an integer.</returns>
-        public static int GetLevel(this Player player)
-            => GetLevel(player.UserId);
+        public static event Action<AddedExperienceEventArgs>? AddedExperience;
 
         /// <summary>
-        /// Retrieves the total experience points accumulated by the specified player.
+        /// Occurs when points are about to be added, allowing handlers to inspect or modify the operation.
         /// </summary>
-        /// <param name="player">The player whose experience points are to be retrieved. Cannot be null.</param>
-        /// <returns>The total experience points of the player as a floating-point integer.</returns>
-        public static float GetExperience(this Player player)
-            => GetExperience(player.UserId);
+        public static event Action<AddingPointsEventArgs>? AddingPoints;
 
         /// <summary>
-        /// Adds a specified amount of experience to the player.
+        /// Occurs when points are added to the system.
         /// </summary>
-        /// <param name="player">The player to whom the experience will be added.</param>
-        /// <param name="amount">The amount of experience to add. Must be a positive value.</param>
-        /// <returns><see langword="true"/> if the experience was successfully added; otherwise, <see langword="false"/>.</returns>
-        public static bool AddExperience(this Player player, string reason, int amount)
-            => AddExperience(player.UserId, reason, amount);
+        public static event Action<AddedPointsEventArgs>? AddedPoints;
 
         /// <summary>
-        /// Subtracts a specified amount of experience from the player's total experience.
+        /// Occurs when a leveling up event is triggered.
         /// </summary>
-        /// <remarks>This method affects the player's experience points and may impact their level or
-        /// abilities. Ensure that the <paramref name="amount"/> does not exceed the player's current
-        /// experience.</remarks>
-        /// <param name="player">The player from whom experience will be subtracted.</param>
-        /// <param name="amount">The amount of experience to subtract. Must be a positive value.</param>
-        /// <returns><see langword="true"/> if the experience was successfully subtracted; otherwise, <see langword="false"/>.</returns>
-        public static bool SubtractExperience(this Player player, string reason, int amount)
-            => SubtractExperience(player.UserId, reason, amount);
+        public static event Action<LevelingUpEventArgs>? LevelingUp;
 
         /// <summary>
-        /// Retrieves the saved level for a specified user.
+        /// Occurs when a level-up event is triggered, providing details about the level change.
         /// </summary>
-        /// <param name="userId">The unique identifier of the user whose saved level is to be retrieved. Cannot be null.</param>
-        /// <returns>The <see cref="SavedLevel"/> associated with the specified user if found; otherwise, <see langword="null"/>.</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="userId"/> is null.</exception>
-        public static SavedLevel? GetSavedLevel(string userId)
+        public static event Action<LeveledUpEventArgs>? LeveledUp;
+
+        /// <summary>
+        /// Gets the experience point thresholds required to reach each level.
+        /// </summary>
+        /// <remarks>The array contains the cumulative experience required for each level, where each
+        /// element corresponds to a specific level index. The first element typically represents the experience needed
+        /// to reach level 1, the second for level 2, and so on. The array is read-only after initialization.</remarks>
+        public static int[] ExperiencePerLevel { get; private set; }
+
+        /// <summary>
+        /// Gets a list of all registered level rewards.
+        /// </summary>
+        public static List<ILevelReward> Rewards { get; } = new();
+
+        /// <summary>
+        /// Gets a dictionary of all loaded player levels.
+        /// </summary>
+        public static Dictionary<ExPlayer, LevelData> Levels { get; } = new();
+
+        /// <summary>
+        /// Retrieves the saved level data associated with the specified player.
+        /// </summary>
+        /// <param name="player">The player for whom to retrieve level data. Cannot be null and must have a valid ReferenceHub.</param>
+        /// <returns>The level data associated with the specified player.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if the player is null or does not have a valid ReferenceHub.</exception>
+        /// <exception cref="Exception">Thrown if the player does not have any saved level data.</exception>
+        public static LevelData? GetLevelData(this ExPlayer player)
         {
-            if (userId is null)
-                throw new ArgumentNullException(nameof(userId));
+            if (player?.ReferenceHub == null)
+                throw new ArgumentNullException(nameof(player));
 
-            if (Levels.TryGetValue(userId, out var savedLevel))
-                return savedLevel;
+            if (!Levels.TryGetValue(player, out var data))
+                return null;
 
-            return null;
+            return data;
         }
 
         /// <summary>
-        /// Retrieves the level associated with the specified user identifier.
+        /// Adds the specified number of points to the player's level reward progress.
         /// </summary>
-        /// <param name="userId">The unique identifier of the user whose level is to be retrieved. Cannot be null.</param>
-        /// <returns>The level of the specified user if found; otherwise, 0.</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="userId"/> is null.</exception>
-        public static int GetLevel(string userId)
+        /// <param name="player">The player to whom the points will be added. Cannot be null and must have a valid reference hub.</param>
+        /// <param name="reward">The level reward to which the points are applied. Cannot be null.</param>
+        /// <param name="points">The number of points to add. Must be greater than or equal to 1.</param>
+        /// <returns>true if the points were successfully added; otherwise, false.</returns>
+        public static bool AddPoints(this ExPlayer player, ILevelReward reward, int points)
         {
-            if (userId is null)
-                throw new ArgumentNullException(nameof(userId));
-
-            if (Levels.TryGetValue(userId, out var savedLevel))
-                return savedLevel.Level;
-
-            return 0;
-        }
-
-        /// <summary>
-        /// Retrieves the experience points for a specified user.
-        /// </summary>
-        /// <param name="userId">The unique identifier of the user whose experience points are to be retrieved. Cannot be null.</param>
-        /// <returns>The total experience points of the user. Returns 0 if the user does not have any recorded experience.</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="userId"/> is null.</exception>
-        public static float GetExperience(string userId)
-        {
-            if (userId is null)
-                throw new ArgumentNullException(nameof(userId));
-
-            if (Levels.TryGetValue(userId, out var savedLevel))
-                return savedLevel.Experience;
-
-            return 0;
-        }
-
-        /// <summary>
-        /// Sets the level for a specified user.
-        /// </summary>
-        /// <param name="userId">The unique identifier of the user whose level is to be set. Cannot be null.</param>
-        /// <param name="level">The new level to assign to the user.</param>
-        /// <returns><see langword="true"/> if the user's level was successfully set; otherwise, <see langword="false"/> if the
-        /// user does not exist.</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="userId"/> is null.</exception>
-        public static bool SetLevel(string userId, byte level)
-        {
-            if (userId is null)
-                throw new ArgumentNullException(nameof(userId));
-
-            if (!Levels.TryGetValue(userId, out var savedLevel))
+            if (player?.ReferenceHub == null)
                 return false;
 
-            var newExperience = LevelProgress.ExperienceForLevel(level);
+            if (reward == null)
+                return false;
 
-            if (newExperience != savedLevel.Experience)
+            if (points < 1)
+                return false;
+
+            if (!Levels.TryGetValue(player, out var data))
+                return false;
+
+            var addingPoints = new AddingPointsEventArgs(player, reward, points);
+
+            if (!AddingPoints.InvokeBooleanEvent(addingPoints))
+                return false;
+
+            data.Points += addingPoints.Amount;
+
+            AddedPoints.InvokeEvent(new(player, reward, addingPoints.Amount));
+            return true;
+        }
+
+        /// <summary>
+        /// Determines whether the specified player has at least the given number of points.
+        /// </summary>
+        /// <param name="player">The player whose points are to be checked. Cannot be null.</param>
+        /// <param name="points">The minimum number of points required. Must be greater than or equal to 1.</param>
+        /// <returns>true if the player has at least the specified number of points; otherwise, false.</returns>
+        public static bool HasPoints(this ExPlayer player, int points)
+        {
+            if (player?.ReferenceHub == null)
+                return false;
+
+            if (points < 1)
+                return false;
+
+            if (!Levels.TryGetValue(player, out var data))
+                return false;
+
+            return data.Points >= points;
+        }
+
+        /// <summary>
+        /// Attempts to subtract the specified number of points from the player's current point total.
+        /// </summary>
+        /// <param name="player">The player from whom points will be subtracted. Cannot be null and must have a valid reference hub.</param>
+        /// <param name="points">The number of points to subtract. Must be greater than or equal to 1 and less than or equal to the player's
+        /// current point total.</param>
+        /// <returns>true if the points were successfully subtracted; otherwise, false.</returns>
+        public static bool SubtractPoints(this ExPlayer player, int points)
+        {
+            if (player?.ReferenceHub == null)
+                return false;
+
+            if (points < 1)
+                return false;
+
+            if (!Levels.TryGetValue(player, out var data))
+                return false;
+
+            if (data.Points < points)
+                return false;
+
+            data.Points -= points;
+            return true;
+        }
+
+        /// <summary>
+        /// Attempts to add the specified amount of experience to the player and applies any associated level rewards.
+        /// </summary>
+        /// <remarks>If the experience addition results in a level change, the player's level is updated
+        /// and relevant level-up events are triggered. No experience is added if the player, reward, or experience
+        /// amount is invalid, or if event handlers prevent the operation.</remarks>
+        /// <param name="player">The player to whom experience will be added. Cannot be null and must have a valid reference hub.</param>
+        /// <param name="reward">The level reward to associate with the experience gain. Cannot be null.</param>
+        /// <param name="experience">The amount of experience to add. Must be greater than zero.</param>
+        /// <returns>true if experience was successfully added to the player; otherwise, false.</returns>
+        public static bool AddExperience(this ExPlayer player, ILevelReward reward, int experience)
+        {
+            if (player?.ReferenceHub == null)
+                return false;
+
+            if (reward == null)
+                return false;
+
+            if (experience < 1)
+                return false;
+
+            if (!Levels.TryGetValue(player, out var data))
+                return false;
+
+            var addingExperience = new AddingExperienceEventArgs(player, reward, experience);
+
+            if (!AddingExperience.InvokeBooleanEvent(addingExperience))
+                return false;
+
+            if (addingExperience.Amount > 0)
             {
-                var changingExperienceArgs = new ChangingExperienceEventArgs(savedLevel, userId, "Command", savedLevel.Experience, newExperience);
+                data.Experience += addingExperience.Amount;
 
-                LevelEvents.OnChangingExperience(changingExperienceArgs);
+                AddedExperience.InvokeEvent(new(player, reward, addingExperience.Amount));
 
-                savedLevel.Experience = newExperience;
+                var newLevel = LevelAtExp(data.Experience);
 
-                LevelEvents.OnChangedExperience(new(savedLevel, userId, "Command", changingExperienceArgs.CurrentExp, savedLevel.Experience), changingExperienceArgs.target);
-            }
-
-            var changingLevelArgs = new ChangingLevelEventArgs(savedLevel, userId, "Command", savedLevel.Level, level);
-
-            LevelEvents.OnChangingLevel(changingLevelArgs);
-
-            savedLevel.Level = level;
-            savedLevel.RequiredExperience = LevelProgress.ExperienceForLevel(level + 1);
-
-            LevelEvents.OnChangedLevel(new(savedLevel, userId, "Command", changingLevelArgs.CurrentLevel, savedLevel.Level), changingLevelArgs.target);
-            return true;
-        }
-
-        /// <summary>
-        /// Sets the experience level for a specified user.
-        /// </summary>
-        /// <param name="userId">The unique identifier of the user whose experience level is to be set. Cannot be <see langword="null"/>.</param>
-        /// <param name="level">The experience level to assign to the user.</param>
-        /// <returns><see langword="true"/> if the user's experience level was successfully set; otherwise, <see
-        /// langword="false"/> if the user does not exist.</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="userId"/> is <see langword="null"/>.</exception>
-        public static bool SetExperience(string userId, int exp)
-        {
-            if (userId is null)
-                throw new ArgumentNullException(nameof(userId));
-
-            if (!Levels.TryGetValue(userId, out var savedLevel))
-                return false;
-
-            var newLevel = LevelProgress.LevelAtExp(exp);
-
-            if (newLevel != savedLevel.Level)
-            {
-                var changingLevelArgs = new ChangingLevelEventArgs(savedLevel, userId, "Command", savedLevel.Level, newLevel);
-
-                LevelEvents.OnChangingLevel(changingLevelArgs);
-
-                savedLevel.Level = newLevel;
-                savedLevel.RequiredExperience = LevelProgress.ExperienceForLevel(newLevel + 1);
-
-                LevelEvents.OnChangedLevel(new(savedLevel, userId, "Command", changingLevelArgs.CurrentLevel, savedLevel.Level), changingLevelArgs.target);
-            }
-
-            var chaningExperienceArgs = new ChangingExperienceEventArgs(savedLevel, userId, "Command", savedLevel.Experience, exp);
-
-            LevelEvents.OnChangingExperience(chaningExperienceArgs);
-
-            savedLevel.Experience = exp;
-            savedLevel.RequiredExperience = LevelProgress.ExperienceForLevel(savedLevel.Level + 1);
-
-            LevelEvents.OnChangedExperience(new(savedLevel, userId, "Command", chaningExperienceArgs.CurrentExp, savedLevel.Experience), chaningExperienceArgs.target);
-            return true;
-        }
-
-        /// <summary>
-        /// Adds experience points to the specified user's level.
-        /// </summary>
-        /// <param name="userId">The unique identifier of the user to whom experience is being added. Cannot be <see langword="null"/>.</param>
-        /// <param name="amount">The amount of experience points to add. Must be a positive value.</param>
-        /// <returns><see langword="true"/> if the experience was successfully added; otherwise, <see langword="false"/> if the
-        /// user does not exist.</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="userId"/> is <see langword="null"/>.</exception>
-        public static bool AddExperience(string userId, string reason, int amount)
-        {
-            if (userId is null)
-                throw new ArgumentNullException(nameof(userId));
-
-            if (!Levels.TryGetValue(userId, out var savedLevel))
-                return false;
-
-            var changingExperienceArgs = new ChangingExperienceEventArgs(savedLevel, userId, reason, savedLevel.Experience, savedLevel.Experience + amount);
-
-            if (!LevelEvents.OnChangingExperience(changingExperienceArgs))
-                return false;
-
-            savedLevel.Experience += amount;
-
-            LevelEvents.OnChangedExperience(new(savedLevel, userId, reason, changingExperienceArgs.CurrentExp, savedLevel.Experience), changingExperienceArgs.target);
-            
-            LevelProgress.CheckProgress(userId, reason, savedLevel);
-            return true;
-        }
-
-        /// <summary>
-        /// Subtracts a specified amount of experience from the user's current level.
-        /// </summary>
-        /// <param name="userId">The unique identifier of the user whose experience is to be subtracted. Cannot be null.</param>
-        /// <param name="amount">The amount of experience to subtract from the user's current level.</param>
-        /// <returns><see langword="true"/> if the user's experience was successfully subtracted; otherwise, <see
-        /// langword="false"/> if the user ID does not exist.</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="userId"/> is null.</exception>
-        public static bool SubtractExperience(string userId, string reason, int amount)
-        {
-            if (userId is null)
-                throw new ArgumentNullException(nameof(userId));
-
-            if (!Levels.TryGetValue(userId, out var savedLevel))
-                return false;
-
-            var changingExperienceArgs = new ChangingExperienceEventArgs(savedLevel, userId, reason, savedLevel.Experience, savedLevel.Experience - amount);
-
-            if (!LevelEvents.OnChangingExperience(changingExperienceArgs))
-                return false;
-
-            savedLevel.Experience -= amount;
-
-            LevelEvents.OnChangedExperience(new(savedLevel, userId, reason, changingExperienceArgs.CurrentExp, savedLevel.Experience), changingExperienceArgs.target);
-            
-            LevelProgress.CheckProgress(userId, reason, savedLevel);
-            return true;
-        }
-
-        /// <summary>
-        /// Resets a player's level and experience to the initial state.
-        /// </summary>
-        /// <param name="userId">The player's user ID.</param>
-        /// <returns>true if the level was reset</returns>
-        /// <exception cref="ArgumentNullException"></exception>
-        public static bool ResetLevel(string userId, string reason = "Command")
-        {
-            if (userId is null)
-                throw new ArgumentNullException(nameof(userId));
-
-            if (!Levels.TryGetValue(userId, out var savedLevel))
-                return false;
-
-            var changingLevelArgs = new ChangingLevelEventArgs(savedLevel, userId, reason, savedLevel.Level, 1);
-            var changingExperienceArgs = new ChangingExperienceEventArgs(savedLevel, userId, reason, savedLevel.Experience, 0);
-
-            LevelEvents.OnChangingLevel(changingLevelArgs);
-            LevelEvents.OnChangingExperience(changingExperienceArgs);
-
-            savedLevel.Level = 1;
-            savedLevel.Experience = 0;
-            savedLevel.RequiredExperience = LevelProgress.ExperienceForLevel(2);
-
-            LevelEvents.OnChangedLevel(new(savedLevel, userId, reason, changingLevelArgs.CurrentLevel, savedLevel.Level), changingLevelArgs.target);
-            LevelEvents.OnChangedExperience(new(savedLevel, userId, reason, changingExperienceArgs.CurrentExp, savedLevel.Experience), changingExperienceArgs.target);
-
-            return true;
-        }
-
-        /// <summary>
-        /// Resets all levels.
-        /// </summary>
-        /// <returns>true if any levels have been reset</returns>
-        public static bool ResetLevels(string reason = "Command")
-        {
-            if (Storage.RemoveAll(true) > 0)
-            {
-                foreach (var level in Levels)
+                if (data.Level != newLevel)
                 {
-                    Storage.Add(level.Value);
+                    var levelingUp = new LevelingUpEventArgs(player, reward, data.Level, newLevel);
 
-                    var changingLevelArgs = new ChangingLevelEventArgs(level.Value, level.Key, reason, level.Value.Level, 1);
-                    var changingExperienceArgs = new ChangingExperienceEventArgs(level.Value, level.Key, reason, level.Value.Experience, 0);
+                    if (!LevelingUp.InvokeBooleanEvent(levelingUp))
+                        return true;
 
-                    if (changingLevelArgs.Target != null)
-                        LevelEvents.OnRemoved(changingLevelArgs.Target, level.Value);
+                    data.Level = (byte)levelingUp.NextLevel;
+                    data.RequiredExperience = ExperienceForLevel(levelingUp.NextLevel + 1);
 
-                    LevelEvents.OnChangingLevel(changingLevelArgs);
-                    LevelEvents.OnChangingExperience(changingExperienceArgs);
-
-                    level.Value.Level = 1;
-                    level.Value.Experience = 0;
-                    level.Value.RequiredExperience = LevelProgress.ExperienceForLevel(2);
-
-                    LevelEvents.OnChangedLevel(new(level.Value, level.Key, reason, changingLevelArgs.CurrentLevel, level.Value.Level), changingLevelArgs.target);
-                    LevelEvents.OnChangedExperience(new(level.Value, level.Key, reason, changingExperienceArgs.CurrentExp, level.Value.Experience), changingExperienceArgs.target);
-
-                    if (changingLevelArgs.Target != null)
-                        LevelEvents.OnLoaded(changingLevelArgs.Target, level.Value);
+                    LeveledUp.InvokeEvent(new(player, reward, data.Level, levelingUp.NextLevel));
                 }
 
                 return true;
@@ -344,99 +233,151 @@ namespace SecretLabAPI.Levels
             return false;
         }
 
-        private static void Left(ExPlayer player)
+        /// <summary>
+        /// Gets the current level of the specified player.
+        /// </summary>
+        /// <param name="player">The player whose level is to be retrieved. Cannot be null.</param>
+        /// <returns>The level of the player as a byte value.</returns>
+        public static byte GetLevel(this ExPlayer player)
+            => player.GetLevelData()?.Level ?? 0;
+
+        /// <summary>
+        /// Gets the current number of points associated with the specified player.
+        /// </summary>
+        /// <param name="player">The player whose points are to be retrieved. Cannot be null.</param>
+        /// <returns>The number of points the player currently has.</returns>
+        public static int GetPoints(this ExPlayer player)
+            => player.GetLevelData()?.Points ?? 0;
+
+        /// <summary>
+        /// Gets the current experience points for the specified player.
+        /// </summary>
+        /// <param name="player">The player whose experience points are to be retrieved. Cannot be null.</param>
+        /// <returns>The total experience points accumulated by the player.</returns>
+        public static int GetExperience(this ExPlayer player)
+            => player.GetLevelData()?.Experience ?? 0;
+
+        /// <summary>
+        /// Determines the player level corresponding to a given amount of experience points.
+        /// </summary>
+        /// <param name="expAmount">The total experience points earned by the player.</param>
+        /// <returns>The player level that matches the provided experience points, or 0 if the experience is insufficient for the first level.</returns>
+        public static byte LevelAtExp(int expAmount)
         {
-            Levels.Remove(player.UserId);
-        }
-
-        private static void Verified(ExPlayer player)
-        {
-            if (!player.CanCollect("Levels"))
-                return;
-
-            var level = 
-                Levels[player.UserId] 
-                        = Storage.GetOrAdd(player.UserId, () => new SavedLevel());
-
-            level.RequiredExperience = LevelProgress.ExperienceForLevel(level.Level + 1);
-
-            LevelEvents.OnLoaded(player, level);
-        }
-
-        private static void BuildingInfo(ExPlayer player, StringBuilder builder)
-        {
-            if (!Levels.TryGetValue(player.UserId, out var level))
-                return;
-
-            builder.AppendLine($"LVL {level.Level} ({Mathf.CeilToInt(level.Experience)} XP / {Mathf.CeilToInt(level.RequiredExperience)} XP)");
-        }
-
-        private static void OnEntryToggled(ExPlayer player, DataCollectionEntry entry, bool isAllowed)
-        {
-            if (entry.Id != "Levels")
-                return;
-
-            if (!isAllowed)
+            for (var x = 1; x < config.Cap; x++)
             {
-                if (Levels.TryGetValue(player.UserId, out var level))
+                if (ExperiencePerLevel[x] > expAmount)
                 {
-                    Levels.Remove(player.UserId);
-                    LevelEvents.OnRemoved(player, level);
+                    return (byte)(x - 1);
                 }
             }
-            else
+
+            return 0;
+        }
+
+        /// <summary>
+        /// Retrieves the required experience points needed to reach the specified level.
+        /// </summary>
+        /// <param name="level">The target level for which the experience points are being queried.</param>
+        /// <returns>The experience points required to reach the specified level. Returns 0 if the level exceeds the level cap.</returns>
+        public static int ExperienceForLevel(int level)
+        {
+            if (level < 1)
+                throw new ArgumentOutOfRangeException(nameof(level));
+
+            if (level > config.Cap)
+                return -1;
+
+            return ExperiencePerLevel[level];
+        }
+
+        private static void GenerateLevels()
+        {
+            ExperiencePerLevel = new int[config.Cap];
+            ExperiencePerLevel[0] = 0;
+
+            var exp = 0;
+            var step = config.Step;
+
+            for (var x = 1; x < config.Cap; x++)
             {
-                if (Levels.ContainsKey(player.UserId))
-                    return;
+                if (config.Offsets.TryGetValue((byte)x, out var offset))
+                    step += offset;
 
-                var level =
-                    Levels[player.UserId]
-                            = Storage.GetOrAdd(player.UserId, () => new SavedLevel());
+                exp += step;
 
-                level.RequiredExperience = LevelProgress.ExperienceForLevel(level.Level + 1);
-
-                LevelEvents.OnLoaded(player, level);
+                ExperiencePerLevel[x] = exp;
             }
         }
 
-        internal static void Removed(StorageValue value)
+        private static void LoadLevel(ExPlayer player, bool refresh)
         {
-            if (value is not SavedLevel level)
+            if (player?.ReferenceHub == null)
                 return;
 
-            if (!Levels.TryGetKey(level, out var userId))
+            if (string.IsNullOrEmpty(player.UserId))
                 return;
 
-            if (ExPlayer.TryGet(userId, out var player))
-                LevelEvents.OnRemoved(player, level);
+            if (player.DoNotTrack && !player.CanCollect(DataEntry))
+            {
+                if (Levels.Remove(player) || storage.Remove(player.UserId, true))
+                    DataRemoved?.Invoke(player);
 
-            Levels.Remove(userId);
+                player.RemoveHintElement<LevelOverlay>();
+                return;
+            }
+
+            if (!refresh && Levels.ContainsKey(player))
+                return;
+
+            Levels.Remove(player);
+
+            storage.Remove(player.UserId, false);
+
+            var data = storage.GetOrAdd(player.UserId, () => new LevelData());
+
+            data.RequiredExperience = ExperienceForLevel(data.Level + 1);
+
+            Levels[player] = data;
+
+            if (!player.TryGetHintElement<LevelOverlay>(out var overlay))
+                player.AddHintElement(overlay = new());
+
+            overlay.Level = data;
+            overlay.RefreshBar();
+
+            DataLoaded?.Invoke(player, data);
+        }
+
+        private static void OnLeft(ExPlayer player)
+        {
+            Levels.Remove(player);
+
+            storage.Remove(player.UserId, false);
+
+            DataRemoved?.Invoke(player);
+        }
+
+        private static void OnVerified(ExPlayer player)
+        {
+            LoadLevel(player, false);
         }
 
         internal static void Initialize()
         {
-            Storage = StorageManager.CreateStorage("LevelManager", SecretLab.Config.LevelsUseShared);
+            new DataCollectionEntry(
+                DataEntry,
+                "<color=red>📊</color> | <b>Level Systém</b></color>",
+                "Ukládá počet dosažených XP a levelů pomocí identifikátoru vašeho účtu <i>(SteamID64 pro Steam účty a Discord ID pro Discord účty)</i>.")
+                .AddEntry();
 
-            if (Storage != null)
-            {
-                LevelProgress.Initialize();
-                
-                DataCollection.AddEntry(new("Levels",
-                    "<color=red>📊</color> | <b>Level Systém</b></color>", 
-                    "Ukládá počet dosažených XP a levelů pomocí identifikátoru vašeho účtu <i>(SteamID64 pro Steam účty a Discord ID pro Discord účty)</i>."));
+            config = FileUtils.LoadYamlFileOrDefault(SecretLab.RootDirectory, "level_manager.yml", new LevelConfig(), true);
+            storage = StorageManager.CreateStorage("LevelManager", config.SharedStorage);
 
-                Storage.Removed += Removed;
+            GenerateLevels();
 
-                ExPlayerEvents.Left += Left;
-                ExPlayerEvents.Verified += Verified;
-
-                DataCollection.EntryToggled += OnEntryToggled;
-
-                if (SecretLab.Config.LevelsShowInCustomInfo)
-                    ExPlayerEvents.RefreshingCustomInfo += BuildingInfo;
-                
-                LevelRewards.InitializeRewards();
-            }
+            ExPlayerEvents.Left += OnLeft;
+            ExPlayerEvents.Verified += OnVerified;
         }
     }
 }

@@ -149,8 +149,10 @@ namespace SecretLabAPI.RandomPickup
             if (isDespawning)
                 return;
 
+            /*
             if (Properties.ExperienceGain > 0f)
                 player.AddExperience("Opened a Random Pickup", Properties.ExperienceGain);
+            */
 
             ActionManager.Table.SelectAndExecuteTable(player, str => str.StartsWith("Rpu"));
 

@@ -31,39 +31,6 @@ namespace SecretLabAPI
         public bool LoadAnimatedTextures { get; set; } = true;
 
         /// <summary>
-        /// Gets or sets a value indicating whether shared storage is used for levels.
-        /// </summary>
-        [Description("Whether or not to use shared storage for levels.")]
-        public bool LevelsUseShared { get; set; } = true;
-
-        /// <summary>
-        /// Gets or sets a value indicating whether the level is displayed in custom information.
-        /// </summary>
-        [Description("Whether or not to show level in custom info.")]
-        public bool LevelsShowInCustomInfo { get; set; } = true;
-
-        /// <summary>
-        /// Gets or sets the experience increase per-level.
-        /// </summary>
-        [Description("Sets the experience increase per-level.")]
-        public int LevelStep { get; set; } = 100;
-
-        /// <summary>
-        /// Gets or sets the maximum achievable level.
-        /// </summary>
-        [Description("Sets the max achievable level.")]
-        public byte LevelCap { get; set; } = 100;
-
-        /// <summary>
-        /// Gets or sets the step offsets for different level ranges.
-        /// </summary>
-        [Description("Sets the level step offsets for different level ranges.")]
-        public Dictionary<byte, int> LevelStepOffsets { get; set; } = new()
-        {
-            [21] = 1900
-        };
-
-        /// <summary>
         /// Gets or sets the collection of static overlay elements and their configuration options.
         /// </summary>
         [Description("Configures a list of static string elements.")]
@@ -71,12 +38,6 @@ namespace SecretLabAPI
         {
             { "ServerName", new() }
         };
-
-        /// <summary>
-        /// Gets or sets the level overlay settings.
-        /// </summary>
-        [Description("Manages options for the level overlay.")]
-        public LevelSettings LevelOverlay { get; set; } = new LevelSettings();
 
         /// <summary>
         /// Gets or sets the maximum stack sizes for individual inventory item types.

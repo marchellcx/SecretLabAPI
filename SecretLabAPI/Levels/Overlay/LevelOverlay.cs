@@ -2,16 +2,15 @@
 using LabExtended.API.Enums;
 using LabExtended.API.Hints.Elements.Personal;
 
-using LabExtended.Extensions;
-
 using SecretLabAPI.Extensions;
 
-using UnityEngine;
-
 using SecretLabAPI.Levels;
-using SecretLabAPI.Levels.Storage;
+using SecretLabAPI.Levels.IO;
+using SecretLabAPI.Levels.Events;
 
-using SecretLabAPI.Elements.Levels.Entries;
+using SecretLabAPI.Utilities.Configs;
+
+using UnityEngine;
 
 namespace SecretLabAPI.Elements.Levels
 {
@@ -20,40 +19,14 @@ namespace SecretLabAPI.Elements.Levels
     /// </summary>
     public class LevelOverlay : PersonalHintElement
     {
-        private float levelTime;
-        private float experienceTime;
-
         private string? levelOverlay;
 
-        /// <summary>
-        /// Gets the options for the level overlay.
-        /// </summary>
-        public static LevelSettings Settings => SecretLab.Config.LevelOverlay;
+        public static OverlayOptions Settings => LevelManager.config.Overlay;
 
         /// <summary>
         /// Gets the saved level data.
         /// </summary>
-        public SavedLevel Level { get; set; }
-
-        /// <summary>
-        /// Gets the currently displayed level entry.
-        /// </summary>
-        public LevelGainEntry? CurrentLevelEntry { get; private set; }
-
-        /// <summary>
-        /// Gets the currently displayed experience entry.
-        /// </summary>
-        public ExperienceGainEntry? CurrentExperienceEntry { get; private set; }
-
-        /// <summary>
-        /// Gets a list of level entries.
-        /// </summary>
-        public List<LevelGainEntry> LevelEntries { get; } = new();
-
-        /// <summary>
-        /// Gets a list of experience entries.
-        /// </summary>
-        public List<ExperienceGainEntry> ExperienceEntries { get; } = new();
+        public LevelData Level { get; set; }
 
         /// <inheritdoc/>
         public override HintAlign Alignment => Settings.Align;
@@ -67,27 +40,19 @@ namespace SecretLabAPI.Elements.Levels
             : Settings.PixelSpacing;
 
         /// <inheritdoc/>
-        public override void OnUpdate()
+        public override void OnEnabled()
         {
-            base.OnUpdate();
+            base.OnEnabled();
 
-            if (CurrentLevelEntry.HasValue && Time.realtimeSinceStartup >= levelTime)
-                CurrentLevelEntry = null;
+            LevelManager.AddedExperience += OnAddedExperience;
+        }
 
-            if (CurrentExperienceEntry.HasValue && Time.realtimeSinceStartup >= experienceTime)
-                CurrentExperienceEntry = null;
+        /// <inheritdoc/>
+        public override void OnDisabled()
+        {
+            base.OnDisabled();
 
-            if (LevelEntries.Count > 0 && !CurrentLevelEntry.HasValue)
-                CurrentLevelEntry = LevelEntries.RemoveAndTake(0);
-
-            if (ExperienceEntries.Count > 0 && !CurrentExperienceEntry.HasValue)
-                CurrentExperienceEntry = ExperienceEntries.RemoveAndTake(0);
-
-            if (CurrentLevelEntry != null)
-                levelTime = Time.realtimeSinceStartup + Settings.LevelGainDuration;
-
-            if (CurrentExperienceEntry != null)
-                experienceTime = Time.realtimeSinceStartup + Settings.ExperienceGainDuration;
+            LevelManager.AddedExperience -= OnAddedExperience;
         }
 
         /// <inheritdoc/>
@@ -135,13 +100,21 @@ namespace SecretLabAPI.Elements.Levels
                 .Replace("$ReqExp", Level.RequiredExperience.ToString())
                 
                 .Replace("$CurLevel", Level.Level.ToString())
-                .Replace("$NextLevel", (Level.Level + 1 >= LevelProgress.Cap ? Level.ToString() : (Level.Level + 1).ToString()))
+                .Replace("$NextLevel", (Level.Level + 1 >= LevelManager.config.Cap ? Level.ToString() : (Level.Level + 1).ToString()))
                 
                 .ReplaceEmojis();
 
             levelOverlay = value.Length > 0
                 ? value
                 : null;
+        }
+
+        private void OnAddedExperience(AddedExperienceEventArgs args)
+        {
+            if (Player?.ReferenceHub == null || Player != args.Player)
+                return;
+
+            RefreshBar();
         }
 
         private static string GetBarColor(int percentage)
