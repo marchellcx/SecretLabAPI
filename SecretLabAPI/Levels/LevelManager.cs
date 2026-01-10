@@ -73,6 +73,8 @@ namespace SecretLabAPI.Levels
         /// </summary>
         public static event Action<LeveledUpEventArgs>? LeveledUp;
 
+        public static string[] LevelToString { get; private set; }
+
         /// <summary>
         /// Gets the experience point thresholds required to reach each level.
         /// </summary>
@@ -394,11 +396,16 @@ namespace SecretLabAPI.Levels
             ExperiencePerLevel = new int[config.Cap];
             ExperiencePerLevel[0] = 0;
 
+            LevelToString = new string[config.Cap];
+            LevelToString[0] = "Lvl0";
+
             var exp = 0;
             var step = config.Step;
 
             for (var x = 1; x < config.Cap; x++)
             {
+                LevelToString[x] = $"Lvl{x}";
+
                 if (config.Offsets.TryGetValue((byte)x, out var offset))
                     step += offset;
 

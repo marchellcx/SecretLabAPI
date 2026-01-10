@@ -60,8 +60,8 @@ namespace SecretLabAPI.Voting
                 {
                     if (info.Options.Count < 2)
                     {
-                        Read("Nespecifikoval si žádné možnosti!\n" +
-                            "Přidej možnosti a zkus to znova.", OnInput);
+                        Read("Nespecifikoval si dostatek možností!\n" +
+                            "Přidej alespoň dvě možnosti a zkus to znova.", OnInput);
                         return;
                     }
 
@@ -84,7 +84,14 @@ namespace SecretLabAPI.Voting
                     return;
                 }
 
-                info.Options.Add(new VoteOption(value));
+                if (info.Options.Any(x => x == value))
+                {
+                    Read($"Možnost '{value}' již existuje!\n" +
+                        "Zadej jinou možnost nebo start pro spuštění hlasování!", OnInput);
+                    return;
+                }
+
+                info.Options.Add(value);
 
                 Read($"Přidána možnost '{value}'.\n" +
                     $"Napiš další možnost nebo start pro spuštění hlasování!", OnInput);

@@ -1,10 +1,20 @@
+using InventorySystem.Items;
+
+using LabApi.Features.Wrappers;
+
 using LabExtended.API;
+using LabExtended.API.Custom.Items;
+using LabExtended.API.Settings;
+using LabExtended.API.Settings.Menus;
 using LabExtended.Extensions;
 
 using MapGeneration;
 
 using PlayerRoles;
+
 using PlayerStatsSystem;
+
+using SecretLabAPI.Levels;
 
 using UnityEngine;
 
@@ -30,6 +40,118 @@ namespace SecretLabAPI.Extensions
         /// <remarks>This array can be used to iterate over all standard facility zones, excluding special
         /// values such as None and Other that may represent undefined or miscellaneous cases.</remarks>
         public static FacilityZone[] AllZones = EnumUtils<FacilityZone>.Values.Where(z => z != FacilityZone.None && z != FacilityZone.Other).ToArray();
+
+        /// <summary>
+        /// Attempts to cast the specified player to an ExPlayer instance.
+        /// </summary>
+        /// <remarks>Use this method to safely attempt casting a Player to ExPlayer without throwing an
+        /// exception. The method returns false if the player is null, does not have a ReferenceHub, or is not an
+        /// ExPlayer.</remarks>
+        /// <param name="player">The player to cast. Must not be null and must have a valid ReferenceHub.</param>
+        /// <param name="castPlayer">When this method returns, contains the casted ExPlayer instance if the cast is successful; otherwise, null.</param>
+        /// <returns>true if the player is successfully cast to ExPlayer; otherwise, false.</returns>
+        public static bool CastPlayer(this Player player, out ExPlayer castPlayer)
+        {
+            if (player?.ReferenceHub == null
+                || player is not ExPlayer cast)
+            {
+                castPlayer = null!;
+                return false;
+            }
+
+            castPlayer = cast;
+            return true;
+        }
+
+        /// <summary>
+        /// Determines whether the specified player instance represents a valid, connected player.
+        /// </summary>
+        /// <param name="player">The player instance to validate. Can be null.</param>
+        /// <returns>true if the player is not null, has a non-null ReferenceHub, and a non-empty UserId; otherwise, false.</returns>
+        public static bool IsValidPlayer(this ExPlayer player)
+            => player?.ReferenceHub != null && !string.IsNullOrEmpty(player.UserId);
+
+        /// <summary>
+        /// Retrieves an existing menu of type T associated with the player, or creates and adds a new one using the
+        /// specified factory if none exists.
+        /// </summary>
+        /// <remarks>This method ensures that only one instance of the specified menu type is associated
+        /// with the player. If a menu of type T already exists, it is returned; otherwise, the factory is invoked to
+        /// create and add a new menu.</remarks>
+        /// <typeparam name="T">The type of the settings menu to retrieve or create. Must inherit from SettingsMenu.</typeparam>
+        /// <param name="player">The player instance for which the menu is retrieved or added.</param>
+        /// <param name="menuFactory">A factory function used to create a new menu of type T if one does not already exist for the player.</param>
+        /// <returns>The existing menu of type T if found; otherwise, a newly created and added menu of type T.</returns>
+        public static T GetOrAddMenu<T>(this ExPlayer player, Func<T> menuFactory) where T : SettingsMenu
+        {
+            if (player.TryGetMenu<T>(out var menu))
+                return menu;
+
+            menu = menuFactory();
+
+            player.AddMenu(menu);
+            return menu;
+        }
+
+        /// <summary>
+        /// Determines whether the player has an item of the specified custom type in their inventory.
+        /// </summary>
+        /// <remarks>If multiple items of type T exist in the inventory, only the first one found is
+        /// returned in customItem. If the player or their reference hub is null, the method returns false and
+        /// customItem is set to its default value.</remarks>
+        /// <typeparam name="T">The type of custom item to search for. Must inherit from CustomItem.</typeparam>
+        /// <param name="player">The player whose inventory is searched for the custom item.</param>
+        /// <param name="customItem">When this method returns, contains the found custom item of type T if one exists; otherwise, the default
+        /// value for T.</param>
+        /// <returns>true if the player has a custom item of type T in their inventory; otherwise, false.</returns>
+        public static bool HasCustomItem<T>(this ExPlayer player, out T customItem) where T : CustomItem
+        {
+            customItem = null!;
+
+            if (player?.ReferenceHub == null)
+                return false;
+
+            foreach (var item in player.Inventory.Items)
+            {
+                if (CustomItem.IsCustomItem(item.ItemSerial, out customItem))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// Determines whether the player has an item of the specified custom type in their inventory.
+        /// </summary>
+        /// <remarks>If multiple items of type T exist in the inventory, only the first one found is
+        /// returned in customItem. If the player or their reference hub is null, the method returns false and
+        /// customItem is set to its default value.</remarks>
+        /// <typeparam name="T">The type of custom item to search for. Must inherit from CustomItem.</typeparam>
+        /// <param name="player">The player whose inventory is searched for the custom item.</param>
+        /// <param name="customItem">When this method returns, contains the found custom item of type T if one exists; otherwise, the default
+        /// value for T.</param>
+        /// <returns>true if the player has a custom item of type T in their inventory; otherwise, false.</returns>
+        public static bool HasCustomItem<T>(this ExPlayer player, out ItemBase targetItem, out T customItem) where T : CustomItem
+        {
+            targetItem = null!;
+            customItem = null!;
+
+            if (player?.ReferenceHub == null)
+                return false;
+
+            foreach (var item in player.Inventory.Items)
+            {
+                if (CustomItem.IsCustomItem(item.ItemSerial, out customItem))
+                {
+                    targetItem = item;
+                    return true;
+                }
+            }
+
+            return false;
+        }
 
         /// <summary>
         /// Determines whether the specified player is currently located in a room with the given name, and optionally
@@ -148,18 +270,98 @@ namespace SecretLabAPI.Extensions
         }
 
         /// <summary>
-        /// Calculates the total multiplier value for the specified player based on user ID and permissions group, using
-        /// the provided multipliers dictionary.
+        /// Calculates the effective integer weight for the specified player, applying optional multipliers to the base
+        /// weight.
         /// </summary>
-        /// <remarks>If both a user ID and a permissions group name match entries in the multipliers
-        /// dictionary, their values are added together. If neither matches, the default value is returned.</remarks>
+        /// <remarks>If no valid multipliers are found for the player, or if the player or multipliers are
+        /// null, the method returns the base weight without modification.</remarks>
+        /// <param name="player">The player for whom to calculate the weight. Must not be null and must have a valid ReferenceHub.</param>
+        /// <param name="multipliers">A dictionary of multiplier values keyed by string identifiers. If null or empty, no multipliers are applied.</param>
+        /// <param name="baseWeight">The base weight value to use as the starting point for calculation.</param>
+        /// <param name="addMultipliers">If <see langword="true"/>, multipliers are added to the base weight; if <see langword="false"/>, the base
+        /// weight is multiplied by the multiplier. The default is <see langword="true"/>.</param>
+        /// <returns>The calculated integer weight for the player, adjusted by applicable multipliers. Returns the base weight if
+        /// no valid multipliers are found or if the player is invalid.</returns>
+        public static int GetInt32Weight(this ExPlayer player, IDictionary<string, int> multipliers, int baseWeight, bool addMultipliers = true)
+        {
+            if (player?.ReferenceHub == null)
+                return baseWeight;
+
+            if (multipliers == null || multipliers.Count == 0)
+                return baseWeight;
+
+            var multiplier = player.GetValidInt32Multipliers(multipliers, 0);
+
+            if (multiplier > 0)
+            {
+                if (addMultipliers)
+                {
+                    return baseWeight + multiplier;
+                }
+                else
+                {
+                    return baseWeight * multiplier;
+                }
+            }
+
+            return baseWeight;
+        }
+
+        /// <summary>
+        /// Calculates the effective weight for the specified player by applying the provided multipliers to the base
+        /// weight.
+        /// </summary>
+        /// <remarks>If no valid multipliers are found or the player is not valid, the method returns the
+        /// base weight without modification.</remarks>
+        /// <param name="player">The player for whom the weight is being calculated. Cannot be null.</param>
+        /// <param name="multipliers">A dictionary containing multiplier names and their corresponding float values to be applied. If null or
+        /// empty, no multipliers are applied.</param>
+        /// <param name="baseWeight">The base weight value before any multipliers are applied.</param>
+        /// <param name="addMultipliers">If <see langword="true"/>, the sum of valid multipliers is added to the base weight; if <see
+        /// langword="false"/>, the base weight is multiplied by the sum of valid multipliers. The default is <see
+        /// langword="true"/>.</param>
+        /// <returns>The calculated weight after applying the specified multipliers to the base weight. Returns the base weight
+        /// if the player or multipliers are not valid.</returns>
+        public static float GetFloatWeight(this ExPlayer player, IDictionary<string, float> multipliers, float baseWeight, bool addMultipliers = true)
+        {
+            if (player?.ReferenceHub == null)
+                return baseWeight;
+
+            if (multipliers == null || multipliers.Count == 0)
+                return baseWeight;
+
+            var multiplier = player.GetValidFloatMultipliers(multipliers, 0f);
+
+            if (multiplier > 0f)
+            {
+                if (addMultipliers)
+                {
+                    return baseWeight + multiplier;
+                }
+                else
+                {
+                    return baseWeight * multiplier;
+                }
+            }
+
+            return baseWeight;
+        }
+
+        /// <summary>
+        /// Calculates the total multiplier value for the specified player based on user ID, permission group, and
+        /// level, using the provided multipliers dictionary.
+        /// </summary>
+        /// <remarks>This method checks for multipliers in the following order: user ID, permission group
+        /// name, and each level below the player's current level. If multiple multipliers apply, their values are
+        /// summed. If the player does not have a valid reference hub or if the multipliers dictionary is null or empty,
+        /// the method returns the default value.</remarks>
         /// <param name="player">The player for whom to calculate the multiplier. Cannot be null.</param>
-        /// <param name="multipliers">A dictionary mapping user IDs or permissions group names to their corresponding multiplier values. Cannot be
-        /// null or empty.</param>
-        /// <param name="defaultValue">The default multiplier value to use if no applicable multipliers are found or if the player or multipliers
-        /// are invalid. The default is 0.</param>
-        /// <returns>The sum of the multipliers associated with the player's user ID and permissions group name. Returns the
-        /// specified default value if the player or multipliers are invalid or if no applicable multipliers are found.</returns>
+        /// <param name="multipliers">A dictionary containing multiplier values keyed by user ID, permission group name, or level string. Cannot
+        /// be null or empty.</param>
+        /// <param name="defaultValue">The value to return if the player or multipliers are not valid, or if no applicable multipliers are found.
+        /// The default is 0.</param>
+        /// <returns>The sum of all applicable multipliers for the player. Returns the specified default value if the player or
+        /// multipliers are invalid, or if no multipliers apply.</returns>
         public static int GetValidInt32Multipliers(this ExPlayer player, IDictionary<string, int> multipliers, int defaultValue = 0)
         {
             if (player?.ReferenceHub == null)
@@ -169,12 +371,68 @@ namespace SecretLabAPI.Extensions
                 return defaultValue;
 
             var multiplier = defaultValue;
+            var level = player.GetLevel();
 
             if (multipliers.TryGetValue(player.UserId, out var userIdMultiplier))
                 multiplier += userIdMultiplier;
 
             if (!string.IsNullOrEmpty(player.PermissionsGroupName) && multipliers.TryGetValue(player.PermissionsGroupName, out var groupMultiplier))
                 multiplier += groupMultiplier;
+
+            if (level > 0)
+            {
+                for (var x = 1; x < level; x++)
+                {
+                    var str = LevelManager.LevelToString[x];
+
+                    if (multipliers.TryGetValue(str, out var levelMultiplier))
+                        multiplier += levelMultiplier;
+                }
+            }
+
+            return multiplier;
+        }
+
+        /// <summary>
+        /// Calculates the total float multiplier for the specified player based on user ID, permission group, and
+        /// level, using the provided multipliers dictionary.
+        /// </summary>
+        /// <remarks>This method checks for multipliers in the following order: user ID, permission group
+        /// name, and each level up to the player's current level. All applicable multipliers are added together. If no
+        /// matching multipliers are found, the default value is returned.</remarks>
+        /// <param name="player">The player for whom to calculate the multiplier. Cannot be null.</param>
+        /// <param name="multipliers">A dictionary containing multiplier values keyed by user ID, permission group name, or level string. Cannot
+        /// be null or empty.</param>
+        /// <param name="defaultValue">The default multiplier value to use if no applicable multipliers are found or if the player is invalid.</param>
+        /// <returns>The sum of all applicable multipliers for the player. Returns the specified default value if the player is
+        /// invalid or if the multipliers dictionary is null or empty.</returns>
+        public static float GetValidFloatMultipliers(this ExPlayer player, IDictionary<string, float> multipliers, float defaultValue = 0f)
+        {
+            if (player?.ReferenceHub == null)
+                return defaultValue;
+
+            if (multipliers == null || multipliers.Count == 0)
+                return defaultValue;
+
+            var multiplier = defaultValue;
+            var level = player.GetLevel();
+
+            if (multipliers.TryGetValue(player.UserId, out var userIdMultiplier))
+                multiplier += userIdMultiplier;
+
+            if (!string.IsNullOrEmpty(player.PermissionsGroupName) && multipliers.TryGetValue(player.PermissionsGroupName, out var groupMultiplier))
+                multiplier += groupMultiplier;
+
+            if (level > 0)
+            {
+                for (var x = 1; x < level; x++)
+                {
+                    var str = LevelManager.LevelToString[x];
+
+                    if (multipliers.TryGetValue(str, out var levelMultiplier))
+                        multiplier += levelMultiplier;
+                }
+            }
 
             return multiplier;
         }
@@ -287,7 +545,8 @@ namespace SecretLabAPI.Extensions
 
             if (killPlayer)
             {
-                if (player.IsGodModeEnabled) player.IsGodModeEnabled = false;
+                if (player.IsGodModeEnabled) 
+                    player.IsGodModeEnabled = false;
 
                 var velocity = player.Rotation.Rotation * (Vector3.back * velocityMultiplier);
 

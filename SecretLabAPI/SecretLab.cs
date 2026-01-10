@@ -1,12 +1,7 @@
 using LabApi.Loader;
 using LabApi.Loader.Features.Plugins;
 
-using LabExtended.API;
 using LabExtended.API.Hints;
-using LabExtended.API.Custom.Effects;
-
-using LabExtended.Events;
-using LabExtended.Utilities;
 using LabExtended.Attributes;
 
 using SecretLabAPI.Rays;
@@ -22,23 +17,17 @@ using SecretLabAPI.Roles.ChaosSpy;
 
 using SecretLabAPI.Elements;
 using SecretLabAPI.Elements.Alerts;
-using SecretLabAPI.Elements.Levels;
 
 using SecretLabAPI.Audio.Playback;
 using SecretLabAPI.Audio.Clips;
 
-using SecretLabAPI.Items.Weapons;
-using SecretLabAPI.Items.Weapons.ItemLauncher;
-
 using SecretLabAPI.Patches.Overlays;
 using SecretLabAPI.Voting;
 using SecretLabAPI.Roles;
-using SecretLabAPI.Effects.Misc;
 using SecretLabAPI.Effects;
 using SecretLabAPI.Items;
 using SecretLabAPI.Misc.Tools;
 using SecretLabAPI.Misc.Functions;
-using SecretLabAPI.Misc.Grabbing;
 
 namespace SecretLabAPI;
 
@@ -96,8 +85,6 @@ public class SecretLab : Plugin<SecretLabConfig>
         PlayerClips.Initialize();
 
         ActionManager.Initialize();
-        WeightMultipliers.Initialize();
-
         LevelManager.Initialize();
 
         ChaosSpyRole.Initialize();
@@ -108,7 +95,6 @@ public class SecretLab : Plugin<SecretLabConfig>
         DeveloperMode.Initialize();
         Scp914Teleport.Initialize();
         VoteManager.Initialize();
-        GrabHandler.Initialize();
 
         CustomRoleSpawner.Initialize();
         CustomItemsHandler.Initialize();

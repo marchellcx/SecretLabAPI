@@ -5,6 +5,7 @@ using LabExtended.Utilities;
 using LabExtended.Extensions;
 
 using SecretLabAPI.Items.Weapons;
+using SecretLabAPI.Items.Weapons.Grab;
 using SecretLabAPI.Items.Weapons.ItemLauncher;
 
 namespace SecretLabAPI.Items
@@ -50,6 +51,7 @@ namespace SecretLabAPI.Items
             AddItem<AirsoftGun>();
             AddItem<SniperRifle>();
             AddItem<ReplicatingScp018>();
+            AddItem<GrabGun>();
 
             ItemLauncher.Initialize();
         }

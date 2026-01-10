@@ -3,14 +3,13 @@ using LabExtended.Utilities;
 
 using Newtonsoft.Json;
 
-using SecretLabAPI.Levels;
-using SecretLabAPI.Utilities;
-
 using YamlDotNet.Serialization;
 
 using System.ComponentModel;
 
 using LabExtended.Core;
+
+using SecretLabAPI.Extensions;
 
 namespace SecretLabAPI.Actions.API
 {
@@ -37,14 +36,14 @@ namespace SecretLabAPI.Actions.API
             public float Weight;
 
             /// <summary>
-            /// Player-specific multipliers group.
-            /// </summary>
-            public WeightMultipliers? Multipliers;
-
-            /// <summary>
             /// List of actions to invoke.
             /// </summary>
             public List<CompiledAction> Actions;
+
+            /// <summary>
+            /// List of weight multipliers associated with this group.
+            /// </summary>
+            public Dictionary<string, float> Multipliers;
         }
 
         /// <summary>
@@ -60,12 +59,6 @@ namespace SecretLabAPI.Actions.API
             public string Name { get; set; } = string.Empty;
 
             /// <summary>
-            /// Gets or sets the name of the weight multiplier group used for selection purposes.
-            /// </summary>
-            [Description("Sets the name of the weight multiplier group of this action table for selection purposes.")]
-            public string Multipliers { get; set; } = string.Empty;
-
-            /// <summary>
             /// Gets or sets the base weight used to influence the selection probability of this action table.
             /// </summary>
             [Description("Sets the base weight of this action table for selection purposes.")]
@@ -76,6 +69,15 @@ namespace SecretLabAPI.Actions.API
             /// </summary>
             [Description("Defines the list of actions associated with this action table.")]
             public List<string> Actions { get; set; } = new();
+
+            /// <summary>
+            /// Gets or sets the collection of multipliers associated with this action table.
+            /// </summary>
+            /// <remarks>Each entry in the dictionary maps a player attribute, such as rank, ID, or
+            /// level, to a corresponding multiplier value. Use this property to define custom multipliers that affect
+            /// the behavior or outcome of actions based on player characteristics.</remarks>
+            [Description("Sets the list of valid multipliers for this action table (player rank, ID or level).")]
+            public Dictionary<string, float> Multipliers { get; set; } = new();
         }
 
         /// <summary>
@@ -119,20 +121,14 @@ namespace SecretLabAPI.Actions.API
 
                     switch (weight)
                     {
-                        case <= 0f:
-                            return 0f;
-                        
-                        case >= 100f:
-                            return 100f;
+                        case <= 0f: return 0f;
+                        case >= 100f: return 100f;
                     }
 
                     if (groupPredicate != null && !groupPredicate(x.Name))
                         return 0f;
 
-                    if (x.Multipliers != null)
-                        weight = x.Multipliers.GetWeight(weight, p.UserId, p.PermissionsGroupName, p.GetLevel());
-
-                    return weight;
+                    return p.GetFloatWeight(x.Multipliers, weight, false);
                 });
             });
 
@@ -168,22 +164,19 @@ namespace SecretLabAPI.Actions.API
             {
                 var weight = x.Weight;
 
-                if (weight <= 0f)
-                    return 0f;
-
-                if (weight >= 100f)
-                    return 100f;
+                switch (weight)
+                {
+                    case <= 0f: return 0f;
+                    case >= 100f: return 100f;
+                }
 
                 if (groupPredicate != null && !groupPredicate(x.Name))
                     return 0f;
 
-                if (x.Multipliers != null)
-                    weight = x.Multipliers.GetWeight(weight, player.UserId, player.PermissionsGroupName, player.GetLevel());
-
-                return weight;
+                return player.GetFloatWeight(x.Multipliers, weight, false);
             });
 
-            return !(table.Actions?.Count < 1) && table.Actions.ExecuteActions(player);
+            return table?.Actions?.Count > 0 && table.Actions.ExecuteActions(player);
         }
 
         /// <summary>
@@ -212,14 +205,11 @@ namespace SecretLabAPI.Actions.API
                 {
                     Parsed.Add(new()
                     {
-                        Weight = src.Weight,
                         Name = src.Name,
+                        Weight = src.Weight,
+                        Multipliers = src.Multipliers,
 
-                        Actions = list,
-
-                        Multipliers = WeightMultipliers.Groups.TryGetValue(src.Multipliers, out var mult) 
-                                                                                                    ? mult 
-                                                                                                    : null
+                        Actions = list
                     });
 
                     ApiLog.Info("ActionManager", $"Loaded table &3{src.Name}&r with &6{list.Count}&r action(s)!");

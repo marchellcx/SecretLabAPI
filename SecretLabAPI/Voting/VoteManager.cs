@@ -97,7 +97,7 @@ namespace SecretLabAPI.Voting
             {
                 ExPlayer.Players.ForEach(p =>
                 {
-                    p.SendAlert(AlertType.Info, 20f, "Vote System", $"<b>Hlasování vyhrála tato možnost</b>:\n<b><color=green>{winner.Name}</color></b>", true);
+                    p.SendAlert(AlertType.Info, 20f, "Vote System", $"<b>Hlasování vyhrála tato možnost</b>:\n<b><color=green>{winner}</color></b>", true);
 
                     if (p.TryGetMenu<VoteMenu>(out var menu))
                         menu.SyncMenu(null);
@@ -170,7 +170,7 @@ namespace SecretLabAPI.Voting
 
             CurrentVote.Votes[button.Player] = option;
 
-            button.Player.SendAlert(AlertType.Info, 10f, "Vote System", $"<b>Hlasoval si pro <color=yellow>{option.Name}</color>!</b>", true);
+            button.Player.SendAlert(AlertType.Info, 10f, "Vote System", $"<b>Hlasoval si pro <color=yellow>{option}</color>!</b>", true);
         }
 
         internal static void Initialize()

@@ -36,7 +36,7 @@ namespace SecretLabAPI.Effects
             }
         }
 
-        private static void OnVerified(ExPlayer player)
+        private static void OnJoined(ExPlayer player)
         {
             foreach (var effect in effects)
             {
@@ -63,7 +63,7 @@ namespace SecretLabAPI.Effects
             AddEffect<RocketEffect>();
             AddEffect<DoorInteractExplosionEffect>();
 
-            ExPlayerEvents.Verified += OnVerified;
+            ExPlayerEvents.Joined += OnJoined;
         }
     }
 }

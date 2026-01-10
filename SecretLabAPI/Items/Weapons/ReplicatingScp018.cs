@@ -1,9 +1,9 @@
+using InventorySystem.Items.ThrowableProjectiles;
+
 using LabApi.Events.Arguments.ServerEvents;
 
 using LabExtended.API;
 using LabExtended.API.Custom.Items;
-
-using LabExtended.Events.Map;
 
 using UnityEngine;
 
@@ -48,18 +48,9 @@ namespace SecretLabAPI.Items.Weapons
             args.IsAllowed = false;
         }
 
-        /// <inheritdoc />
-        public override void OnCollided(PickupCollidedEventArgs args, ref object? pickupData)
+        internal void ProcessBounce(Scp018Projectile projectile, float velocity, Vector3 point)
         {
-            base.OnCollided(args, ref pickupData);
-
-            if (args.Collision.contactCount > 0)
-            {
-                var velocity = args.Collision.relativeVelocity;
-                var point = args.Collision.contacts[0].point;
-
-                ExMap.SpawnProjectile(ItemType.SCP018, point, Vector3.one, velocity, args.Pickup.Rotation, 3f, 3f);
-            }
+            ExMap.SpawnProjectile(ItemType.SCP018, point, Vector3.one, new(velocity, velocity, velocity), projectile.Rotation, velocity, 10f);
         }
     }
 }

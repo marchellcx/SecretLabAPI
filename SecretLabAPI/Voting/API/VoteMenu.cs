@@ -35,7 +35,7 @@ namespace SecretLabAPI.Voting.API
         /// <remarks>This dictionary provides the association used to determine which vote option is
         /// triggered by each settings button. The collection is read-only; to modify the mapping, use the appropriate
         /// methods or initialization logic.</remarks>
-        public Dictionary<SettingsButton, VoteOption> ButtonToOption { get; } = new();
+        public Dictionary<SettingsButton, string> ButtonToOption { get; } = new();
 
         /// <summary>
         /// Synchronizes the menu display to reflect the provided voting options.

@@ -106,22 +106,11 @@ namespace SecretLabAPI.Actions
                 x.AppendLine($"- Name: {table.Name}");
                 x.AppendLine($"- Weight: {table.Weight}");
 
-                if (table.Multipliers != null)
+                if (table.Multipliers?.Count > 0)
                 {
-                    if (table.Multipliers.Multipliers?.Count > 0)
+                    foreach (var pair in table.Multipliers)
                     {
-                        foreach (var pair in table.Multipliers.Multipliers)
-                        {
-                            x.AppendLine($"  -> {pair.Key}: * {pair.Value}");
-                        }
-                    }
-
-                    if (table.Multipliers.LevelMultipliers?.Count > 0)
-                    {
-                        foreach (var pair in table.Multipliers.LevelMultipliers)
-                        {
-                            x.AppendLine($"  -> LVL {pair.Key}: * {pair.Value}");
-                        }
+                        x.AppendLine($"  -> {pair.Key}: * {pair.Value}");
                     }
                 }
 

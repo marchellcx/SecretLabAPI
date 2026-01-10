@@ -135,6 +135,9 @@ namespace SecretLabAPI.RandomPickup
                 || ExPlayer.Count < 1)
                 return;
 
+            if (Config.PlayerStartDelay > 0 && ExRound.Duration.TotalSeconds < Config.PlayerStartDelay)
+                return;
+
             if (Config.PlayerDelay > 0f)
             {
                 if (Time.realtimeSinceStartup < nextCheck)
@@ -145,7 +148,13 @@ namespace SecretLabAPI.RandomPickup
 
             var player = ExPlayer.Players.GetRandomWeighted(player =>
             {
-                var weight = Config.PlayerMultipliers.GetWeight(Config.PlayerWeight, player.UserId, player.PermissionsGroupName, 0);
+                if (player?.ReferenceHub == null)
+                    return 0f;
+
+                if (!player.Role.IsAlive)
+                    return 0f;
+
+                var weight = Config.PlayerWeight;
                 var count = history.Count(x => x == player.UserId);
 
                 if (count > 0)

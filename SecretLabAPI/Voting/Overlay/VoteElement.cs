@@ -72,7 +72,7 @@ namespace SecretLabAPI.Voting.Overlay
                 Builder.Append(">");
                 Builder.Append(x + 1);
                 Builder.Append(" | ");
-                Builder.Append(option.Name);
+                Builder.Append(option);
                 Builder.Append(" | ");
                 Builder.Append(bar);
                 Builder.Append(" | ");

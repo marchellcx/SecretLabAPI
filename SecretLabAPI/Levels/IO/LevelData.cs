@@ -9,7 +9,7 @@ namespace SecretLabAPI.Levels.IO
     /// </summary>
     public class LevelData : StorageValue
     {
-        private byte level = 0;
+        private byte level = 1;
 
         private int points = 0;
         private int experience = 0;
@@ -51,7 +51,7 @@ namespace SecretLabAPI.Levels.IO
         {
             base.ApplyDefault();
 
-            level = 0;
+            level = 1;
             points = 0;
             experience = 0;
         }

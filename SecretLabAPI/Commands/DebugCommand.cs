@@ -48,7 +48,7 @@ namespace SecretLabAPI.Commands
         {
             if (!Actions.TryGetValue(key, out var action))
             {
-                Fail($"No action found for key '{key}'");
+                Fail($"No action found for key '{key}', valid actions:\n{Actions.AsString(p => p.Key, "\n- ")}");
                 return;
             }
 

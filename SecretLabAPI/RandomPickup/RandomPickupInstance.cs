@@ -10,7 +10,6 @@ using ProjectMER.Features.Objects;
 using SecretLabAPI.Audio.Clips;
 
 using SecretLabAPI.Actions;
-using SecretLabAPI.Levels;
 
 using SecretLabAPI.RandomPickup.Configs;
 using SecretLabAPI.RandomPickup.Enums;

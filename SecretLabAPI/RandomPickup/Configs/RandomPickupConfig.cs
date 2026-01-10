@@ -29,12 +29,6 @@ namespace SecretLabAPI.RandomPickup.Configs
         public float PlayerStartDelay { get; set; } = 300f;
 
         /// <summary>
-        /// Gets or sets the weight configuration used for player pickups.
-        /// </summary>
-        [Description("Sets the weight configuration for player pickups.")]
-        public WeightMultipliers PlayerMultipliers { get; set; } = new();
-
-        /// <summary>
         /// Gets or sets the collection of spawn locations and their associated weights.
         /// </summary>
         [Description("Sets the spawn locations along with their weights.")]
