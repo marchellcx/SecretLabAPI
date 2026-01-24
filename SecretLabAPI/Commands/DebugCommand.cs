@@ -18,6 +18,8 @@ using MEC;
 
 using PlayerStatsSystem;
 
+using SecretLabAPI.Features;
+
 namespace SecretLabAPI.Commands
 {
     /// <summary>
@@ -31,6 +33,10 @@ namespace SecretLabAPI.Commands
         /// </summary>
         public static Dictionary<string, Action<ExPlayer, string[], StringBuilder>> Actions { get; } = new()
         {
+            { "reload_nicks", ReloadNicks },
+            { "set_alternative_nick", SetAlternativeNick },
+            { "remove_alternative_nick", RemoveAlternativeNick },
+
             { "gen_engage", Engage },
             { "gen_overcharge", Overcharge },
 
@@ -41,7 +47,7 @@ namespace SecretLabAPI.Commands
             { "door_locks", DoorLocks }
         };
 
-        [CommandOverload("Show debug information for a given key", null)]
+        [CommandOverload("Show debug information for a given key", "debug")]
         private void Show(
             [CommandParameter("Key", "The key of the action.")] string key,
             [CommandParameter("Arguments", "The list of arguments for the action (separated by ;).")] string? arguments = null)
@@ -67,6 +73,55 @@ namespace SecretLabAPI.Commands
                     return;
                 }
             });
+        }
+
+        private static void RemoveAlternativeNick(ExPlayer player, string[] args, StringBuilder builder)
+        {
+            if (args.Length < 1)
+            {
+                builder.AppendLine("Usage: debug remove_alternative_nick <userId>");
+                return;
+            }
+
+            var targetPlayer = args[0];
+
+            if (AlternativeNicks.Nicks.Remove(targetPlayer))
+            {
+                AlternativeNicks.SaveNicks();
+                AlternativeNicks.Initialize();
+
+                builder.AppendLine($"Removed alternative nick for user '{targetPlayer}'.");
+            }
+            else
+            {
+                builder.AppendLine($"No alternative nick found for user '{targetPlayer}'.");
+            }
+        }
+
+        private static void SetAlternativeNick(ExPlayer player, string[] args, StringBuilder builder)
+        {
+            if (args.Length < 2)
+            {
+                builder.AppendLine("Usage: debug set_alternative_nick <userId> <new_nick>");
+                return;
+            }
+
+            var targetPlayer = args[0];
+            var newNick = args[1];
+
+            AlternativeNicks.Nicks[targetPlayer] = newNick;
+
+            AlternativeNicks.SaveNicks();
+            AlternativeNicks.Initialize();
+
+            builder.AppendLine($"Set alternative nick for user '{targetPlayer}' to '{newNick}'.");
+        }
+
+        private static void ReloadNicks(ExPlayer player, string[] args, StringBuilder builder)
+        {
+            AlternativeNicks.Initialize();
+
+            builder.AppendLine("Alternative nicks reloaded.");
         }
 
         private static void ResetStart(ExPlayer player, string[] args, StringBuilder builder)

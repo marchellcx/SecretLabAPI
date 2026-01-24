@@ -14,7 +14,7 @@ namespace SecretLabAPI.Commands
     [Command("explode", "Explodes specified players with given item and velocity.")]
     public class ExplodeCommand : CommandBase, IServerSideCommand
     {
-        [CommandOverload("Explodes specified players with given item and velocity.", null)]
+        [CommandOverload("Explodes specified players with given item and velocity.", "explode")]
         private void Execute(
             [CommandParameter("Players", "List of players to explode.")] List<ExPlayer> players,
             [CommandParameter("Item", "The item to use for the explosion.")] ItemType item,

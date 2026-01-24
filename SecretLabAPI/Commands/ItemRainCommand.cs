@@ -22,7 +22,7 @@ namespace SecretLabAPI.Commands
     [Command("rain", "Starts an item rain on the specified players.")]
     public class ItemRainCommand : CommandBase, IServerSideCommand
     {
-        [CommandOverload("start", "Starts an item rain on the specified players.", null)]
+        [CommandOverload("start", "Starts an item rain on the specified players.", "rain.start")]
         private void Start(
             [CommandParameter("Targets", "List of players to start the rain on.")] List<ExPlayer> targets, 
             [CommandParameter("Type", "The item type that should rain.")] ItemType item,
@@ -48,7 +48,7 @@ namespace SecretLabAPI.Commands
             }
         }
 
-        [CommandOverload("stop", "Stops an item rain on the specified players.", null)]
+        [CommandOverload("stop", "Stops an item rain on the specified players.", "rain.stop")]
         private void Stop(
             [CommandParameter("Targets", "The list of players to stop the rain on.")] List<ExPlayer> targets)
         {

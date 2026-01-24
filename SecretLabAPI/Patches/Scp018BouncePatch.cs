@@ -2,8 +2,7 @@
 using InventorySystem.Items.ThrowableProjectiles;
 
 using LabExtended.API.Custom.Items;
-
-using SecretLabAPI.Items.Weapons;
+using SecretLabAPI.Features.Items.Weapons;
 
 using UnityEngine;
 

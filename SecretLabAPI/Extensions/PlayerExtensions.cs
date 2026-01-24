@@ -13,8 +13,7 @@ using MapGeneration;
 using PlayerRoles;
 
 using PlayerStatsSystem;
-
-using SecretLabAPI.Levels;
+using SecretLabAPI.Features.Levels;
 
 using UnityEngine;
 

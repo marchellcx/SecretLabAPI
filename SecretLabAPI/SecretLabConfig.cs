@@ -1,6 +1,7 @@
 ﻿using MapGeneration;
+
 using Scp914;
-using SecretLabAPI.Elements.Levels;
+
 using SecretLabAPI.Utilities.Configs;
 
 using System.ComponentModel;
@@ -13,6 +14,12 @@ namespace SecretLabAPI
     public class SecretLabConfig
     {
         /// <summary>
+        /// Gets or sets a value indicating whether the application uses shared configuration settings.
+        /// </summary>
+        [Description("Whether or not to use shared configs.")]
+        public bool SharedConfigs { get; set; } = true;
+
+        /// <summary>
         /// Gets or sets whether persistent overwatch is enabled.
         /// </summary>
         [Description("Whether persistent overwatch is enabled.")]
@@ -23,12 +30,6 @@ namespace SecretLabAPI
         /// </summary>
         [Description("Whether or not to use shared storage for persistent overwatch.")]
         public bool PersistentOverwatchShared { get; set; } = true;
-
-        /// <summary>
-        /// Whether or not to load animated textures.
-        /// </summary>
-        [Description("Whether or not to load animated textures.")]
-        public bool LoadAnimatedTextures { get; set; } = true;
 
         /// <summary>
         /// Gets or sets the collection of static overlay elements and their configuration options.

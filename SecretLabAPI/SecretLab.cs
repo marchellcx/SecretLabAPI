@@ -4,30 +4,30 @@ using LabApi.Loader.Features.Plugins;
 using LabExtended.API.Hints;
 using LabExtended.Attributes;
 
-using SecretLabAPI.Rays;
-using SecretLabAPI.Levels;
-using SecretLabAPI.Actions;
-using SecretLabAPI.Textures;
+using SecretLabAPI.Features;
 using SecretLabAPI.Utilities;
-using SecretLabAPI.RandomEvents;
-using SecretLabAPI.RandomPickup;
-
-using SecretLabAPI.Roles.Misc;
-using SecretLabAPI.Roles.ChaosSpy;
-
-using SecretLabAPI.Elements;
-using SecretLabAPI.Elements.Alerts;
-
-using SecretLabAPI.Audio.Playback;
-using SecretLabAPI.Audio.Clips;
 
 using SecretLabAPI.Patches.Overlays;
-using SecretLabAPI.Voting;
-using SecretLabAPI.Roles;
-using SecretLabAPI.Effects;
-using SecretLabAPI.Items;
-using SecretLabAPI.Misc.Tools;
-using SecretLabAPI.Misc.Functions;
+
+using SecretLabAPI.Features.Rays;
+using SecretLabAPI.Features.Items;
+using SecretLabAPI.Features.Roles;
+using SecretLabAPI.Features.Voting;
+using SecretLabAPI.Features.Levels;
+using SecretLabAPI.Features.Actions;
+using SecretLabAPI.Features.Effects;
+using SecretLabAPI.Features.Elements;
+using SecretLabAPI.Features.RandomPickup;
+using SecretLabAPI.Features.RandomEvents;
+
+using SecretLabAPI.Features.Elements.Alerts;
+using SecretLabAPI.Features.Misc.Functions;
+
+using SecretLabAPI.Features.Roles.ChaosSpy;
+using SecretLabAPI.Features.Roles.Misc;
+
+using SecretLabAPI.Features.Audio.Clips;
+using SecretLabAPI.Features.Audio.Playback;
 
 namespace SecretLabAPI;
 
@@ -73,13 +73,11 @@ public class SecretLab : Plugin<SecretLabConfig>
         Config = base.Config!;
         Plugin = this;
 
-        RootDirectory = Plugin.GetConfigDirectory(true).FullName;
+        RootDirectory = Plugin.GetConfigDirectory(Config.SharedConfigs).FullName;
 
         // New init
         
         LabEvents.Initialize();
-
-        TextureManager.Initialize();
 
         PlaybackUtils.Initialize();
         PlayerClips.Initialize();
@@ -95,6 +93,7 @@ public class SecretLab : Plugin<SecretLabConfig>
         DeveloperMode.Initialize();
         Scp914Teleport.Initialize();
         VoteManager.Initialize();
+        AlternativeNicks.Initialize();
 
         CustomRoleSpawner.Initialize();
         CustomItemsHandler.Initialize();
