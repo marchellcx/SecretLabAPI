@@ -25,10 +25,20 @@ namespace SecretLabAPI.Features
 
             if (player.Role.Is(RoleTypeId.Scp3114)
                 && player.Subroutines.Scp3114Identity.CurIdentity != null
-                && player.Subroutines.Scp3114Identity.CurIdentity.Status is Scp3114Identity.DisguiseStatus.Active or Scp3114Identity.DisguiseStatus.Equipping)
+                && player.Subroutines.Scp3114Identity.CurIdentity.Status 
+                    is Scp3114Identity.DisguiseStatus.Active or Scp3114Identity.DisguiseStatus.Equipping)
             {
-                health = Mathf.CeilToInt(Mathf.Clamp(player.Health, 0f, 100f));
-                maxHealth = Mathf.CeilToInt(Mathf.Clamp(player.MaxHealth, 0f, 100f));
+                if (player.Subroutines.Scp3114Identity.CurIdentity.StolenRole.TryGetRoleTemplate<PlayerRoleBase>(out var role)
+                    && role is IHealthbarRole healthbarRole)
+                {
+                    health = Mathf.CeilToInt(healthbarRole.MaxHealth * Mathf.CeilToInt((player.Health / player.MaxHealth) * 100f) / 100f);
+                    maxHealth = Mathf.CeilToInt(healthbarRole.MaxHealth);
+                }
+                else
+                {
+                    health = Mathf.CeilToInt(Mathf.Clamp(player.Health, 0f, 100f));
+                    maxHealth = Mathf.CeilToInt(Mathf.Clamp(player.MaxHealth, 0f, 100f));
+                }
             }
 
             builder.AppendLine($"{health} HP / {maxHealth} HP");

@@ -11,13 +11,17 @@ using LabApi.Events.Handlers;
 using LabApi.Features.Wrappers;
 
 using LabExtended.Core;
+using LabExtended.Extensions;
 using LabExtended.Utilities;
 
 using Scp914;
 
 using SecretLabAPI.Extensions;
+using SecretLabAPI.Features.Audio.Clips;
 
-namespace SecretLabAPI.Features.Misc.Functions
+using UnityEngine;
+
+namespace SecretLabAPI.Features
 {
     public static class Scp914Teleport
     {
@@ -35,6 +39,11 @@ namespace SecretLabAPI.Features.Misc.Functions
         /// Gets a mapping of facility zones to their associated teleportation distances for SCP-914 operations.
         /// </summary>
         public static Dictionary<FacilityZone, float> Zones => SecretLab.Config.Scp914TeleportZones;
+        
+        /// <summary>
+        /// Gets the audio clip manager used by SCP-914 teleportation.
+        /// </summary>
+        public static ClipManager<string> Clips { get; private set; }
 
         /// <summary>
         /// Gets the identifier for the LCZ-914 room, if available.
@@ -63,18 +72,23 @@ namespace SecretLabAPI.Features.Misc.Functions
                 if (player.Role.Team != Team.SCPs)
                     continue;
 
-                if (player.Position.Room == null || player.Position.Room.Name != RoomName.Lcz914)
+                if (player.Position.Room != null)
                 {
-                    if (Lcz914Room != null && player.Position.Room != null)
+                    if (player.Position.Room.Name != RoomName.Lcz914)
                     {
-                        if (Lcz914Room.ConnectedRooms.Any(r => player.Position.Room == r))
+                        if (Lcz914Room != null)
                         {
-                            return true;
+                            if (Lcz914Room.ConnectedRooms.Any(r => r != null && player.Position.Room == r))
+                            {
+                                return true;
+                            }
                         }
                     }
+                    else
+                    {
+                        return true;
+                    }
                 }
-
-                return true;
             }
 
             return false;
@@ -97,15 +111,37 @@ namespace SecretLabAPI.Features.Misc.Functions
             if (Chance < 100f && !WeightUtils.GetBool(Chance)) 
                 return;
 
-            var zones = Zones.Where(p => ExRound.Duration.TotalSeconds >= p.Value).Select(p => p.Key).ToArray();
+            var zones = Zones
+                .Where(p => p.Value <= 0f || ExRound.Duration.TotalSeconds >= p.Value)
+                .Select(p => p.Key)
+                .ToArray();
 
             if (zones?.Length < 1) 
                 return;
 
             if (!AnyScpIn914OrNear()) 
                 return;
+            
+            Clips ??= new(SecretLab.Config.Scp914TeleportClips, Vector3.zero);
 
-            player.RandomRoomTeleport(zones);
+            if (SecretLab.Config.Scp914ScpTeleportChance > 0f &&
+                WeightUtils.GetBool(SecretLab.Config.Scp914ScpTeleportChance))
+            {
+                var randomScp = ExPlayer.Players
+                    .Where(p => p?.ReferenceHub != null && p.Role.Team == Team.SCPs)
+                    .GetRandomItem();
+
+                if (randomScp?.ReferenceHub != null)
+                {
+                    player.Position.Position = randomScp.PositionAdjustY(0.1f);
+                    
+                    Clips.PlayRandomClip("OnScpTeleported", player.Position);
+                    return;
+                }
+            }
+
+            if (player.RandomRoomTeleport(zones))
+                Clips.PlayRandomClip("OnTeleported", player.Position);
         }
 
         private static void OnMapGenerated(MapGeneratedEventArgs args)

@@ -106,6 +106,7 @@ namespace SecretLabAPI.Features.Audio.Clips
         /// Initializes a new instance of the <see cref="ClipManager{T}"/> class with the specified configuration.
         /// </summary>
         /// <param name="config">The configuration settings for the clip manager. Cannot be <see langword="null"/>.</param>
+        /// <param name="parent">The parent transform for the audio player. Cannot be <see langword="null"/>.</param>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="config"/> is <see langword="null"/>.</exception>
         public ClipManager(ClipConfig<T> config, Transform parent)
         {
@@ -125,6 +126,7 @@ namespace SecretLabAPI.Features.Audio.Clips
         /// Initializes a new instance of the <see cref="ClipManager{T}"/> class with the specified configuration.
         /// </summary>
         /// <param name="config">The configuration settings for the clip manager. Cannot be <see langword="null"/>.</param>
+        /// <param name="position">The position in the 3D space where the audio player should be created.</param>       
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="config"/> is <see langword="null"/>.</exception>
         public ClipManager(ClipConfig<T> config, Vector3 position)
         {
@@ -175,7 +177,6 @@ namespace SecretLabAPI.Features.Audio.Clips
         /// clip is recorded.</remarks>
         /// <param name="clip">The clip to be played. This is used to track playback state and timing.</param>
         /// <param name="definition">The definition of the clip, including its name and playback settings. Cannot be <see langword="null"/>.</param>
-        /// <param name="position">The position in the 3D space where the clip should be played.</param>
         /// <returns><see langword="true"/> if the clip starts playing successfully; otherwise, <see langword="false"/> if a clip
         /// is already playing.</returns>
         /// <exception cref="ArgumentNullException">Thrown if <paramref name="definition"/> is <see langword="null"/>.</exception>
@@ -190,6 +191,47 @@ namespace SecretLabAPI.Features.Audio.Clips
 
                 if (!PlaybackUtils.TryLoadClip(definition.Name, definition.Loop, out stream, out provider))
                     return false;
+
+                Player.WithMasterAmplification(definition.Amplification);
+                Player.WithProvider(provider);
+
+                CurrentClip = definition;
+
+                ClipTimes[clip] = Time.realtimeSinceStartup;
+                ClipStarted?.Invoke();
+
+                return true;
+            }
+
+            return false;
+        }
+        
+        /// <summary>
+        /// Plays the specified clip at the given position using the provided clip definition.
+        /// </summary>
+        /// <remarks>If the clip starts playing, the method updates the current playback state, including
+        /// the active clip and its handle. When playback completes, the state is reset, and the playback time for the
+        /// clip is recorded.</remarks>
+        /// <param name="clip">The clip to be played. This is used to track playback state and timing.</param>
+        /// <param name="definition">The definition of the clip, including its name and playback settings. Cannot be <see langword="null"/>.</param>
+        /// <param name="position">The position in the 3D space where the clip should be played.</param>      
+        /// <returns><see langword="true"/> if the clip starts playing successfully; otherwise, <see langword="false"/> if a clip
+        /// is already playing.</returns>
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="definition"/> is <see langword="null"/>.</exception>
+        public bool PlayClip(T clip, ClipDefinition definition, Vector3 position)
+        {
+            if (definition is null)
+                throw new ArgumentNullException(nameof(definition));
+
+            if (Player != null)
+            {
+                Stop();
+
+                if (!PlaybackUtils.TryLoadClip(definition.Name, definition.Loop, out stream, out provider))
+                    return false;
+                
+                if (Player.Speaker != null)
+                    Player.Speaker.Position = position;
 
                 Player.WithMasterAmplification(definition.Amplification);
                 Player.WithProvider(provider);
@@ -225,6 +267,29 @@ namespace SecretLabAPI.Features.Audio.Clips
                 return false;
 
             return PlayClip(clip, clipDef);
+        }
+        
+        /// <summary>
+        /// Attempts to play a random clip at the specified position.
+        /// </summary>
+        /// <remarks>The method checks if the clip is eligible to be played based on cooldown restrictions
+        /// and whether the clip is available. If the clip is currently playing or does not meet the cooldown
+        /// requirements, the method returns <see langword="false"/>.</remarks>
+        /// <param name="clip">The identifier of the clip to play.</param>
+        /// <param name="position">The position in the 3D space where the clip should be played.</param>     
+        /// <returns><see langword="true"/> if the clip was successfully played; otherwise, <see langword="false"/>.</returns>
+        public bool PlayRandomClip(T clip, Vector3 position)
+        {
+            if (Config.Cooldowns.TryGetValue(clip, out var cooldown)
+                && cooldown > 0f
+                && ClipTimes.TryGetValue(clip, out var lastPlayedTime)
+                && (Time.realtimeSinceStartup - lastPlayedTime) < cooldown)
+                return false;
+
+            if (!TryGetClip(clip, out var clipDef))
+                return false;
+
+            return PlayClip(clip, clipDef, position);
         }
 
         /// <summary>

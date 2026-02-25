@@ -1,3 +1,5 @@
+using LabApi.Features.Wrappers;
+
 using LabExtended.Core;
 using LabExtended.Extensions;
 
@@ -14,6 +16,43 @@ namespace SecretLabAPI.Features.Actions.Functions.Getters
     /// </summary>
     public static class MapGetters
     {
+        /// <summary>
+        /// Checks whether the warhead has been detonated and updates the memory in the context accordingly.
+        /// </summary>
+        /// <param name="context">
+        /// The action context containing information necessary for executing operations.
+        /// This includes a method to set memory, which is used to store the warhead's detonation status.
+        /// </param>
+        /// <returns>
+        /// An ActionResultFlags value indicating the result of the operation.
+        /// Returns SuccessDispose when the warhead detonation status is successfully retrieved and stored in memory.
+        /// </returns>
+        [Action("IsWarheadDetonated", "Checks whether the warhead has been detonated.")]
+        public static ActionResultFlags IsWarheadDetonated(ref ActionContext context)
+        {
+            context.SetMemory(Warhead.IsDetonated);
+            return ActionResultFlags.SuccessDispose;
+        }
+
+        /// <summary>
+        /// Checks whether the warhead is currently in the process of detonating and updates the memory in the context accordingly.
+        /// </summary>
+        /// <param name="context">
+        /// The action context containing information necessary for executing operations.
+        /// This includes a method to set memory, which is used to store the warhead's detonation status based on whether it is
+        /// currently detonating or has already been detonated.
+        /// </param>
+        /// <returns>
+        /// An ActionResultFlags value indicating the result of the operation.
+        /// Returns SuccessDispose when the warhead's current detonation status is successfully retrieved and stored in memory.
+        /// </returns>
+        [Action("IsWarheadDetonating", "Checks whether the warhead is currently detonating.")]
+        public static ActionResultFlags IsWarheadDetonating(ref ActionContext context)
+        {
+            context.SetMemory(Warhead.IsDetonated || Warhead.IsDetonationInProgress);
+            return ActionResultFlags.SuccessDispose;
+        }
+        
         /// <summary>
         /// Finds a random room within specific facility zones and saves it as a RoomIdentifier object in memory.
         /// </summary>

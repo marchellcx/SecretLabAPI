@@ -21,13 +21,12 @@ using SecretLabAPI.Features.RandomPickup;
 using SecretLabAPI.Features.RandomEvents;
 
 using SecretLabAPI.Features.Elements.Alerts;
-using SecretLabAPI.Features.Misc.Functions;
-
 using SecretLabAPI.Features.Roles.ChaosSpy;
 using SecretLabAPI.Features.Roles.Misc;
 
 using SecretLabAPI.Features.Audio.Clips;
 using SecretLabAPI.Features.Audio.Playback;
+using SecretLabAPI.Features.Menus.ServerMenu;
 
 namespace SecretLabAPI;
 
@@ -89,11 +88,16 @@ public class SecretLab : Plugin<SecretLabConfig>
         JanitorRole.Initialize();
         GuardCommanderRole.Initialize();
 
+        KillFeed.Initialize();
         RandomPickupManager.Initialize();
         DeveloperMode.Initialize();
         Scp914Teleport.Initialize();
         VoteManager.Initialize();
         AlternativeNicks.Initialize();
+        ServerMenuManager.Initialize();
+        PocketSpeedBoost.Initialize();
+        ZombieDeathAlert.Initialize();
+        Scp500ClearAllEffects.Initialize();
 
         CustomRoleSpawner.Initialize();
         CustomItemsHandler.Initialize();
@@ -105,6 +109,8 @@ public class SecretLab : Plugin<SecretLabConfig>
 
         RayManager.Initialize();
         RandomEventManager.Initialize();
+
+        WhitelistManager.Initialize();
 
         // Old init
 

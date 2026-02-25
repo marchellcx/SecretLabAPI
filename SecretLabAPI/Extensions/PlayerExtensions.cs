@@ -4,8 +4,10 @@ using LabApi.Features.Wrappers;
 
 using LabExtended.API;
 using LabExtended.API.Custom.Items;
+
 using LabExtended.API.Settings;
 using LabExtended.API.Settings.Menus;
+
 using LabExtended.Extensions;
 
 using MapGeneration;
@@ -38,7 +40,9 @@ namespace SecretLabAPI.Extensions
         /// </summary>
         /// <remarks>This array can be used to iterate over all standard facility zones, excluding special
         /// values such as None and Other that may represent undefined or miscellaneous cases.</remarks>
-        public static FacilityZone[] AllZones = EnumUtils<FacilityZone>.Values.Where(z => z != FacilityZone.None && z != FacilityZone.Other).ToArray();
+        public static FacilityZone[] AllZones = EnumUtils<FacilityZone>.Values
+            .Where(z => z != FacilityZone.None && z != FacilityZone.Other)
+            .ToArray();
 
         /// <summary>
         /// Attempts to cast the specified player to an ExPlayer instance.
@@ -129,6 +133,8 @@ namespace SecretLabAPI.Extensions
         /// customItem is set to its default value.</remarks>
         /// <typeparam name="T">The type of custom item to search for. Must inherit from CustomItem.</typeparam>
         /// <param name="player">The player whose inventory is searched for the custom item.</param>
+        /// <param name="targetItem">When this method returns, contains the found inventory item of type T if one exists; otherwise, the default
+        /// value for ItemBase.</param>
         /// <param name="customItem">When this method returns, contains the found custom item of type T if one exists; otherwise, the default
         /// value for T.</param>
         /// <returns>true if the player has a custom item of type T in their inventory; otherwise, false.</returns>
@@ -212,7 +218,8 @@ namespace SecretLabAPI.Extensions
         /// <param name="excludedRoles">An array of role types to exclude from random selection within the chosen team. If null or empty, no roles
         /// are excluded.</param>
         /// <returns>true if the player was successfully teleported to a random spawn position; otherwise, false.</returns>
-        public static bool RandomSpawnPositionTeleport(this ExPlayer player, Team[]? teams = null, Team[]? excludedTeams = null, RoleTypeId[]? excludedRoles = null)
+        public static bool RandomSpawnPositionTeleport(this ExPlayer player, Team[]? teams = null, Team[]? excludedTeams = null,
+            RoleTypeId[]? excludedRoles = null)
         {
             if (player?.ReferenceHub == null)
                 return false;
@@ -294,13 +301,9 @@ namespace SecretLabAPI.Extensions
             if (multiplier > 0)
             {
                 if (addMultipliers)
-                {
                     return baseWeight + multiplier;
-                }
-                else
-                {
-                    return baseWeight * multiplier;
-                }
+                
+                return baseWeight * multiplier;
             }
 
             return baseWeight;
@@ -334,13 +337,9 @@ namespace SecretLabAPI.Extensions
             if (multiplier > 0f)
             {
                 if (addMultipliers)
-                {
                     return baseWeight + multiplier;
-                }
-                else
-                {
-                    return baseWeight * multiplier;
-                }
+
+                return baseWeight * multiplier;
             }
 
             return baseWeight;
@@ -375,7 +374,8 @@ namespace SecretLabAPI.Extensions
             if (multipliers.TryGetValue(player.UserId, out var userIdMultiplier))
                 multiplier += userIdMultiplier;
 
-            if (!string.IsNullOrEmpty(player.PermissionsGroupName) && multipliers.TryGetValue(player.PermissionsGroupName, out var groupMultiplier))
+            if (!string.IsNullOrEmpty(player.PermissionsGroupName) 
+                && multipliers.TryGetValue(player.PermissionsGroupName, out var groupMultiplier))
                 multiplier += groupMultiplier;
 
             if (level > 0)
@@ -419,7 +419,8 @@ namespace SecretLabAPI.Extensions
             if (multipliers.TryGetValue(player.UserId, out var userIdMultiplier))
                 multiplier += userIdMultiplier;
 
-            if (!string.IsNullOrEmpty(player.PermissionsGroupName) && multipliers.TryGetValue(player.PermissionsGroupName, out var groupMultiplier))
+            if (!string.IsNullOrEmpty(player.PermissionsGroupName) 
+                && multipliers.TryGetValue(player.PermissionsGroupName, out var groupMultiplier))
                 multiplier += groupMultiplier;
 
             if (level > 0)

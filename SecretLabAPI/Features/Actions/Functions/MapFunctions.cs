@@ -1,4 +1,5 @@
-﻿using LabExtended.API;
+﻿using LabApi.Features.Wrappers;
+using LabExtended.API;
 
 using MapGeneration;
 
@@ -23,6 +24,82 @@ namespace SecretLabAPI.Features.Actions.Functions
     /// be triggered programmatically, such as in custom game modes or automated events.</remarks>
     public static class MapFunctions
     {
+        /// <summary>
+        /// Spawns grenades in every room on the map based on the specified parameters.
+        /// </summary>
+        /// <remarks>
+        /// This method iterates through all available rooms in the map and spawns a specified number of grenades
+        /// with defined type and fuse time in each room. It is essential to provide valid parameters in the
+        /// context to ensure desired behavior. Misconfigured parameters may result in execution errors.
+        /// </remarks>
+        /// <param name="context">
+        /// The action context containing parameters for the operation. Expected parameters include:
+        /// - Type: The type of grenade to spawn (e.g., GrenadeHE).
+        /// - Amount: The number of grenades to spawn per room.
+        /// - Fuse: The fuse time for each grenade before detonation.
+        /// Ensure all parameters have been properly set within the context before invoking the method.
+        /// </param>
+        /// <returns>
+        /// An ActionResultFlags value representing the result of the operation. Typically returns SuccessDispose
+        /// if all grenades are successfully spawned in all rooms.
+        /// </returns>
+        [Action("SpawnGrenadeInEveryRoom", "Spawns a grenade in every room.")]
+        [ActionParameter("Type", "The type of grenade to spawn.")]
+        [ActionParameter("Amount", "The amount of grenades to spawn.")]
+        [ActionParameter("Fuse", "The fuse time of the grenade.")]
+        public static ActionResultFlags SpawnGrenadeInEveryRoom(ref ActionContext context)
+        {
+            context.EnsureCompiled((index, p) =>
+            {
+                return index switch
+                {
+                    0 => p.EnsureCompiled(Enum.TryParse, ItemType.GrenadeHE),
+                    1 => p.EnsureCompiled(int.TryParse, 1),
+                    2 => p.EnsureCompiled(float.TryParse, 3f),
+                    
+                    _ => false
+                };
+            });
+            
+            var type = context.GetValue<ItemType>(0);
+            var amount = context.GetValue<int>(1);
+            var fuse = context.GetValue<float>(2);
+            
+            foreach (var room in RoomIdentifier.AllRoomIdentifiers)
+            {
+                for (var i = 0; i < amount; i++)
+                {
+                    ExMap.SpawnProjectile(type, room.transform.position, Vector3.one, Vector3.zero,
+                        room.transform.rotation,
+                        0f, fuse);
+                }
+            }
+
+            return ActionResultFlags.SuccessDispose;
+        }
+        
+        /// <summary>
+        /// Detonates the Alpha Warhead, initiating its explosion and applying corresponding effects to the map.
+        /// </summary>
+        /// <remarks>
+        /// This method triggers the detonation of the Alpha Warhead, simulating its effects on the map.
+        /// Once invoked, it cannot be reversed, and gameplay will proceed accordingly.
+        /// Use this action responsibly to avoid unintended disruptions.
+        /// </remarks>
+        /// <param name="context">
+        /// The action context passed by the system containing relevant parameters and execution state for the operation.
+        /// Ensure the context is valid and properly initialized before calling this method.
+        /// </param>
+        /// <returns>
+        /// An ActionResultFlags value indicating the outcome. Typically returns SuccessDispose if the warhead detonates successfully.
+        /// </returns>
+        [Action("DetonateWarhead", "Detonates the Alpha Warhead.")]
+        public static ActionResultFlags DetonateWarhead(ref ActionContext context)
+        {
+            Warhead.Detonate();
+            return ActionResultFlags.SuccessDispose;
+        }
+        
         /// <summary>
         /// Flickers the lights in specified zones or across the map, turning them off for a specified duration.
         /// </summary>

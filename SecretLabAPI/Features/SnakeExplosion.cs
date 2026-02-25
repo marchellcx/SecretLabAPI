@@ -1,8 +1,9 @@
 ﻿using LabExtended.Events;
 using LabExtended.Events.Player.Snake;
+
 using SecretLabAPI.Extensions;
 
-namespace SecretLabAPI.Features.Misc.Functions
+namespace SecretLabAPI.Features
 {
     /// <summary>
     /// Makes the player playing the Snake minigame explode upon death.

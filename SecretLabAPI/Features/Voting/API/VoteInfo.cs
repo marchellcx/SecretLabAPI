@@ -1,5 +1,6 @@
 ﻿using LabExtended.API;
 using LabExtended.Extensions;
+
 using UnityEngine;
 
 namespace SecretLabAPI.Features.Voting.API

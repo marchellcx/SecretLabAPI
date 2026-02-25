@@ -5,6 +5,7 @@ using Scp914;
 using SecretLabAPI.Utilities.Configs;
 
 using System.ComponentModel;
+using SecretLabAPI.Features.Audio.Clips;
 
 namespace SecretLabAPI
 {
@@ -101,10 +102,28 @@ namespace SecretLabAPI
         };
 
         /// <summary>
+        /// Gets or sets the intensity of the Movement Boost effect when a player successfully escapes PD.
+        /// </summary>
+        [Description("Sets the intensity of the Movement Boost effect when a player succesfully escapes PD.")]
+        public byte PocketSpeedBoostIntensity { get; set; } = 0;
+
+        /// <summary>
+        /// Gets or sets the duration of the Movement Boost effect when a player successfully escapes PD.
+        /// </summary>
+        [Description( "Sets the duration of the Movement Boost effect when a player succesfully escapes PD." )]
+        public float PocketSpeedBoostDuration { get; set; } = 0f;
+
+        /// <summary>
         /// Gets or sets the probability that SCP-914 will teleport players during operation.
         /// </summary>
         [Description("Sets the chance for SCP-914 to teleport players.")]
         public float Scp914TeleportChance { get; set; } = 0f;
+        
+        /// <summary>
+        /// Gets or sets the chance that a player will be teleported to an SCP during SCP-914 teleportation.    
+        /// </summary>
+        [Description("Sets the chance of a player being teleported to an SCP during SCP-914 teleportation.")]
+        public float Scp914ScpTeleportChance { get; set; } = 0f;
 
         /// <summary>
         /// Gets or sets the knob setting that enables SCP-914 to teleport players.
@@ -129,9 +148,21 @@ namespace SecretLabAPI
         };
 
         /// <summary>
+        /// Gets or sets the audio clips used by SCP-914 during teleportation.
+        /// </summary>
+        [Description("Sets the audio clips used by SCP-914 during teleportation.")]
+        public ClipConfig<string> Scp914TeleportClips { get; set; } = new();
+
+        /// <summary>
         /// Gets or sets the maximum number of options that can be selected in a vote.
         /// </summary>
         [Description("Maximum number of options allowed in a vote.")]
         public int VoteMaxOptions { get; set; } = 5;
+
+        /// <summary>
+        /// Gets or sets the default whitelist table that is enabled when the plugin is loaded.
+        /// </summary>
+        [Description("Sets the whitelist table enabled by default.")]
+        public string? DefaultWhitelist { get; set; } = null;
     }
 }

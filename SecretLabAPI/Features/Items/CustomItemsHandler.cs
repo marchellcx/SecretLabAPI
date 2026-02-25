@@ -3,6 +3,7 @@
 using LabExtended.Core;
 using LabExtended.Utilities;
 using LabExtended.Extensions;
+
 using SecretLabAPI.Features.Items.Weapons;
 using SecretLabAPI.Features.Items.Weapons.Grab;
 using SecretLabAPI.Features.Items.Weapons.ItemLauncher;
@@ -51,6 +52,7 @@ namespace SecretLabAPI.Features.Items
             AddItem<SniperRifle>();
             AddItem<ReplicatingScp018>();
             AddItem<GrabGun>();
+            AddItem<SimpleMachette>();
 
             ItemLauncher.Initialize();
         }
