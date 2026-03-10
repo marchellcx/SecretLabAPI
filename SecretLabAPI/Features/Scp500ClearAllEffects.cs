@@ -18,8 +18,14 @@ public static class Scp500ClearAllEffects
             || args.UsableItem.Base is not Scp500
             || args.Player is not ExPlayer player)
             return;
-        
-        player.Effects.DisableAllEffects();
+
+        foreach (var effect in player.ActiveEffects.ToArray())
+        {
+            if (SecretLab.Config.Scp500IgnoreEffects.Contains(effect.GetType().Name))
+                continue;
+            
+            effect.ServerDisable();
+        }
     }
 
     internal static void Initialize()

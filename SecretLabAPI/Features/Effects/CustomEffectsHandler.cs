@@ -5,6 +5,7 @@ using LabExtended.Core;
 using LabExtended.Events;
 using LabExtended.Utilities;
 using LabExtended.Extensions;
+
 using SecretLabAPI.Features.Effects.Misc;
 
 namespace SecretLabAPI.Features.Effects

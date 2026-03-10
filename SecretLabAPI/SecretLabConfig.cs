@@ -5,6 +5,7 @@ using Scp914;
 using SecretLabAPI.Utilities.Configs;
 
 using System.ComponentModel;
+using CustomPlayerEffects;
 using SecretLabAPI.Features.Audio.Clips;
 
 namespace SecretLabAPI
@@ -106,6 +107,16 @@ namespace SecretLabAPI
         /// </summary>
         [Description("Sets the intensity of the Movement Boost effect when a player succesfully escapes PD.")]
         public byte PocketSpeedBoostIntensity { get; set; } = 0;
+
+        /// <summary>
+        /// Gets or sets the list of effects that SCP-500 will not disable.
+        /// </summary>
+        [Description("List of effects that SCP-500 will not disable.")]
+        public List<string> Scp500IgnoreEffects { get; set; } = new()
+        {
+            nameof(PocketCorroding),
+            nameof(Corroding)
+        };
 
         /// <summary>
         /// Gets or sets the duration of the Movement Boost effect when a player successfully escapes PD.

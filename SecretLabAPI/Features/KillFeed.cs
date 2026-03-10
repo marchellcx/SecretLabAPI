@@ -9,7 +9,7 @@ using Mirror;
 using PlayerRoles;
 
 using Respawning;
-using Respawning.Objectives;
+
 using SecretLabAPI.Extensions;
 
 namespace SecretLabAPI.Features;
@@ -22,7 +22,7 @@ public static class KillFeed
     /// <summary>
     /// The index of the KillObjective.
     /// </summary>
-    public const int FactionObjectiveIndex = 0;
+    public const int KillObjectiveIndex = 0;
 
     /// <summary>
     /// Sends a death notification to the specified target, providing details about the attacker and victim.
@@ -43,10 +43,10 @@ public static class KillFeed
         {
             writer.WriteMessageId<ObjectiveCompletionMessage>();
             
-            writer.WriteInt(FactionObjectiveIndex); // ObjectiveIndex
+            writer.WriteInt(KillObjectiveIndex); // ObjectiveIndex
             
-            writer.WriteFloat(1f); // InfluenceReward
-            writer.WriteFloat(1f); // TimeReward
+            writer.WriteFloat(0f); // InfluenceReward
+            writer.WriteFloat(0f); // TimeReward
             
             writer.WriteString(attackerNick); // AchievingPlayer.Nickname
             writer.WriteRoleType(attackerRole); // AchievingPlayer.Role
@@ -67,11 +67,10 @@ public static class KillFeed
     /// <param name="victimRole">The role type of the victim player.</param>
     /// <param name="predicate">A condition to determine which players will receive the death notification. Cannot be null.</param>
     /// <exception cref="ArgumentNullException">Thrown when the predicate is null.</exception>
-    public static void SendDeathToWhere(string attackerNick, RoleTypeId attackerRole, string victimNick,
-        RoleTypeId victimRole,
+    public static void SendDeathToWhere(string attackerNick, RoleTypeId attackerRole, string victimNick, RoleTypeId victimRole, 
         Predicate<ExPlayer> predicate)
         => ExPlayer.Players.Where(p => p?.ReferenceHub != null && predicate(p))
-            .ForEach(target => SendDeath(target, attackerNick, attackerRole, victimNick, victimRole));
+                           .ForEach(target => SendDeath(target, attackerNick, attackerRole, victimNick, victimRole));
 
     /// <summary>
     /// Sends a death notification to all players, providing details about the attacker and victim.
@@ -80,8 +79,7 @@ public static class KillFeed
     /// <param name="attackerRole">The role type of the attacking player.</param>
     /// <param name="victimNick">The nickname of the victim player.</param>
     /// <param name="victimRole">The role type of the victim player.</param>
-    public static void SendDeathToAll(string attackerNick, RoleTypeId attackerRole, string victimNick,
-        RoleTypeId victimRole) =>
+    public static void SendDeathToAll(string attackerNick, RoleTypeId attackerRole, string victimNick, RoleTypeId victimRole) =>
         ExPlayer.Players.ForEach(target => SendDeath(target, attackerNick, attackerRole, victimNick, victimRole));
 
     private static void OnDied(PlayerDeathEventArgs args)

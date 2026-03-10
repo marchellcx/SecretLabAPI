@@ -48,13 +48,16 @@ namespace SecretLabAPI.Features.Items
 
         internal static void Initialize()
         {
+            AddItem<GrabGun>();
             AddItem<AirsoftGun>();
             AddItem<SniperRifle>();
-            AddItem<ReplicatingScp018>();
-            AddItem<GrabGun>();
             AddItem<SimpleMachette>();
+            AddItem<ReplicatingScp018>();
 
             ItemLauncher.Initialize();
+
+            new NoEffectCola(ItemType.SCP207).Register();
+            new NoEffectCola(ItemType.AntiSCP207).Register();
         }
     }
 }
