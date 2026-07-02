@@ -12,9 +12,10 @@ using SecretLabAPI.Utilities.Interactions;
 using AdminToys;
 
 using UnityEngine;
-using SecretLabAPI.Features.Actions;
+
 using SecretLabAPI.Features.RandomPickup.Configs;
 using SecretLabAPI.Features.RandomPickup.Enums;
+
 using SecretLabAPI.Features.Audio.Clips;
 
 namespace SecretLabAPI.Features.RandomPickup
@@ -145,15 +146,11 @@ namespace SecretLabAPI.Features.RandomPickup
             if (isDespawning)
                 return;
 
-            /*
-            if (Properties.ExperienceGain > 0f)
-                player.AddExperience("Opened a Random Pickup", Properties.ExperienceGain);
-            */
-
-            ActionManager.Table.SelectAndExecuteTable(player, str => str.StartsWith("Rpu"));
-
             if (clips.PlayRandomClip(RandomPickupClip.Opened))
             {
+                Properties.Reward.AddPoints(player);
+                Properties.Reward.AddExperience(player);
+                
                 isSpawning = false;
                 isDespawning = true;
 

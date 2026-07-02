@@ -2,15 +2,16 @@
 using LabExtended.API.Custom.Roles;
 
 using LabExtended.Utilities;
-using LabExtended.Extensions;
 
 using PlayerRoles;
 
-using SecretLabAPI.Utilities;
-
 using System.ComponentModel;
+
+using NiveraAPI.IO.Configs;
+
+using SecretLabAPI.Utilities;
 using SecretLabAPI.Extensions;
-using SecretLabAPI.Features.Roles;
+
 using SecretLabAPI.Features.Elements.Alerts;
 
 namespace SecretLabAPI.Features.Roles.Misc
@@ -23,7 +24,8 @@ namespace SecretLabAPI.Features.Roles.Misc
         /// <summary>
         /// Gets the singleton of the Janitor role.
         /// </summary>
-        public static JanitorRole Role { get; private set; }
+        [Config("roles", "janitor", "Configuration for the Janitor role.")]
+        public static JanitorRole Role { get; set; } = new();
 
         /// <inheritdoc/>
         public override string Id { get; } = "janitor";
@@ -97,9 +99,8 @@ namespace SecretLabAPI.Features.Roles.Misc
             player.SendAlert(AlertType.Info, 10f, "Custom Role", "<b>Tvoje role je</b>\n<size=30><color=yellow><b>UKLÍZEČ</b></color></size>!");
         }
 
-        internal static void Initialize()
+        private static void Initialize()
         {
-            Role = FileUtils.LoadYamlFileOrDefault(FileUtils.CreatePath(SecretLab.RootDirectory, "roles", "janitor.yml"), new JanitorRole(), true);
             Role.Register();
         }
     }

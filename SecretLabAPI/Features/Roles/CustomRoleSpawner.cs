@@ -3,7 +3,10 @@ using LabExtended.API.Custom.Roles;
 
 using LabExtended.Events;
 
+using MEC;
+
 using NorthwoodLib.Pools;
+
 using SecretLabAPI.Utilities;
 
 namespace SecretLabAPI.Features.Roles
@@ -84,31 +87,36 @@ namespace SecretLabAPI.Features.Roles
 
         private static void OnStarted()
         {
-            var players = ListPool<ExPlayer>.Shared.Rent(ExPlayer.Players.Where(p => p?.ReferenceHub != null));
-
-            if (players.Count == 0)
+            Timing.CallDelayed(0.7f, () =>
             {
-                ListPool<ExPlayer>.Shared.Return(players);
-                return;
-            }
+                var players = ListPool<ExPlayer>.Shared.Rent(ExPlayer.Players.Where(p => p?.ReferenceHub != null));
 
-            for (var x = 0; x < Roles.Count; x++)
-            {
                 if (players.Count == 0)
-                    break;
-
-                var info = Roles[x];
-
-                info.Conditions.SetRoles(players, player =>
                 {
-                    info.Role.Give(player);
+                    ListPool<ExPlayer>.Shared.Return(players);
+                    return;
+                }
 
-                    players.Remove(player);
-                }, info.Predicate);
-            }
+                for (var x = 0; x < Roles.Count; x++)
+                {
+                    if (players.Count == 0)
+                        break;
+
+                    var info = Roles[x];
+
+                    info.Conditions.SetRoles(players, player =>
+                    {
+                        info.Role.Give(player);
+
+                        players.Remove(player);
+                    }, info.Predicate);
+                }
+
+                ListPool<ExPlayer>.Shared.Return(players);
+            });
         }
 
-        internal static void Initialize()
+        private static void Initialize()
         {
             ExRoundEvents.Started += OnStarted;
         }

@@ -1,32 +1,14 @@
 using LabApi.Loader;
 using LabApi.Loader.Features.Plugins;
 
-using LabExtended.API.Hints;
 using LabExtended.Attributes;
+using LabExtended.Core;
+using LabExtended.Utilities.Update;
 
-using SecretLabAPI.Features;
-using SecretLabAPI.Utilities;
-
-using SecretLabAPI.Patches.Overlays;
-
-using SecretLabAPI.Features.Rays;
-using SecretLabAPI.Features.Items;
-using SecretLabAPI.Features.Roles;
-using SecretLabAPI.Features.Voting;
-using SecretLabAPI.Features.Levels;
-using SecretLabAPI.Features.Actions;
-using SecretLabAPI.Features.Effects;
-using SecretLabAPI.Features.Elements;
-using SecretLabAPI.Features.RandomPickup;
-using SecretLabAPI.Features.RandomEvents;
-
-using SecretLabAPI.Features.Elements.Alerts;
-using SecretLabAPI.Features.Roles.ChaosSpy;
-using SecretLabAPI.Features.Roles.Misc;
-
-using SecretLabAPI.Features.Audio.Clips;
-using SecretLabAPI.Features.Audio.Playback;
-using SecretLabAPI.Features.Menus.ServerMenu;
+using NiveraAPI;
+using NiveraAPI.Logs;
+using NiveraAPI.Extensions;
+using NiveraAPI.IO.Configs;
 
 namespace SecretLabAPI;
 
@@ -34,17 +16,14 @@ namespace SecretLabAPI;
 /// The main class of this library.
 /// </summary>
 [LoaderPatch]
-public class SecretLab : Plugin<SecretLabConfig>
+public class SecretLab : Plugin
 {
+    private static ConfigHandler configHandler;
+    
     /// <summary>
     /// Gets an instance of this plugin.
     /// </summary>
     public static SecretLab Plugin { get; private set; }
-
-    /// <summary>
-    /// Gets an instance of the configuration of this plugin.
-    /// </summary>
-    public static new SecretLabConfig Config { get; private set; }
 
     /// <summary>
     /// Gets the root directory path of SecretLabAPI's global config.
@@ -55,13 +34,13 @@ public class SecretLab : Plugin<SecretLabConfig>
     public override string Name { get; } = "SecretLabAPI";
 
     /// <inheritdoc/>
-    public override string Author { get; } = "mcxsharp";
+    public override string Author { get; } = "marchellcx";
 
     /// <inheritdoc/>
     public override string Description { get; } = "A plugin that contains many utilities and functions.";
 
     /// <inheritdoc/>
-    public override Version Version { get; } = new(1, 0, 0);
+    public override Version Version { get; } = new(2, 0, 0);
 
     /// <inheritdoc/>
     public override Version RequiredApiVersion { get; } = null!;
@@ -69,74 +48,63 @@ public class SecretLab : Plugin<SecretLabConfig>
     /// <inheritdoc/>
     public override void Enable()
     {
-        Config = base.Config!;
         Plugin = this;
-
-        RootDirectory = Plugin.GetConfigDirectory(Config.SharedConfigs).FullName;
-
-        // New init
+        RootDirectory = Plugin.GetConfigDirectory(true).FullName;
         
-        LabEvents.Initialize();
+        LogManager.Log += OnLogged;
+        LogManager.UseQueue = true;
+        
+        LibraryLoader.Initialize();
 
-        PlaybackUtils.Initialize();
-        PlayerClips.Initialize();
+        configHandler = new();
+        configHandler.FilePath = Path.Combine(RootDirectory, "main.ini");
+        
+        typeof(SecretLab)
+            .Assembly
+            .GetTypes()
+            .ForEach(configHandler.Register);
+        
+        configHandler.Load();
+        configHandler.Save();
+        
+        InitLoaders();
 
-        ActionManager.Initialize();
-        LevelManager.Initialize();
-
-        ChaosSpyRole.Initialize();
-        JanitorRole.Initialize();
-        GuardCommanderRole.Initialize();
-
-        KillFeed.Initialize();
-        RandomPickupManager.Initialize();
-        DeveloperMode.Initialize();
-        Scp914Teleport.Initialize();
-        VoteManager.Initialize();
-        AlternativeNicks.Initialize();
-        ServerMenuManager.Initialize();
-        PocketSpeedBoost.Initialize();
-        ZombieDeathAlert.Initialize();
-        Scp500ClearAllEffects.Initialize();
-
-        CustomRoleSpawner.Initialize();
-        CustomItemsHandler.Initialize();
-        CustomEffectsHandler.Initialize();
-
-        AlertElement.Initialize();
-
-        InitCustomOverlays();
-
-        RayManager.Initialize();
-        RandomEventManager.Initialize();
-
-        WhitelistManager.Initialize();
-
-        // Old init
-
-        SnakeExplosion.Internal_Init();
-        PlayerInfoHealth.Internal_Init();
-        PersistentOverwatch.Internal_Init();
+        PlayerUpdateHelper.OnLateUpdate += LibraryUpdate.Invoke;
     }
 
     /// <inheritdoc/>
     public override void Disable()
     {
-
+        
     }
 
-    private static void InitCustomOverlays()
+    private static void InitLoaders()
     {
-        foreach (var pair in Config.StaticOverlays)
+        typeof(SecretLab).Assembly
+            .InvokeStaticMethods(m => 
+                m.IsStatic && 
+                m.GetAllParameters().Length == 0 && 
+                m.ReturnType == typeof(void) &&
+                m.Name == "Initialize");
+    }
+    
+    private static void OnLogged(LogMessage msg)
+    {
+        switch (msg.Level)
         {
-            if (pair.Key == "ServerName")
-            {
-                BasicOverlaysServerNameOverridePatch.ServerNameOverlay = pair.Value;
-            }
-            else
-            {
-                HintController.AddHintElement(new StringOverlay(pair.Value) { CustomId = pair.Key });
-            }
+            case LogLevel.Debug:
+            case LogLevel.Verbose:
+                ApiLog.Debug(msg.SourceText, msg.MessageText);
+                break;
+            
+            case LogLevel.Error:
+            case LogLevel.Fatal:
+                ApiLog.Error(msg.SourceText, msg.MessageText);
+                break;
+            
+            case LogLevel.Warning:
+                ApiLog.Warn(msg.SourceText, msg.MessageText);
+                break;
         }
     }
 }

@@ -5,10 +5,11 @@ using LabExtended.Utilities;
 
 using PlayerRoles;
 
-using SecretLabAPI.Utilities;
-
 using System.ComponentModel;
-using SecretLabAPI.Features.Roles;
+
+using NiveraAPI.IO.Configs;
+
+using SecretLabAPI.Utilities;
 using SecretLabAPI.Features.Elements.Alerts;
 
 namespace SecretLabAPI.Features.Roles.Misc
@@ -21,7 +22,8 @@ namespace SecretLabAPI.Features.Roles.Misc
         /// <summary>
         /// Gets the singleton of the Guard Commander role.
         /// </summary>
-        public static GuardCommanderRole Role { get; private set; }
+        [Config("roles", "guardCommander", "Configuration for the Guard Commander role.")]
+        public static GuardCommanderRole Role { get; set; } = new();
 
         /// <inheritdoc/>
         public override string Id { get; } = "guardcommander";
@@ -114,9 +116,8 @@ namespace SecretLabAPI.Features.Roles.Misc
             player.SendAlert(AlertType.Info, 10f, "Custom Role", "<b>Tvoje role je</b>\n<size=30><color=blue><b>VELITEL HLÍDAČŮ</b></color></size>!");
         }
 
-        internal static void Initialize()
+        private static void Initialize()
         {
-            Role = FileUtils.LoadYamlFileOrDefault(FileUtils.CreatePath(SecretLab.RootDirectory, "roles", "guard_commander.yml"), new GuardCommanderRole(), true);
             Role.Register();
         }
     }

@@ -1,9 +1,9 @@
 ﻿using HarmonyLib;
+
 using InventorySystem.Items.ThrowableProjectiles;
 
 using LabExtended.API.Custom.Items;
-using SecretLabAPI.Features.Items.Weapons;
-
+using SecretLabAPI.Features.Items.Custom.Weapons;
 using UnityEngine;
 
 namespace SecretLabAPI.Patches

@@ -43,13 +43,13 @@ namespace SecretLabAPI.Features.Audio.Playback
 
             foreach (var p in LoadedClips)
             {
-                if (p.Key.TrySplit('/', true, 2, out var parts))
+                if (p.Key.TrySplit('/', true, null, out var parts))
                 {
-                    list.Add(parts.Last());
+                    list.Add(parts.Last().Trim());
                 }
                 else
                 {
-                    list.Add(p.Key);
+                    list.Add(p.Key.Trim());
                 }
             }
 

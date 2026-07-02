@@ -3,8 +3,9 @@ using LabApi.Events.Handlers;
 
 using LabExtended.API;
 using LabExtended.Utilities;
-using SecretLabAPI.Features.Elements.Alerts;
+
 using SecretLabAPI.Features.RandomEvents;
+using SecretLabAPI.Features.Elements.Alerts;
 
 namespace SecretLabAPI.Features.Gamemodes
 {

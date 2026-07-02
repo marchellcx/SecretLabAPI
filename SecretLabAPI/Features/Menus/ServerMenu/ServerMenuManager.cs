@@ -148,7 +148,7 @@ namespace SecretLabAPI.Features.Menus.ServerMenu
             }, 2f);
         }
 
-        internal static void Initialize()
+        private static void Initialize()
         {
             var servers = FileUtils.LoadYamlFileOrDefault<List<ServerMenuInfo>>(SecretLab.RootDirectory, "server_menu.yml", new() 
             { 

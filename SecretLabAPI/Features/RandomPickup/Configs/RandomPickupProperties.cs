@@ -1,8 +1,10 @@
 ﻿using LabExtended.Core.Configs.Objects;
+
 using SecretLabAPI.Features.Audio.Clips;
 using SecretLabAPI.Features.RandomPickup.Enums;
+    
 using System.ComponentModel;
-
+using SecretLabAPI.Features.Levels;
 using UnityEngine;
 
 namespace SecretLabAPI.Features.RandomPickup.Configs
@@ -23,12 +25,6 @@ namespace SecretLabAPI.Features.RandomPickup.Configs
         /// </summary>
         [Description("Sets the amount of seconds the instance will be spawned for.")]
         public float SecondsUntilDespawn { get; set; } = 300f;
-
-        /// <summary>
-        /// Gets or sets the amount of experience points awarded to the player when the pickup is opened.
-        /// </summary>
-        [Description("Sets the amount of experience points to give to the player upon opening the pickup.")]
-        public int ExperienceGain { get; set; } = 20;
 
         /// <summary>
         /// Gets or sets a value indicating whether a light toy should be spawned with the pickup.
@@ -83,6 +79,28 @@ namespace SecretLabAPI.Features.RandomPickup.Configs
         /// </summary>
         [Description("Sets the rotation angle of the pickup.")]
         public float RotationAngle { get; set; } = 45f;
+
+        /// <summary>
+        /// Gets or sets the reward associated with opening the random pickup.
+        /// </summary>
+        [Description("Sets the reward for opening this pickup.")]
+        public LevelReward Reward { get; set; } = new()
+        {
+            RewardId = "randompickup",
+            RewardName = "Opened a Random Pickup",
+            
+            ExperienceRange = new()
+            {
+                MinValue = 1,
+                MaxValue = 10
+            },
+            
+            PointsRange = new()
+            {
+                MinValue = 100,
+                MaxValue = 500
+            }
+        };
 
         /// <summary>
         /// Gets or sets the collection of clip definitions organized by clip type.

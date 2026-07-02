@@ -7,8 +7,12 @@ using LabExtended.Utilities;
 using LabExtended.Utilities.Update;
 
 using ProjectMER.Features;
+
 using SecretLabAPI.Features.RandomPickup.Configs;
+
 using System.Collections.ObjectModel;
+
+using NiveraAPI.IO.Configs;
 
 using UnityEngine;
 
@@ -21,15 +25,16 @@ namespace SecretLabAPI.Features.RandomPickup
     {
         private static float nextCheck = 0f;
 
-        internal static int instanceId = 0;
+        private static int instanceId = 0;
+       
+        private static List<string> history = new();
         internal static Dictionary<int, RandomPickupInstance> instances = new();
-
-        internal static List<string> history = new();
 
         /// <summary>
         /// Gets the active config.
         /// </summary>
-        public static RandomPickupConfig Config { get; private set; }
+        [Config("randomPickup", "config", "Random pickup configuration.")]
+        public static RandomPickupConfig Config { get; set; } = new();
 
         /// <summary>
         /// Gets a dictionary of all spawned instances.
@@ -44,9 +49,8 @@ namespace SecretLabAPI.Features.RandomPickup
         /// <param name="position">The world position where the pickup will be spawned.</param>
         /// <param name="rotation">The rotation to apply to the spawned pickup.</param>
         /// <param name="properties">The properties that define the behavior and appearance of the random pickup. Cannot be null.</param>
-        /// <param name="groupGetter">A delegate that returns the loot group for a given player. Cannot be null.</param>
         /// <returns>A RandomPickupInstance representing the newly spawned pickup.</returns>
-        /// <exception cref="ArgumentNullException">Thrown if <paramref name="schematic"/>, <paramref name="properties"/>, or <paramref name="groupGetter"/> is
+        /// <exception cref="ArgumentNullException">Thrown if <paramref name="schematic"/>, <paramref name="properties"/> is
         /// null or, in the case of <paramref name="schematic"/>, empty.</exception>
         /// <exception cref="Exception">Thrown if the schematic cannot be spawned at the specified position and rotation.</exception>
         public static RandomPickupInstance Spawn(string schematic, Vector3 position, Quaternion rotation, RandomPickupProperties properties)
@@ -68,22 +72,13 @@ namespace SecretLabAPI.Features.RandomPickup
             var pickup = new RandomPickupInstance(instance);
 
             pickup.Id = id;
-            pickup.Properties = properties; // Setting this initialized the component
+            pickup.Properties = properties; // Setting this initializes the component
 
             return pickup;
         }
 
-        internal static void Initialize()
+        private static void Initialize()
         {
-            if (FileUtils.TryLoadYamlFile<RandomPickupConfig>(SecretLab.RootDirectory, "random_pickup.yml", out var config))
-            {
-                Config = config;
-            }
-            else
-            {
-                FileUtils.TrySaveYamlFile(SecretLab.RootDirectory, "random_pickup.yml", Config = new());
-            }
-
             ExRoundEvents.Started += OnStarted;
             ExRoundEvents.Restarting += OnRestarting;
 
@@ -131,8 +126,7 @@ namespace SecretLabAPI.Features.RandomPickup
 
         private static void Update()
         {
-            if (!ExRound.IsRunning
-                || ExPlayer.Count < 1)
+            if (!ExRound.IsRunning || ExPlayer.Count < 1)
                 return;
 
             if (Config.PlayerStartDelay > 0 && ExRound.Duration.TotalSeconds < Config.PlayerStartDelay)
@@ -151,7 +145,7 @@ namespace SecretLabAPI.Features.RandomPickup
                 if (player?.ReferenceHub == null)
                     return 0f;
 
-                if (!player.Role.IsAlive)
+                if (!player.Role.IsAlive || player.Role.IsTutorial)
                     return 0f;
 
                 var weight = Config.PlayerWeight;

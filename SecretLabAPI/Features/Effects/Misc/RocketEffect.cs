@@ -1,4 +1,5 @@
 using LabExtended.API.Custom.Effects;
+
 using System.ComponentModel;
 
 using UnityEngine;

@@ -11,7 +11,7 @@ using LabExtended.API.Settings.Menus;
 using LabExtended.Extensions;
 
 using MapGeneration;
-
+using MEC;
 using PlayerRoles;
 
 using PlayerStatsSystem;
@@ -156,6 +156,135 @@ namespace SecretLabAPI.Extensions
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Swaps the entire inventory, ammunition, and currently held items between two players.
+        /// </summary>
+        /// <param name="player">The player initiating the inventory switch. Must be an instance of <see cref="ExPlayer"/>.</param>
+        /// <param name="target">The target player whose inventory will be swapped with the player's inventory. Must be an instance of <see cref="ExPlayer"/>.</param>
+        public static void SwitchFullInventory(this ExPlayer player, ExPlayer target)
+        {
+            var otherCur = player.Inventory.CurrentItem;
+            var otherItems = target.Inventory.Items.ToList();
+            var otherAmmo = target.Ammo.Ammo.ToDictionary();
+            var otherCustomAmmo = target.Ammo.CustomAmmo.ToDictionary();
+
+            var playerCur = target.Inventory.CurrentItem;
+            var playerItems = player.Inventory.Items.ToList();
+            var playerAmmo = player.Ammo.Ammo.ToDictionary();
+            var playerCustomAmmo = player.Ammo.CustomAmmo.ToDictionary();
+            
+            player.Inventory.CurrentItem = null!;
+            
+            player.Inventory.UserInventory.Items.Clear();
+            player.Inventory.UserInventory.ReserveAmmo.Clear();
+
+            player.Ammo.CustomAmmo.Clear();
+            
+            player.ReferenceHub.inventory.ServerSendAmmo();
+            player.ReferenceHub.inventory.ServerSendItems();
+            
+            target.Ammo.CustomAmmo.Clear();
+            
+            target.Inventory.UserInventory.Items.Clear();
+            target.Inventory.UserInventory.ReserveAmmo.Clear();
+            
+            target.ReferenceHub.inventory.ServerSendAmmo();
+            target.ReferenceHub.inventory.ServerSendItems();
+        
+            otherItems.ForEach(it => it.TransferItem(player.ReferenceHub));
+            otherAmmo.ForEach(kv => player.Inventory.UserInventory.ReserveAmmo[kv.Key] = kv.Value);
+            otherCustomAmmo.ForEach(kv => player.Ammo.SetCustomAmmo(kv.Key, kv.Value));
+        
+            playerItems.ForEach(it => it.TransferItem(target.ReferenceHub));
+            playerAmmo.ForEach(kv => target.Inventory.UserInventory.ReserveAmmo[kv.Key] = kv.Value);
+            playerCustomAmmo.ForEach(kv => target.Ammo.SetCustomAmmo(kv.Key, kv.Value));
+
+            Timing.CallDelayed(0.1f, () =>
+            {
+                player.ReferenceHub.inventory.ServerSendAmmo();
+                player.ReferenceHub.inventory.ServerSendItems();
+                
+                target.ReferenceHub.inventory.ServerSendAmmo();
+                target.ReferenceHub.inventory.ServerSendItems();
+                
+                target.Inventory.CurrentItem = otherCur;
+                player.Inventory.CurrentItem = playerCur;
+            });
+        }
+
+        /// <summary>
+        /// Switches the currently held item between the specified player and target player.
+        /// </summary>
+        /// <param name="player">The player whose currently held item is to be switched.</param>
+        /// <param name="target">The target player whose currently held item is to be exchanged with the player's item.</param>
+        public static void SwitchHeldItem(this ExPlayer player, ExPlayer target)
+        {
+            var playerItem = player.Inventory.CurrentItem;
+            var targetItem = target.Inventory.CurrentItem;
+
+            player.Inventory.CurrentItem = null!;
+            
+            if (playerItem != null)
+                playerItem.TransferItem(target.ReferenceHub);
+            
+            player.ReferenceHub.inventory.ServerSendItems();
+            
+            target.Inventory.CurrentItem = null!;
+            
+            if (targetItem != null)
+                targetItem.TransferItem(player.ReferenceHub);
+            
+            target.ReferenceHub.inventory.ServerSendItems();
+            
+            player.Inventory.CurrentItem = targetItem!;
+            target.Inventory.CurrentItem = playerItem!;
+        }
+
+        /// <summary>
+        /// Resets the movement-related effects on the player to their default state.
+        /// </summary>
+        /// <remarks>
+        /// This method disables any active movement-altering effects, such as slowness or movement speed boosts,
+        /// on the specified player. It ensures the player's movement speed is restored to normal.
+        /// </remarks>
+        /// <param name="player">The player whose movement effects are to be reset. Must not be null and must have a valid ReferenceHub.</param>
+        public static void ResetSpeed(this ExPlayer player)
+        {
+            if (player?.ReferenceHub != null)
+            {
+                player.Effects.Slowness.ServerDisable();
+                player.Effects.MovementBoost.ServerDisable();
+            }
+        }
+
+        /// <summary>
+        /// Modifies the player's movement speed based on the specified multiplier.
+        /// </summary>
+        /// <remarks>
+        /// This method adjusts the player's movement speed by applying a multiplier. A value greater than 1 increases speed,
+        /// while a value less than 1 reduces speed. The method safely handles the application's effects for increasing or
+        /// decreasing movement speed.
+        /// </remarks>
+        /// <param name="player">The player whose speed will be modified. Must not be null and must have a valid ReferenceHub.</param>
+        /// <param name="multiplier">The multiplier to apply to the player's speed. Values greater than 1 increase speed, and values less than 1 decrease speed.</param>
+        public static void ChangeSpeedByMultiplier(this ExPlayer player, float multiplier)
+        {
+            if (player?.ReferenceHub != null)
+            {
+                if (multiplier is > 1f or < 1f)
+                {
+                    if (multiplier < 1f)
+                    {
+                        player.Effects.Slowness.ServerSetState((byte)Mathf.Min(byte.MaxValue, Mathf.CeilToInt((multiplier + 1f) * 10f)));
+                    }
+                    else
+                    {
+                        player.Effects.MovementBoost.ServerSetState((byte)(Mathf.Min(byte.MaxValue, Mathf.CeilToInt(multiplier * 10f))));
+                    }
+                }
+            }
         }
 
         /// <summary>

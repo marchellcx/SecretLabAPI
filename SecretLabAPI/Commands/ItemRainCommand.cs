@@ -5,7 +5,7 @@ using LabExtended.Commands.Attributes;
 using LabExtended.Commands.Interfaces;
 
 using LabExtended.Core;
-
+using SecretLabAPI.Features.Misc;
 using SecretLabAPI.Utilities;
 
 using UnityEngine;

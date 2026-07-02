@@ -4,18 +4,21 @@ using LabExtended.API.Hints;
 using LabExtended.Events;
 using LabExtended.Utilities;
 using LabExtended.Extensions;
+
 using LabExtended.Core.Storage;
 
 using System.Reflection;
 
 using LabApi.Loader;
-
+using NiveraAPI.IO.Configs;
 using Utils.NonAllocLINQ;
+
 using SecretLabAPI.Features.Data;
-using SecretLabAPI.Features.Levels.Events;
-using SecretLabAPI.Features.Levels.Interfaces;
+
 using SecretLabAPI.Features.Levels.IO;
+using SecretLabAPI.Features.Levels.Events;
 using SecretLabAPI.Features.Levels.Overlay;
+using SecretLabAPI.Features.Levels.Interfaces;
 
 namespace SecretLabAPI.Features.Levels
 {
@@ -26,6 +29,7 @@ namespace SecretLabAPI.Features.Levels
     {
         public const string DataEntry = "LevelManager";
 
+        [Config("levelManager", "config", "Configures the level manager.")]
         internal static LevelConfig config;
         internal static StorageInstance storage;
 
@@ -70,6 +74,14 @@ namespace SecretLabAPI.Features.Levels
         /// </summary>
         public static event Action<LeveledUpEventArgs>? LeveledUp;
 
+        /// <summary>
+        /// Gets a string representation of each level, formatted according to the level number (e.g., "Lvl0", "Lvl1").
+        /// </summary>
+        /// <remarks>
+        /// The string array is used to map each level index to its corresponding string representation.
+        /// It is populated during the initialization process based on the configuration's level cap
+        /// and any defined offsets for experience calculations.
+        /// </remarks>
         public static string[] LevelToString { get; private set; }
 
         /// <summary>
@@ -476,15 +488,14 @@ namespace SecretLabAPI.Features.Levels
             LoadLevel(player, true);
         }
 
-        internal static void Initialize()
+        private static void Initialize()
         {
             new DataCollectionEntry(
                 DataEntry,
                 "<color=red>📊</color> | <b>Level Systém</b></color>",
                 "Ukládá počet dosažených XP a levelů pomocí identifikátoru vašeho účtu <i>(SteamID64 pro Steam účty a Discord ID pro Discord účty)</i>.")
                 .AddEntry();
-
-            config = FileUtils.LoadYamlFileOrDefault(SecretLab.RootDirectory, "level_manager.yml", new LevelConfig(), true);
+            
             storage = StorageManager.CreateStorage("LevelManager", config.SharedStorage);
 
             GenerateLevels();

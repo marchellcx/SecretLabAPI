@@ -3,6 +3,7 @@ using LabExtended.Commands.Attributes;
 using LabExtended.Commands.Interfaces;
 
 using SecretLabAPI.Features;
+using SecretLabAPI.Features.Misc;
 
 namespace SecretLabAPI.Commands
 {

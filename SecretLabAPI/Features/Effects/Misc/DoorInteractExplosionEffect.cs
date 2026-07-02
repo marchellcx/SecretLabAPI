@@ -76,7 +76,7 @@ public class DoorInteractExplosionEffect : CustomPlayerEffect
     }
 
     private void OnInteracted(PlayerInteractedDoorEventArgs args)
-{
+    {
         if (Player?.ReferenceHub == null || !IsActive) 
             return;
         

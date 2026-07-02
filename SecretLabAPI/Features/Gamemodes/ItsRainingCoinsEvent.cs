@@ -1,8 +1,10 @@
 using System.ComponentModel;
 
 using LabExtended.API;
-using SecretLabAPI.Features.Elements.Alerts;
+
 using SecretLabAPI.Features.RandomEvents;
+using SecretLabAPI.Features.Elements.Alerts;
+using SecretLabAPI.Features.Misc;
 using SecretLabAPI.Utilities;
 using SecretLabAPI.Utilities.Configs;
 

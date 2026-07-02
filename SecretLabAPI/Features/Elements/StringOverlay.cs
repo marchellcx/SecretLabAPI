@@ -1,6 +1,7 @@
 ﻿using LabExtended.API;
 using LabExtended.API.Enums;
 using LabExtended.API.Hints;
+
 using SecretLabAPI.Extensions;
 using SecretLabAPI.Utilities.Configs;
 

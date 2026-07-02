@@ -7,10 +7,15 @@ using LabExtended.Core;
 using LabExtended.Events;
 
 using LabExtended.Utilities.Update;
+
 using SecretLabAPI.Features.Elements.Alerts;
+
 using SecretLabAPI.Features.Voting.API;
 using SecretLabAPI.Features.Voting.Overlay;
+
 using System.Diagnostics;
+
+using NiveraAPI.IO.Configs;
 
 namespace SecretLabAPI.Features.Voting
 {
@@ -32,7 +37,8 @@ namespace SecretLabAPI.Features.Voting
         /// <summary>
         /// Gets the maximum number of options allowed in a vote.
         /// </summary>
-        public static int MaxOptions => SecretLab.Config.VoteMaxOptions;
+        [Config("voteManager", "maxOptions", "Maximum number of options allowed in a vote.")]
+        public static int MaxOptions { get; set; } = 10;
 
         /// <summary>
         /// Gets the remaining time for the current vote, or zero if no vote is active.
@@ -170,7 +176,7 @@ namespace SecretLabAPI.Features.Voting
             button.Player.SendAlert(AlertType.Info, 10f, "Vote System", $"<b>Hlasoval si pro <color=yellow>{option}</color>!</b>", true);
         }
 
-        internal static void Initialize()
+        private static void Initialize()
         {
             PlayerUpdateHelper.OnLateUpdate += OnUpdate;
 

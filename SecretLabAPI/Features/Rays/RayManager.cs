@@ -5,6 +5,7 @@ using InventorySystem.Items.Pickups;
 using LabExtended.API;
 using LabExtended.Extensions;
 using LabExtended.Utilities.Update;
+using NiveraAPI.IO.Configs;
 using UnityEngine;
 
 namespace SecretLabAPI.Features.Rays
@@ -31,6 +32,43 @@ namespace SecretLabAPI.Features.Rays
         public static event Action? FrameFinished;
 
         /// <summary>
+        /// Determines the number of frames to skip between consecutive raycast operations in the RayManager.
+        /// A value of -1 disables frame skipping, making raycasts occur every frame.
+        /// </summary>
+        [Config("rayManager", "frameSkip",
+            "Number of frames to skip between raycast operations. Set to -1 to disable frame skipping.")]
+        public static int FrameSkip { get; set; } = 2;
+
+        /// <summary>
+        /// Gets or sets the forward offset value used in raycast operations.
+        /// This offset determines how far forward from the source position the raycast begins.
+        /// Modifying this value can adjust the starting point of object detection relative to the raycast origin.
+        /// </summary>
+        [Config("rayManager", "forwardOffset", "Forward offset for raycast operations.")]
+        public static float ForwardOffset { get; set; } = 0.1f;
+
+        /// <summary>
+        /// Specifies the maximum distance for raycast operations performed by the RayManager.
+        /// Objects beyond this distance will not be detected during raycast-driven interactions.
+        /// </summary>
+        [Config("rayManager", "distance", "Maximum distance to check for collisions.")]
+        public static float MaxDistance { get; set; } = 100f;
+
+        /// <summary>
+        /// Represents the collection of layer names or identifiers used for filtering raycast operations.
+        /// These layers determine which objects are considered during collision checks performed by the raycasting system.
+        /// </summary>
+        [Config("rayManager", "layers", "Layers to include in raycast operations.")]
+        public static string[] Layers { get; set; } =
+        [
+            "Default",
+            "TransparentFX",
+            "Ignore Raycast",
+            "Water",
+            "UI"
+        ];
+
+        /// <summary>
         /// Attempts to find an item pickup within a specified distance from the player and returns whether a pickup was
         /// found.
         /// </summary>
@@ -45,7 +83,7 @@ namespace SecretLabAPI.Features.Rays
         {
             pickup = null;
 
-            if (!TryCast(source, distance, SecretLab.Config.RayManagerForwardOffset, mask ?? layerMask, out var hit))
+            if (!TryCast(source, distance, ForwardOffset, mask ?? layerMask, out var hit))
                 return false;
 
             return hit.collider.gameObject.TryFindComponent<ItemPickupBase>(out pickup);
@@ -66,7 +104,7 @@ namespace SecretLabAPI.Features.Rays
         {
             target = null;
 
-            if (!TryCast(source, distance, SecretLab.Config.RayManagerForwardOffset, mask ?? layerMask, out var hit))
+            if (!TryCast(source, distance, ForwardOffset, mask ?? layerMask, out var hit))
                 return false;
 
             return hit.collider.gameObject.TryFindComponent<DoorVariant>(out target);
@@ -87,7 +125,7 @@ namespace SecretLabAPI.Features.Rays
         {
             target = null;
 
-            if (!TryCast(source, distance, SecretLab.Config.RayManagerForwardOffset, mask ?? layerMask, out var hit))
+            if (!TryCast(source, distance, ForwardOffset, mask ?? layerMask, out var hit))
                 return false;
 
             if (!hit.collider.gameObject.TryFindComponent<ReferenceHub>(out var hub))
@@ -195,7 +233,7 @@ namespace SecretLabAPI.Features.Rays
             if (ExPlayer.Count < 1)
                 return;
 
-            if (SecretLab.Config.RayManagerFrameSkip > 0)
+            if (FrameSkip > 0)
             {
                 if (remainingFrames > 0)
                 {
@@ -203,7 +241,7 @@ namespace SecretLabAPI.Features.Rays
                     return;
                 }
 
-                remainingFrames = SecretLab.Config.RayManagerFrameSkip;
+                remainingFrames = FrameSkip;
             }
 
             for (var i = 0; i < ExPlayer.Count; i++)
@@ -213,7 +251,7 @@ namespace SecretLabAPI.Features.Rays
                 if (player?.ReferenceHub == null || !player.IsAlive)
                     continue;
 
-                if (!TryCast(player, SecretLab.Config.RayManagerDistance, SecretLab.Config.RayManagerForwardOffset, layerMask, out var hit))
+                if (!TryCast(player, MaxDistance, ForwardOffset, layerMask, out var hit))
                     continue;
 
                 HitSuccess?.InvokeSafe(player, hit);
@@ -227,12 +265,12 @@ namespace SecretLabAPI.Features.Rays
             FrameFinished?.InvokeSafe();
         }
 
-        internal static void Initialize()
+        private static void Initialize()
         {
-            if (SecretLab.Config.RayManagerFrameSkip == -1)
+            if (FrameSkip == -1)
                 return;
             
-            layerMask = LayerMask.GetMask(SecretLab.Config.RayManagerLayers);
+            layerMask = LayerMask.GetMask(Layers);
 
             component.OnLateUpdate += OnUpdate;
         }

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Reflection;
 
 using LabApi.Events;
@@ -53,16 +54,25 @@ namespace SecretLabAPI.Utilities
             return false;
         }
 
-        internal static void Initialize()
+        private static void Initialize()
         {
-            InitializeAssembly(typeof(PluginLoader).Assembly);
+            var watch = Stopwatch.StartNew();
+            var count = 0;
+            
+            count += InitializeAssembly(typeof(PluginLoader).Assembly);
             
             foreach (var asm in PluginLoader.Plugins)
-                InitializeAssembly(asm.Value);
+                count += InitializeAssembly(asm.Value);
+            
+            watch.Stop();
+            
+            ApiLog.Info("SecretLabAPI", $"Patched &3{count}&r event types in &3{watch.ElapsedMilliseconds}&rms.");
         }
 
-        private static void InitializeAssembly(Assembly assembly)
+        private static int InitializeAssembly(Assembly assembly)
         {
+            var count = 0;
+            
             try
             {
                 foreach (var type in assembly.GetTypes())
@@ -79,6 +89,8 @@ namespace SecretLabAPI.Utilities
                         var replacement = replacementMethod.MakeGenericMethod(type);
 
                         ApiPatcher.Harmony.Patch(target, new(replacement));
+
+                        count++;
                     }
                     catch (Exception typeEx)
                     {
@@ -90,6 +102,8 @@ namespace SecretLabAPI.Utilities
             {
                 ApiLog.Error("SecretLabAPI", $"Error while processing event types for assembly &3{assembly}&r:\n{ex}");
             }
+
+            return count;
         }
     }
 }

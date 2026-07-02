@@ -4,6 +4,9 @@ using LabExtended.API.Settings.Entries.Buttons;
 using LabExtended.API.Settings.Menus;
 
 using LabExtended.Extensions;
+using LabExtended.Utilities;
+
+using NiveraAPI.IO.Configs;
 
 using SecretLabAPI.Features.Elements.Alerts;
 
@@ -14,6 +17,12 @@ namespace SecretLabAPI.Features.Menus.ServerMenu
     /// </summary>
     public class ServerMenuInstance : SettingsMenu
     {
+        /// <summary>
+        /// Gets or sets a value indicating whether admin buttons are enabled in the server menu.
+        /// </summary>
+        [Config("serverMenu", "adminButtons", "Whether or not to show admin buttons in the server menu.")]
+        public static bool ShowAdminButtons { get; set; }
+        
         private HashSet<string> adminEvents = new();
 
         /// <inheritdoc/>
@@ -41,16 +50,23 @@ namespace SecretLabAPI.Features.Menus.ServerMenu
             foreach (var server in ServerMenuManager.ServersByAlias)
             {
                 var joinButton = CreateJoinButton(server.Value);
-                var adminButton = CreateAdminButtons(server.Value);
-
-                adminButton.IsHidden = !Player.IsOnlineAndVerified || server.Value.Permission == null 
-                    || !Player.HasPermission(server.Value.Permission);
-
-                JoinButtons.Add(server.Key, joinButton);
-                AdminButtons.Add(server.Key, adminButton);
-
+                
                 settings.Add(joinButton);
-                settings.Add(adminButton);
+                
+                JoinButtons.Add(server.Key, joinButton);
+
+                if (ShowAdminButtons)
+                {
+                    var adminButton = CreateAdminButtons(server.Value);
+
+                    adminButton.IsHidden = !Player.IsOnlineAndVerified || server.Value.Permission == null
+                                                                       || !Player.RegexPermission(server.Value
+                                                                           .Permission);
+                    
+                    AdminButtons.Add(server.Key, adminButton);
+                    
+                    settings.Add(adminButton);
+                }
             }
         }
 
@@ -61,6 +77,9 @@ namespace SecretLabAPI.Features.Menus.ServerMenu
         public void SyncMenu()
         {
             var changed = false;
+            
+            if (Player?.ReferenceHub == null)
+                return;
 
             foreach (var server in ServerMenuManager.ServersByAlias)
             {
@@ -85,8 +104,11 @@ namespace SecretLabAPI.Features.Menus.ServerMenu
 
             if (!changed)
                 return;
-
-            SyncEntries();
+            
+            if (!Player.IsReady)
+                TimingUtils.OnTrue(SyncEntries, () => Player?.ReferenceHub != null && Player.IsReady);
+            else
+                SyncEntries();
         }
 
         /// <inheritdoc/>
@@ -113,11 +135,8 @@ namespace SecretLabAPI.Features.Menus.ServerMenu
 
                 return;
             }
-            else
-            {
-                Player.SendAlert(AlertType.Warn, 5f, "Server Menu", $"Server <color=red>{server.Alias}</color> je momentálně offline!");
-                return;
-            }
+
+            Player.SendAlert(AlertType.Warn, 5f, "Server Menu", $"Server <color=red>{server.Alias}</color> je momentálně offline!");
         }
 
         /// <inheritdoc/>
@@ -125,7 +144,8 @@ namespace SecretLabAPI.Features.Menus.ServerMenu
         {
             base.OnButtonSwitched(button);
 
-            return;
+            if (!ShowAdminButtons)
+                return;
 
             if (!AdminButtons.TryGetKey(button, out var alias))
             {
@@ -142,7 +162,7 @@ namespace SecretLabAPI.Features.Menus.ServerMenu
                 return;
             }
 
-            if (!Player.HasPermission(server.Permission))
+            if (!Player.RegexPermission(server.Permission))
             {
                 Player.SendAlert(AlertType.Warn, 5f, "Server Menu", "Nemáte oprávnění k ovládání tohoto serveru!");
                 return;
@@ -173,17 +193,6 @@ namespace SecretLabAPI.Features.Menus.ServerMenu
             }
         }
 
-        internal void CheckPermissions()
-        {
-            foreach (var server in ServerMenuManager.ServersByAlias)
-            {
-                if (!AdminButtons.TryGetValue(server.Key, out var adminButton))
-                    continue;
-
-                adminButton.IsHidden = server.Value.Permission == null || !Player.HasPermission(server.Value.Permission);
-            }
-        }
-
         private SettingsButton CreateJoinButton(ServerMenuInfo server)
         {
             if (server.isRunning)
@@ -194,14 +203,12 @@ namespace SecretLabAPI.Features.Menus.ServerMenu
                     $"🚀 | Připojit",
                     server.Description);
             }
-            else
-            {
-                return new(
-                    $"secretlabapi.servermenu.joinbutton.{server.Alias}",
-                    $"<color=blue>🌐</color> | <color=red>{server.Alias}</color>",
-                    $"🛑 | Offline",
-                    server.Description);
-            }
+
+            return new(
+                $"secretlabapi.servermenu.joinbutton.{server.Alias}",
+                $"<color=blue>🌐</color> | <color=red>{server.Alias}</color>",
+                $"🛑 | Offline",
+                server.Description);
         }
 
         private SettingsTwoButtons CreateAdminButtons(ServerMenuInfo server)
