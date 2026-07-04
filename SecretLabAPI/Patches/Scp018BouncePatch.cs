@@ -3,7 +3,9 @@
 using InventorySystem.Items.ThrowableProjectiles;
 
 using LabExtended.API.Custom.Items;
-using SecretLabAPI.Features.Items.Custom.Weapons;
+
+using SecretLabAPI.Features.Items.Custom.Grenades;
+
 using UnityEngine;
 
 namespace SecretLabAPI.Patches

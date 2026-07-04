@@ -1,6 +1,8 @@
 ﻿using LabExtended.API;
+
 using LabExtended.Events;
 using LabExtended.Utilities;
+
 using SecretLabAPI.Extensions;
 
 namespace SecretLabAPI.Features.Misc

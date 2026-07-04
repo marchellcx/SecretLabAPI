@@ -2,7 +2,6 @@
 using LabExtended.API.Hints;
 
 using LabExtended.Events;
-using LabExtended.Utilities;
 using LabExtended.Extensions;
 
 using LabExtended.Core.Storage;
@@ -10,7 +9,9 @@ using LabExtended.Core.Storage;
 using System.Reflection;
 
 using LabApi.Loader;
+
 using NiveraAPI.IO.Configs;
+
 using Utils.NonAllocLINQ;
 
 using SecretLabAPI.Features.Data;
@@ -30,7 +31,7 @@ namespace SecretLabAPI.Features.Levels
         public const string DataEntry = "LevelManager";
 
         [Config("levelManager", "config", "Configures the level manager.")]
-        internal static LevelConfig config;
+        internal static LevelConfig config = new();
         internal static StorageInstance storage;
 
         /// <summary>

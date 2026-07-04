@@ -1,14 +1,17 @@
 using LabApi.Loader;
 using LabApi.Loader.Features.Plugins;
 
-using LabExtended.Attributes;
 using LabExtended.Core;
+using LabExtended.Attributes;
+
 using LabExtended.Utilities.Update;
 
 using NiveraAPI;
 using NiveraAPI.Logs;
 using NiveraAPI.Extensions;
 using NiveraAPI.IO.Configs;
+
+using Serialization;
 
 namespace SecretLabAPI;
 
@@ -48,28 +51,47 @@ public class SecretLab : Plugin
     /// <inheritdoc/>
     public override void Enable()
     {
-        Plugin = this;
-        RootDirectory = Plugin.GetConfigDirectory(true).FullName;
-        
-        LogManager.Log += OnLogged;
-        LogManager.UseQueue = true;
-        
-        LibraryLoader.Initialize();
+        try
+        {
+            Plugin = this;
+            RootDirectory = Plugin.GetConfigDirectory(true).FullName;
 
-        configHandler = new();
-        configHandler.FilePath = Path.Combine(RootDirectory, "main.ini");
-        
-        typeof(SecretLab)
-            .Assembly
-            .GetTypes()
-            .ForEach(configHandler.Register);
-        
-        configHandler.Load();
-        configHandler.Save();
-        
-        InitLoaders();
+            LibraryLoader.Initialize();
+            
+            LogManager.Log += OnLogged;
+            LogManager.UseQueue = false;
+            
+            LogManager.DisabledLogs = null;
+            LogManager.DisabledSources.Clear();
 
-        PlayerUpdateHelper.OnLateUpdate += LibraryUpdate.Invoke;
+            configHandler = new();
+
+            configHandler.Serialize = (type, obj) => YamlParser.Serializer.Serialize(obj);
+            
+            configHandler.Deserialize = (type, yaml) =>
+            {
+                ApiLog.Debug("SecretLab", $"Deserializing &1{type.Name}&r:\n{yaml}");
+                return YamlParser.Deserializer.Deserialize(yaml, type)!;
+            };
+            
+            configHandler.FilePath = Path.Combine(RootDirectory, "main.ini");
+
+            typeof(SecretLab)
+                .Assembly
+                .GetTypes()
+                .ForEach(configHandler.Register);
+
+            configHandler.Load();
+            configHandler.Save();
+
+            InitLoaders();
+
+            PlayerUpdateHelper.OnLateUpdate += LibraryUpdate.Invoke;
+        }
+        catch (Exception ex)
+        {
+            ApiLog.Error("SecretLab", $"Failed to enable SecretLabAPI!:\n{ex}");
+        }
     }
 
     /// <inheritdoc/>
@@ -80,12 +102,26 @@ public class SecretLab : Plugin
 
     private static void InitLoaders()
     {
-        typeof(SecretLab).Assembly
-            .InvokeStaticMethods(m => 
-                m.IsStatic && 
-                m.GetAllParameters().Length == 0 && 
-                m.ReturnType == typeof(void) &&
-                m.Name == "Initialize");
+        foreach (var type in typeof(SecretLab).Assembly.GetTypes())
+        {
+            foreach (var method in type.GetAllMethods())
+            {
+                if (!method.IsPrivate || method.ReturnType != typeof(void) || !method.IsStatic
+                    || method.Name != "Initialize" || method.GetParameters().Length != 0)
+                    continue;
+
+                ApiLog.Debug("SecretLab", $"Initializing &1{type.Name}&r ...");
+                
+                try
+                {
+                    method.Invoke(null, null);
+                }
+                catch (Exception ex)
+                {
+                    ApiLog.Error("SecretLab", $"Error while initializing &1{type.Name}&r:\n{ex}");
+                }
+            }
+        }
     }
     
     private static void OnLogged(LogMessage msg)

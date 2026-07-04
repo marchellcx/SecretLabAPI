@@ -1,13 +1,11 @@
 ﻿using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Events.Handlers;
-
 using LabExtended.API;
 using LabExtended.Utilities;
-
-using SecretLabAPI.Features.RandomEvents;
+using PlayerRoles;
 using SecretLabAPI.Features.Elements.Alerts;
 
-namespace SecretLabAPI.Features.Gamemodes
+namespace SecretLabAPI.Features.RandomEvents.Events
 {
     /// <summary>
     /// Represents a random event that simulates a blackout by disabling lights and providing players with light sources
@@ -74,6 +72,9 @@ namespace SecretLabAPI.Features.Gamemodes
         private void OnChangedRole(PlayerChangedRoleEventArgs args)
         {
             if (args.Player is not ExPlayer player)
+                return;
+            
+            if (!args.NewRole.RoleTypeId.IsAlive())
                 return;
 
             TimingUtils.AfterSeconds(() =>

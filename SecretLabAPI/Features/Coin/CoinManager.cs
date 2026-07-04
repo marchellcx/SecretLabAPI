@@ -14,6 +14,7 @@ using NiveraAPI.IO.Configs;
 using NorthwoodLib.Pools;
 
 using SecretLabAPI.Extensions;
+using SecretLabAPI.Features.Elements.Alerts;
 using SecretLabAPI.Utilities.Configs;
 
 namespace SecretLabAPI.Features.Coin;
@@ -44,6 +45,12 @@ public static class CoinManager
     /// </summary>
     [Config("coinManager", "multipleWeight", "Defines the weight (chance) of multiple actions occuring.")]
     public static WeightConfig MultipleActionsWeight { get; set; } = new();
+
+    /// <summary>
+    /// The message to be sent to players when they fail to flip a coin.
+    /// </summary>
+    [Config("coinManager", "flipFailedMessage", "The message to be sent to players when they fail to flip a coin.")]
+    public static string FlipFailedMessage { get; set; } = "Zkus to znova!";
 
     /// <summary>
     /// Executes a coin flip action for a given player.
@@ -173,10 +180,23 @@ public static class CoinManager
     {
         if (!args.Player.CastPlayer(out var player))
             return;
-        
-        ExecuteCoinFlip(player, 
-            WeightUtils.GetBool(
-                MultipleActionsWeight.GetWeight(player)));
+
+        try
+        {
+            if (!ExecuteCoinFlip(player,
+                WeightUtils.GetBool(
+                    MultipleActionsWeight.GetWeight(player))))
+            {
+                player.SendFormattedAlert(FlipFailedMessage, true, AlertType.Warn, 5f, "Coin Manager");
+                return;
+            }
+        }
+        catch (Exception ex)
+        {
+            ApiLog.Error("CoinManager", ex);
+        }
+
+        player.Inventory.RemoveHeldItem();
     }
     
     private static void Initialize()
@@ -194,26 +214,7 @@ public static class CoinManager
 
                 if (typeof(CoinAction).IsAssignableFrom(type))
                 {
-                    var id = string.Empty;
-                    
-                    var idField = type.FindField(f =>
-                        f.IsStatic 
-                        && f.IsInitOnly 
-                        && f.FieldType == typeof(string) 
-                        && f.Name == "Id");
-
-                    if (idField == null)
-                        id = type.Name.SnakeCase();
-                    else
-                        id = idField.GetValue(null)?.ToString();
-
-                    if (string.IsNullOrEmpty(id))
-                    {
-                        ApiLog.Error("CoinManager", $"Failed to get &3Id&r value from &1{type.Name}&r!");
-                        continue;
-                    }
-
-                    var path = FileUtils.CreatePath(SecretLab.RootDirectory, "coin_actions", $"{id}.yml");
+                    var path = FileUtils.CreatePath(SecretLab.RootDirectory, "coin_actions", $"{type.Name}.yml");
 
                     if (!FileUtils.TryLoadYamlFile<CoinAction>(path, type, out var action))
                         FileUtils.TrySaveYamlFile(path, action = Activator.CreateInstance(type) as CoinAction);
@@ -235,7 +236,7 @@ public static class CoinManager
         {
             PlayerEvents.FlippingCoin += OnFlippingCoin;
             
-            ApiLog.Debug("CoinManager", $"Registered &1{Actions.Count}&r coin actions");
+            ApiLog.Info("CoinManager", $"Registered &1{Actions.Count}&r coin actions");
         }
         else
         {

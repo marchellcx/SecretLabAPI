@@ -1,10 +1,16 @@
 ﻿using System.ComponentModel;
+
 using LabExtended.API;
+
 using LabExtended.Commands;
 using LabExtended.Commands.Attributes;
 using LabExtended.Commands.Interfaces;
+
 using LabExtended.Events;
 using LabExtended.Utilities;
+
+using NiveraAPI.IO.Configs;
+
 using SecretLabAPI.Features.Elements.Alerts;
 
 namespace SecretLabAPI.Features.Misc
@@ -44,27 +50,20 @@ namespace SecretLabAPI.Features.Misc
                 }
             }
         }
-
-        #region Config
+        
         /// <summary>
         /// Gets or sets the list of user groups permitted to join the server when developer mode is enabled.
         /// </summary>
         /// <remarks>If the collection is empty, any user with Remote Admin access can join the server
         /// while developer mode is active. Otherwise, only users belonging to one of the specified groups are allowed
         /// access.</remarks>
-        [Description("Sets a list of groups that can join the server while developer mode is active. If empty, anyone with Remote Admin access can join.")]
-        public string[] Groups { get; set; } = [];
-        #endregion
+        [Config("developerMode", "groups", "List of user groups allowed to join the server when developer mode is enabled.")]
+        public static string[] Groups { get; set; } = [];
 
         /// <summary>
         /// Whether or not develoeper mode is currently active.
         /// </summary>
         public static bool IsActive { get; private set; }
-
-        /// <summary>
-        /// Gets the current developer mode config.
-        /// </summary>
-        public static DeveloperMode Config { get; private set; }
 
         /// <summary>
         /// Enables the server's private mode, preventing unauthorized players from joining.
@@ -123,10 +122,10 @@ namespace SecretLabAPI.Features.Misc
             if (player.IsNorthwoodStaff)
                 return true;
 
-            if (Config.Groups?.Length > 0 && !string.IsNullOrEmpty(player.PermissionsGroupName) && Config.Groups.Contains(player.PermissionsGroupName))
+            if (Groups?.Length > 0 && !string.IsNullOrEmpty(player.PermissionsGroupName) && Groups.Contains(player.PermissionsGroupName))
                 return true;
 
-            if (Config.Groups?.Length < 1 && player.RemoteAdminAccess)
+            if (Groups?.Length < 1 && player.RemoteAdminAccess)
                 return true;
 
             return false;
@@ -167,11 +166,9 @@ namespace SecretLabAPI.Features.Misc
             }
         }
 
-        internal static void Initialize()
+        private static void Initialize()
         {
             ExPlayerEvents.Verified += OnVerified;
-
-            Config = FileUtils.LoadYamlFileOrDefault<DeveloperMode>(SecretLab.RootDirectory, "developer_mode.yml", new(), true);
         }
     }
 }

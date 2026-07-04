@@ -1,25 +1,16 @@
-﻿using LabExtended.API;
-using LabExtended.Extensions;
-
-using PlayerRoles;
-
-using MapGeneration;
-
-using SecretLabAPI.Extensions;
-
-using System.ComponentModel;
-
+﻿using System.ComponentModel;
+using Interactables.Interobjects.DoorUtils;
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Events.Handlers;
-
 using LabApi.Features.Wrappers;
-
-using Interactables.Interobjects.DoorUtils;
-
-using SecretLabAPI.Features.RandomEvents;
+using LabExtended.API;
+using LabExtended.Extensions;
+using MapGeneration;
+using PlayerRoles;
+using SecretLabAPI.Extensions;
 using SecretLabAPI.Features.Elements.Alerts;
 
-namespace SecretLabAPI.Features.Gamemodes
+namespace SecretLabAPI.Features.RandomEvents.Events
 {
     /// <summary>
     /// Represents the SCP Infection random event, in which one player becomes an SCP and others attempt to escape while

@@ -1,3 +1,4 @@
+using Interactables.Interobjects.DoorUtils;
 using InventorySystem.Items;
 
 using LabApi.Features.Wrappers;
@@ -11,11 +12,15 @@ using LabExtended.API.Settings.Menus;
 using LabExtended.Extensions;
 
 using MapGeneration;
+
 using MEC;
+
 using PlayerRoles;
 
 using PlayerStatsSystem;
+
 using SecretLabAPI.Features.Levels;
+using SecretLabAPI.Features.Elements.Alerts;
 
 using UnityEngine;
 
@@ -43,6 +48,41 @@ namespace SecretLabAPI.Extensions
         public static FacilityZone[] AllZones = EnumUtils<FacilityZone>.Values
             .Where(z => z != FacilityZone.None && z != FacilityZone.Other)
             .ToArray();
+        
+        /// <summary>
+        /// Calculates the player's health amount based on a given percentage of their maximum health.
+        /// </summary>
+        /// <remarks>This method evaluates the specified percentage of the player's maximum health. If the player is invalid or not alive, the method will return 0.</remarks>
+        /// <param name="player">The player whose health amount is being calculated. Must be a valid and alive instance of <see cref="ExPlayer"/>.</param>
+        /// <param name="percentage">The percentage of the maximum health to calculate. Should be an integer value between 0 and 100.</param>
+        /// <returns>The health amount as an integer value derived from the specified percentage of the player's maximum health. Returns 0 if the player is invalid or not alive.</returns>
+        public static int GetHealthAmount(this ExPlayer player, int percentage)
+        {
+            if (!player.IsValidPlayer())
+                return 0;
+
+            if (!player.IsAlive)
+                return 0;
+            
+            return Mathf.CeilToInt(player.MaxHealth * percentage / 100);
+        }
+        
+        /// <summary>
+        /// Calculates the player's current health as a percentage of their maximum health.
+        /// </summary>
+        /// <remarks>This method provides a way to determine the player's health percentage. It returns 0 if the player is invalid or not alive.</remarks>
+        /// <param name="player">The player whose health percentage is being calculated. Must be a valid and alive instance of <see cref="ExPlayer"/>.</param>
+        /// <returns>The player's health percentage as an integer value. Returns 0 if the player is invalid or dead.</returns>
+        public static int GetHealthPercent(this ExPlayer player)
+        {
+            if (!player.IsValidPlayer())
+                return 0;
+
+            if (!player.IsAlive)
+                return 0;
+
+            return Mathf.CeilToInt(player.Health / player.MaxHealth * 100);
+        }
 
         /// <summary>
         /// Attempts to cast the specified player to an ExPlayer instance.
@@ -156,6 +196,103 @@ namespace SecretLabAPI.Extensions
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Sends a formatted alert to the specified player using the provided message, with options for customization.
+        /// </summary>
+        /// <param name="player">The player to whom the alert will be sent. Must be a valid instance of <see cref="ExPlayer"/>.</param>
+        /// <param name="str">The message to display in the alert. Must not be null or empty.</param>
+        /// <param name="overrideCurrent">Determines whether the current active alert, if any, should be replaced by the new alert.</param>
+        /// <param name="defaultType">The type of the alert, which can be informational or a warning. Defaults to <see cref="AlertType.Info"/>.</param>
+        /// <param name="defaultDuration">The duration, in seconds, that the alert should stay active. Defaults to 5 seconds.</param>
+        /// <param name="defaultTitle">The title of the alert. Can be null, in which case no title will be displayed.</param>
+        public static void SendFormattedAlert<T>(this ExPlayer player, T key, IDictionary<T, string> messages,
+            bool overrideCurrent,
+            AlertType defaultType = AlertType.Info,
+            float defaultDuration = 5f, string? defaultTitle = null)
+        {
+            if (!player.IsValidPlayer())
+                return;
+
+            if (messages?.Count < 1)
+                return;
+
+            if (!messages.TryGetValue(key, out var msg))
+                return;
+
+            if (string.IsNullOrEmpty(msg))
+                return;
+
+            player.SendFormattedAlert(msg, overrideCurrent, defaultType, defaultDuration, defaultTitle);
+        }
+
+        /// <summary>
+        /// Sends a formatted alert to the specified player, using the provided string to determine
+        /// the alert's type, duration, title, and message based on its format.
+        /// </summary>
+        /// <remarks>
+        /// This method parses the input string to dynamically determine the alert's parameters.
+        /// The input format can be one of:
+        /// - "Time:Message" (e.g., "5:Hello" sets a 5-second alert with a message),
+        /// - "Type:Time:Message" (e.g., "Warn:10:Warning message"),
+        /// - "Type:Time:Title:Message" (e.g., "Info:8:Custom Title:Custom message").
+        /// If parsing the string fails, the default values will be used.
+        /// </remarks>
+        /// <param name="player">The player to send the alert to. Must be a valid <see cref="ExPlayer"/>.</param>
+        /// <param name="str">
+        /// The formatted string containing alert parameters. Can include combinations of alert type,
+        /// duration, title, and message as described. Cannot be null or empty.
+        /// </param>
+        /// <param name="overrideCurrent">
+        /// A flag indicating whether to override the currently displayed alert on the player.
+        /// Pass true to replace the current alert.
+        /// </param>
+        /// <param name="defaultType">
+        /// The default alert type to use if the input string does not specify a type.
+        /// Default is <see cref="AlertType.Info"/>.
+        /// </param>
+        /// <param name="defaultDuration">
+        /// The default duration, in seconds, for the alert if the input string does not specify a time.
+        /// Default is 5 seconds.
+        /// </param>
+        /// <param name="defaultTitle">
+        /// The default title of the alert if the input string does not specify one.
+        /// If null, no title will be displayed.
+        /// </param>
+        public static void SendFormattedAlert(this ExPlayer player, string str, bool overrideCurrent,
+            AlertType defaultType = AlertType.Info,
+            float defaultDuration = 5f, string? defaultTitle = null)
+        {
+            if (string.IsNullOrEmpty(str))
+                return;
+
+            if (!player.IsValidPlayer())
+                return;
+
+            var parts = str.Split(':');
+
+            if (parts.Length == 2
+                && float.TryParse(parts[0], out var duration)) // Time:Message
+            {
+                player.SendAlert(defaultType, duration, defaultTitle, parts[1], overrideCurrent);
+            }
+            else if (parts.Length == 3
+                     && float.TryParse(parts[0], out duration)
+                     && Enum.TryParse(parts[1], true, out AlertType type)) // Type:Time:Message
+            {
+                player.SendAlert(type, duration, defaultTitle, parts[2], overrideCurrent);
+            }
+            else if (parts.Length == 4
+                     && float.TryParse(parts[0], out duration)
+                     && Enum.TryParse(parts[1], true, out type)) // Type:Time:Title:Message
+            {
+                player.SendAlert(type, duration, parts[2], parts[3], overrideCurrent);
+            }
+            else
+            {
+                player.SendAlert(defaultType, defaultDuration, defaultTitle, str, overrideCurrent);
+            }
         }
 
         /// <summary>

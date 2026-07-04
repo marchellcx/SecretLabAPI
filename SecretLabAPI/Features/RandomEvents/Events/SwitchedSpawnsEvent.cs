@@ -1,14 +1,10 @@
-﻿using LabExtended.API;
+﻿using LabApi.Events.Arguments.ServerEvents;
+using LabExtended.API;
 using LabExtended.Extensions;
-
-using LabApi.Events.Arguments.ServerEvents;
-
 using PlayerRoles;
-
-using SecretLabAPI.Features.RandomEvents;
 using SecretLabAPI.Features.Elements.Alerts;
 
-namespace SecretLabAPI.Features.Gamemodes
+namespace SecretLabAPI.Features.RandomEvents.Events
 {
     /// <summary>
     /// Represents a random event that swaps the spawn locations of the Chaos Insurgency and Nine-Tailed Fox factions at

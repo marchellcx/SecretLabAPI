@@ -1,12 +1,20 @@
 ﻿using System.ComponentModel;
+
 using InventorySystem.Items.ThrowableProjectiles;
+
 using LabExtended.API;
 using LabExtended.Core;
 using LabExtended.Events;
-using LabExtended.Extensions;
 using LabExtended.Utilities;
+using LabExtended.Extensions;
+
 using NorthwoodLib.Pools;
+
 using SecretLabAPI.Extensions;
+
+using SecretLabAPI.Features.Looting;
+using SecretLabAPI.Features.Elements.Alerts;
+
 using UnityEngine;
 
 namespace SecretLabAPI.Features.Coin.Actions;
@@ -60,6 +68,11 @@ public class InventoryActions : CoinAction
         /// Explodes the currently held projectile.
         /// </summary>
         ExplodeCurrent,
+        
+        /// <summary>
+        /// Adds loot to the player's inventory.
+        /// </summary>
+        Loot,
     }
 
     /// <summary>
@@ -79,8 +92,31 @@ public class InventoryActions : CoinAction
         
         { ActionType.ExplodeAll, 0f },
         { ActionType.ExplodeCurrent, 0f },
+        
+        { ActionType.Loot, 0f }
     };
 
+    /// <summary>
+    /// The messages to be sent to players when they perform the actions.
+    /// </summary>
+    [Description("Sets the messages to be sent to players when they perform the actions.")]
+    public Dictionary<ActionType, string> Messages { get; set; } = new()
+    {
+        { ActionType.DropAll, "" },
+        { ActionType.DropCurrent, "" },
+
+        { ActionType.RemoveAll, "" },
+        { ActionType.RemoveCurrent, "" },
+
+        { ActionType.SwitchAll, "" },
+        { ActionType.SwitchCurrent, "" },
+
+        { ActionType.ExplodeAll, "" },
+        { ActionType.ExplodeCurrent, "" },
+        
+        { ActionType.Loot, "" }
+    };
+    
     private Dictionary<ExPlayer, ActionType> actions = new();
 
     /// <summary>
@@ -111,13 +147,14 @@ public class InventoryActions : CoinAction
             if (kvp.Value <= 0f)
                 continue;
             
-            if (kvp.Value < 100f && !WeightUtils.GetBool(kvp.Value))
-                continue;
-            
             var isAvailable = false;
             
             switch (kvp.Key)
             {
+                case ActionType.Loot:
+                    isAvailable = LootManager.GetTable("CoinInventoryLoot") != null;
+                    break;
+                
                 case ActionType.DropAll or ActionType.RemoveAll:
                     isAvailable = player.Inventory.ItemCount > 0;
                     break;
@@ -127,7 +164,7 @@ public class InventoryActions : CoinAction
                     break;
                 
                 case ActionType.SwitchAll:
-                    isAvailable = ExPlayer.Players.Any(p => p != player && p.IsAlive && !p.IsTutorial && p.Inventory.ItemCount > 0);
+                    isAvailable = ExPlayer.Players.Any(p => p != player && !p.IsSCP && p.IsAlive && !p.IsTutorial && p.Inventory.ItemCount > 0);
                     break;
                 
                 case ActionType.SwitchCurrent:
@@ -135,6 +172,7 @@ public class InventoryActions : CoinAction
                                   && ExPlayer.Players.Any(p => 
                                       p != player 
                                       && p.IsAlive
+                                      && !p.IsSCP
                                       && !p.IsTutorial
                                       && p.Inventory.CurrentItem != null);
                     break;
@@ -181,8 +219,14 @@ public class InventoryActions : CoinAction
         
         actions.Remove(player);
 
+        player.SendFormattedAlert(action, Messages, false, AlertType.Info, 5f, "Coin Manager");
+        
         switch (action)
         {
+            case ActionType.Loot:
+                LootManager.ExecuteEntry(player, "CoinInventoryLoot");
+                break;
+            
             case ActionType.DropAll:
                 player.Ammo.DropAllAmmo();
                 player.Ammo.ClearCustomAmmo();
@@ -221,7 +265,7 @@ public class InventoryActions : CoinAction
                     {
                         if (it is ThrowableItem throwableItem && throwableItem.Projectile != null)
                         {
-                            ExMap.SpawnProjectile(it.ItemTypeId, player.Position, Vector3.one, player.Velocity,
+                            ExMap.SpawnProjectile(it.ItemTypeId, player.Position, Vector3.one, Vector3.zero,
                                 player.Rotation, 0f, 3f);
                             player.Inventory.RemoveItem(it);
                         }
@@ -230,7 +274,7 @@ public class InventoryActions : CoinAction
             }
 
             case ActionType.ExplodeCurrent:
-                ExMap.SpawnProjectile(player.CurrentItem!.Type, player.Position, Vector3.one, player.Velocity,
+                ExMap.SpawnProjectile(player.CurrentItem!.Type, player.Position, Vector3.one, Vector3.zero,
                     player.Rotation, 0f, 3f);
                 player.Inventory.RemoveHeldItem();
                 break;
@@ -252,6 +296,7 @@ public class InventoryActions : CoinAction
         var other = ExPlayer.Players.GetRandomItem(p => p?.ReferenceHub != null
                                                         && p != player
                                                         && p.IsAlive
+                                                        && !p.IsSCP
                                                         && !p.IsTutorial
                                                         && p.Inventory.ItemCount > 0);
 
@@ -269,6 +314,7 @@ public class InventoryActions : CoinAction
         var other = ExPlayer.Players.GetRandomItem(p => p?.ReferenceHub != null
                                                         && p != player
                                                         && p.IsAlive
+                                                        && !p.IsSCP
                                                         && !p.IsTutorial
                                                         && p.Inventory.ItemCount > 0
                                                         && p.Inventory.CurrentItem != null);

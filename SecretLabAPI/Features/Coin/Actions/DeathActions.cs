@@ -4,10 +4,12 @@ using LabExtended.API;
 using LabExtended.Utilities;
 
 using LabExtended.Core.Configs.Objects;
-
+using PlayerRoles;
 using SecretLabAPI.Extensions;
-using SecretLabAPI.Features.Effects.Misc;
 
+using SecretLabAPI.Features.Effects.Misc;
+using SecretLabAPI.Features.Elements.Alerts;
+using SecretLabAPI.Utilities.Configs;
 using UnityEngine;
 
 namespace SecretLabAPI.Features.Coin.Actions;
@@ -46,6 +48,16 @@ public class DeathActions : CoinAction
         /// Makes the next door the player interacts with explode.
         /// </summary>
         DoorExplosion,
+        
+        /// <summary>
+        /// Damages the player by a random percentage.
+        /// </summary>
+        DamagePercent,
+        
+        /// <summary>
+        /// Zombifies the player.
+        /// </summary>
+        Zombify,
     }
 
     /// <summary>
@@ -59,8 +71,28 @@ public class DeathActions : CoinAction
         { DeathType.Disintegrate, 0f },
         { DeathType.Rocket, 0f },
         { DeathType.DoorExplosion, 0f },
+        { DeathType.DamagePercent, 0f },
+        { DeathType.Zombify, 0f },
     };
 
+    /// <summary>
+    /// Message for each death type.
+    /// </summary>
+    [Description("Message for each death type.")]
+    public Dictionary<DeathType, string> Messages { get; set; } = new()
+    {
+        { DeathType.Explode, "" },
+        { DeathType.Explosive, "" },
+        { DeathType.Disintegrate, "" },
+        { DeathType.Rocket, "" },
+        { DeathType.DoorExplosion, "" },
+        { DeathType.DamagePercent, "" },
+        { DeathType.Zombify, "" },
+    };
+
+    [Description("The range of damage percentages to be applied to the player.")]
+    public Int32Range DamagePercentRange { get; set; } = new() { MinValue = 1, MaxValue = 100 };
+    
     /// <summary>
     /// The amount of grenade explosion effects to spawn during an explosion event.
     /// </summary>
@@ -129,6 +161,8 @@ public class DeathActions : CoinAction
     {
         var type = Weights.GetRandomWeighted(kvp => kvp.Value);
 
+        player.SendFormattedAlert(type.Key, Messages, false, AlertType.Info, 5f, "Coin Manager");
+        
         switch (type.Key)
         {
             case DeathType.Explode:
@@ -152,6 +186,14 @@ public class DeathActions : CoinAction
             
             case DeathType.DoorExplosion:
                 player.Effects.GetOrAddCustomEffect<DoorInteractExplosionEffect>().Enable();
+                break;
+            
+            case DeathType.DamagePercent:
+                player.Damage(player.GetHealthAmount(DamagePercentRange.GetRandom()), "Coin");
+                break;
+            
+            case DeathType.Zombify:
+                player.Role.Set(RoleTypeId.Scp0492, RoleChangeReason.Revived, RoleSpawnFlags.AssignInventory);
                 break;
         }
     }

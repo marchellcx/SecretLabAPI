@@ -1,20 +1,14 @@
 using System.ComponentModel;
-
 using LabApi.Events.Arguments.PlayerEvents;
 using LabApi.Events.Handlers;
-
 using LabExtended.API;
-using LabExtended.Utilities;
-
 using LabExtended.Core.Configs.Objects;
-
+using LabExtended.Utilities;
 using PlayerRoles;
-
-using UnityEngine;
-using SecretLabAPI.Features.RandomEvents;
 using SecretLabAPI.Features.Elements.Alerts;
+using UnityEngine;
 
-namespace SecretLabAPI.Features.Gamemodes
+namespace SecretLabAPI.Features.RandomEvents.Events.Randomizer
 {
     public class RandomScaleEvent : RandomEventBase
     {

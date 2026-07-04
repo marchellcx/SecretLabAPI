@@ -6,6 +6,9 @@ using LabExtended.Utilities;
 
 using NiveraAPI.IO.Configs;
 
+using SecretLabAPI.Features.RandomEvents.Events;
+using SecretLabAPI.Features.RandomEvents.Events.Randomizer;
+
 namespace SecretLabAPI.Features.RandomEvents
 {
     /// <summary>
@@ -179,6 +182,23 @@ namespace SecretLabAPI.Features.RandomEvents
 
         private static void Initialize()
         {
+            Events.Add(FileUtils.LoadYamlFileOrDefault(FileUtils.CreatePath(SecretLab.RootDirectory, "events", "random_speed.yml"), new RandomSpeedEvent(), true));
+            Events.Add(FileUtils.LoadYamlFileOrDefault(FileUtils.CreatePath(SecretLab.RootDirectory, "events", "random_size.yml"), new RandomSizeEvent(), true));
+            Events.Add(FileUtils.LoadYamlFileOrDefault(FileUtils.CreatePath(SecretLab.RootDirectory, "events", "stolen_items.yml"), new StolenItemsEvent(), true));
+            Events.Add(FileUtils.LoadYamlFileOrDefault(FileUtils.CreatePath(SecretLab.RootDirectory, "events", "downgrade.yml"), new DowngradeEvent(), true));
+            Events.Add(FileUtils.LoadYamlFileOrDefault(FileUtils.CreatePath(SecretLab.RootDirectory, "events", "blackout.yml"), new BlackoutEvent(), true));
+            Events.Add(FileUtils.LoadYamlFileOrDefault(FileUtils.CreatePath(SecretLab.RootDirectory, "events", "boss_fight.yml"), new BossFightEvent(), true));
+            Events.Add(FileUtils.LoadYamlFileOrDefault(FileUtils.CreatePath(SecretLab.RootDirectory, "events", "random_name.yml"), new RandomNameEvent(), true));
+            Events.Add(FileUtils.LoadYamlFileOrDefault(FileUtils.CreatePath(SecretLab.RootDirectory, "events", "coin_madness.yml"), new CoinMadnessEvent(), true));
+            Events.Add(FileUtils.LoadYamlFileOrDefault(FileUtils.CreatePath(SecretLab.RootDirectory, "events", "double_trouble.yml"), new DoubleTroubleEvent(), true));
+            Events.Add(FileUtils.LoadYamlFileOrDefault(FileUtils.CreatePath(SecretLab.RootDirectory, "events", "no_teamkills.yml"), new NoTeamkillsEvent(), true));
+            Events.Add(FileUtils.LoadYamlFileOrDefault(FileUtils.CreatePath(SecretLab.RootDirectory, "events", "random_scale.yml"), new RandomScaleEvent(), true));
+            Events.Add(FileUtils.LoadYamlFileOrDefault(FileUtils.CreatePath(SecretLab.RootDirectory, "events", "scp_infection.yml"), new ScpInfectionEvent(), true));
+            Events.Add(FileUtils.LoadYamlFileOrDefault(FileUtils.CreatePath(SecretLab.RootDirectory, "events", "switched_spawns.yml"), new SwitchedSpawnsEvent(), true));
+            Events.Add(FileUtils.LoadYamlFileOrDefault(FileUtils.CreatePath(SecretLab.RootDirectory, "events", "its_raining_coins.yml"), new ItsRainingCoinsEvent(), true));
+            
+            Events.ForEach(e => e.Register());
+            
             ExRoundEvents.Started += OnRoundStart;
         }
     }

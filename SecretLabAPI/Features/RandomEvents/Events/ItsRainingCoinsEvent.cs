@@ -2,15 +2,14 @@ using System.ComponentModel;
 
 using LabExtended.API;
 
-using SecretLabAPI.Features.RandomEvents;
 using SecretLabAPI.Features.Elements.Alerts;
 using SecretLabAPI.Features.Misc;
-using SecretLabAPI.Utilities;
+
 using SecretLabAPI.Utilities.Configs;
 
 using YamlDotNet.Serialization;
 
-namespace SecretLabAPI.Features.Gamemodes
+namespace SecretLabAPI.Features.RandomEvents.Events
 {
     /// <summary>
     /// An event where it literally just rains coins.

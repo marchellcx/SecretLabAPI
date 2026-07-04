@@ -1,8 +1,10 @@
 ﻿using HarmonyLib;
+
 using InventorySystem.Items.Usables;
+
 using LabExtended.API.Custom.Items;
-using SecretLabAPI.Features.Items;
-using SecretLabAPI.Features.Items.Custom;
+
+using SecretLabAPI.Features.Items.Custom.ScpItems;
 
 namespace SecretLabAPI.Patches;
 
