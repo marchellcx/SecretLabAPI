@@ -1,0 +1,91 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net48</TargetFramework>
+        <LangVersion>preview</LangVersion>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <AssemblyVersion>2.1.0.0</AssemblyVersion>
+        <FileVersion>2.1.0.0</FileVersion>
+        <NeutralLanguage>en-001</NeutralLanguage>
+    </PropertyGroup>
+
+    <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+      <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+      <DebugType>portable</DebugType>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+      <DebugType>portable</DebugType>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <Reference Include="0LabExtended">
+        <HintPath>$(PLUGIN_REFS)\0LabExtended.dll</HintPath>
+      </Reference>
+      <Reference Include="Assembly-CSharp">
+        <HintPath>$(PLUGIN_REFS)\Assembly-CSharp-Publicized.dll</HintPath>
+      </Reference>
+      <Reference Include="Assembly-CSharp-firstpass">
+        <HintPath>$(PLUGIN_REFS)\Assembly-CSharp-firstpass-Publicized.dll</HintPath>
+      </Reference>
+      <Reference Include="CommandSystem.Core">
+        <HintPath>$(PLUGIN_REFS)\CommandSystem.Core.dll</HintPath>
+      </Reference>
+      <Reference Include="LabApi">
+        <HintPath>$(PLUGIN_REFS)\LabApi-Publicized.dll</HintPath>
+      </Reference>
+      <Reference Include="Mirror">
+        <HintPath>$(PLUGIN_REFS)\Mirror-Publicized.dll</HintPath>
+      </Reference>
+      <Reference Include="NiveraAPI">
+        <HintPath>$(PLUGIN_REFS)\NiveraAPI.dll</HintPath>
+      </Reference>
+      <Reference Include="NorthwoodLib">
+        <HintPath>$(PLUGIN_REFS)\NorthwoodLib-Publicized.dll</HintPath>
+      </Reference>
+      <Reference Include="Pooling">
+        <HintPath>$(PLUGIN_REFS)\Pooling-Publicized.dll</HintPath>
+      </Reference>
+      <Reference Include="ProjectMER">
+        <HintPath>$(PLUGIN_REFS)\ProjectMER.dll</HintPath>
+      </Reference>
+      <Reference Include="Snake">
+        <HintPath>$(PLUGIN_REFS)\Snake-Publicized.dll</HintPath>
+      </Reference>
+      <Reference Include="Unity.TextMeshPro">
+        <HintPath>$(PLUGIN_REFS)\Unity.TextMeshPro.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine">
+        <HintPath>$(PLUGIN_REFS)\UnityEngine.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.AnimationModule">
+        <HintPath>$(PLUGIN_REFS)\UnityEngine.AnimationModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.AudioModule">
+        <HintPath>$(PLUGIN_REFS)\UnityEngine.AudioModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.CoreModule">
+        <HintPath>$(PLUGIN_REFS)\UnityEngine.CoreModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.PhysicsModule">
+        <HintPath>$(PLUGIN_REFS)\UnityEngine.PhysicsModule.dll</HintPath>
+      </Reference>
+      <Reference Include="UnityEngine.UI">
+        <HintPath>$(PLUGIN_REFS)\UnityEngine.UI.dll</HintPath>
+      </Reference>
+      <Reference Include="YamlDotNet">
+        <HintPath>$(PLUGIN_REFS)\YamlDotNet.dll</HintPath>
+      </Reference>
+    </ItemGroup>
+
+    <ItemGroup>
+      <PackageReference Include="Lib.Harmony" Version="2.3.6" />
+      <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+      <PackageReference Include="SecretLabNAudio.Core" Version="1.0.2" />
+    </ItemGroup>
+
+</Project>
