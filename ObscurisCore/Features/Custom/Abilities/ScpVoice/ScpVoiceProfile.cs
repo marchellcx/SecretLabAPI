@@ -1,5 +1,4 @@
-using System.Collections.Concurrent;
-
+using LabApi.Features.Extensions;
 using LabApi.Features.Wrappers;
 
 using LabExtended.API;
@@ -7,17 +6,15 @@ using LabExtended.API.Custom.Voice.Profiles;
 
 using LabExtended.Core;
 
-using Mirror;
-
 using NiveraAPI.IO.Configs;
 
 using ObscurisCore.Features.Custom.Abilities.ScpVoice.Proximity;
 
+using PlayerRoles;
+
 using SecretLabNAudio.Core;
 using SecretLabNAudio.Core.Pools;
 using SecretLabNAudio.Core.SendEngines;
-
-using UnityEngine;
 
 using VoiceChat;
 using VoiceChat.Networking;
@@ -74,8 +71,6 @@ public class ScpVoiceProfile : VoiceProfile
     private volatile Action<ProximityPacket> onProcesed;
     private volatile Func<ProximityPacket> packetFactory;
 
-    private volatile ConcurrentQueue<ProximityPacket> packetPool = new();
-
     /// <summary>
     /// Constructor for the ScpVoiceProfile class.
     /// </summary>
@@ -96,6 +91,16 @@ public class ScpVoiceProfile : VoiceProfile
     public ScpVoiceAbility Ability { get; internal set; }
 
     /// <summary>
+    /// Indicates whether the voice messages should be sent to SCP players based on the current SCP voice ability mode.
+    /// </summary>
+    public bool SendToScp => Ability != null && Ability.Mode is ScpVoiceStatus.Scp or ScpVoiceStatus.Mixed;
+
+    /// <summary>
+    /// Indicates whether the voice messages should be sent to players in proximity based on the current SCP voice ability mode.
+    /// </summary>
+    public bool SendToProximity => Ability != null && Ability.Mode is ScpVoiceStatus.Proximity or ScpVoiceStatus.Mixed;
+
+    /// <summary>
     /// Starts the proximity SCP voice profile.
     /// </summary>
     public override void Start()
@@ -112,8 +117,6 @@ public class ScpVoiceProfile : VoiceProfile
     public override void Stop()
     {
         base.Stop();
-        
-        packetPool.Clear();
 
         if (Audio != null)
         {
@@ -140,10 +143,10 @@ public class ScpVoiceProfile : VoiceProfile
             || Round.IsRoundEnded)
             return VoiceProfileResult.None;
 
-        if (Ability.Mode is ScpVoiceStatus.Mixed or ScpVoiceStatus.Proximity)
+        if (SendToProximity)
             Player.Voice.Thread.ProcessCustom(message.Data, message.DataLength, ProximityProcessor.Instance, onProcesed, packetFactory);
         
-        return Ability.Mode is ScpVoiceStatus.Scp or ScpVoiceStatus.Mixed
+        return SendToScp
             ? VoiceProfileResult.None 
             : VoiceProfileResult.SkipAndDontSend;
     }
@@ -157,9 +160,28 @@ public class ScpVoiceProfile : VoiceProfile
     public override VoiceProfileResult SendTo(ref VoiceMessage message, ExPlayer player)
         => VoiceProfileResult.None;
 
+    /// <summary>
+    /// Determines whether the SCP voice profile should be enabled based on the player's role change to a new role type.
+    /// </summary>
+    /// <param name="newRoleType">The new role type to which the player's role has changed.</param>
+    /// <returns>True if the SCP voice profile should be enabled for the new role type; otherwise, false.</returns>
+    public override bool EnabledOnRoleChange(RoleTypeId newRoleType)
+    {
+        if (Ability != null)
+        {
+            Ability.Mode = ScpVoiceStatus.Scp;
+            return newRoleType.IsScp();
+        }
+
+        return false;
+    }
+
     private bool SendMessageFilter(Player ply)
     {
         if (ply is not ExPlayer player)
+            return false;
+
+        if (player.ReferenceHub == null)
             return false;
 
         if (player == Player && !player.Toggles.CanHearSelf)
@@ -168,29 +190,22 @@ public class ScpVoiceProfile : VoiceProfile
         if (Ability == null)
             return false;
 
-        if (!player.IsAlive && Vector3.Distance(player.Position, Player.Position) > SpeakerMaxDistance)
-            return false;
-
-        if (Ability.Mode is ScpVoiceStatus.Mixed)
-            return !player.IsSCP;
-
-        return Ability.Mode is ScpVoiceStatus.Proximity;
+        return !player.IsSCP || !SendToScp;
     }
 
     private void OnProcessed(ProximityPacket packet)
     {
         if (Audio != null && Audio.SendEngine != null)
             Audio.SendEngine.Broadcast(new AudioMessage(Audio.Id, packet.Data, packet.Length));
-        
-        packetPool.Enqueue(packet);
     }
 
     private ProximityPacket PacketFactory()
     {
-        if (!packetPool.TryDequeue(out var packet))
-            packet = new();
+        var packet = new ProximityPacket()
+        {
+            Volume = Volume
+        };
 
-        packet.Volume = Volume;
         return packet;
     }
 }

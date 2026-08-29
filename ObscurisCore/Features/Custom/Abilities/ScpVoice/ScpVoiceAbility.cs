@@ -63,7 +63,7 @@ public class ScpVoiceAbility : CustomAbility
     /// is restricted to SCP-only channels, proximity-based communication, or a combination of both.
     /// </summary>
     [YamlIgnore]
-    public ScpVoiceStatus Mode { get; private set; } = ScpVoiceStatus.Scp;
+    public ScpVoiceStatus Mode { get; set; } = ScpVoiceStatus.Scp;
 
     /// <summary>
     /// Represents the menu functionality associated with the SCP Voice ability.
