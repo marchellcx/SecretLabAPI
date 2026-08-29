@@ -68,4 +68,9 @@ public class RedRightHandTeam : CustomTeamHandler<RedRightHandWave>
             .WithAmmo(ItemType.Ammo556x45, 120)
             .WithItems(ItemType.GunFRMG0, ItemType.GrenadeHE, ItemType.KeycardMTFCaptain, ItemType.Medkit, ItemType.Adrenaline, ItemType.Radio, ItemType.ArmorHeavy));
     }
+
+    private static void Initialize()
+    {
+        CustomTeamRegistry.Register<RedRightHandTeam>();
+    }
 }

@@ -10,10 +10,14 @@ using LabExtended.Core;
 using Mirror;
 
 using NiveraAPI.IO.Configs;
+
 using ObscurisCore.Features.Custom.Abilities.ScpVoice.Proximity;
+
 using SecretLabNAudio.Core;
 using SecretLabNAudio.Core.Pools;
 using SecretLabNAudio.Core.SendEngines;
+
+using UnityEngine;
 
 using VoiceChat;
 using VoiceChat.Networking;
@@ -105,9 +109,9 @@ public class ScpVoiceProfile : VoiceProfile
     /// <summary>
     /// Stops the proximity SCP voice profile.
     /// </summary>
-    public override void Disable()
+    public override void Stop()
     {
-        base.Disable();
+        base.Stop();
         
         packetPool.Clear();
 
@@ -164,10 +168,13 @@ public class ScpVoiceProfile : VoiceProfile
         if (Ability == null)
             return false;
 
+        if (!player.IsAlive && Vector3.Distance(player.Position, Player.Position) > SpeakerMaxDistance)
+            return false;
+
         if (Ability.Mode is ScpVoiceStatus.Mixed)
             return !player.IsSCP;
 
-        return false;
+        return Ability.Mode is ScpVoiceStatus.Proximity;
     }
 
     private void OnProcessed(ProximityPacket packet)

@@ -33,7 +33,9 @@ public class ArchangelsTeam : CustomTeamHandler<ArchangelsWave>
 
     /// <inheritdoc cref="CustomTeamHandler.IsSpawnable"/>
     public override bool IsSpawnable(ExPlayer player)
-        => player?.ReferenceHub != null && player.Role.Role is SpectatorRole spectatorRole && spectatorRole.ReadyToRespawn;
+        => player?.ReferenceHub != null 
+        && player.Role.Role is SpectatorRole spectatorRole 
+        && spectatorRole.ReadyToRespawn;
 
     // Archangels 1 - Repressor
     // Archangels 2 - Rifleman (1)
@@ -73,5 +75,10 @@ public class ArchangelsTeam : CustomTeamHandler<ArchangelsWave>
             .WithAmmo(ItemType.GunCOM18, 120)
             .WithCustomItem("SniperRifle")
             .WithItems(ItemType.GunCOM18, ItemType.KeycardChaosInsurgency, ItemType.Medkit, ItemType.Adrenaline, ItemType.ArmorHeavy));
+    }
+
+    private static void Initialize()
+    {
+        CustomTeamRegistry.Register<ArchangelsTeam>();
     }
 }

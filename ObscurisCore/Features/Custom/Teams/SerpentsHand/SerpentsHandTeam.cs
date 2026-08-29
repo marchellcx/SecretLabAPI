@@ -10,7 +10,6 @@ using LabExtended.Core;
 using LabExtended.Events;
 using LabExtended.Utilities;
 using LabExtended.Extensions;
-using LabExtended.Attributes;
 
 using MapGeneration;
 
@@ -176,5 +175,10 @@ public class SerpentsHandTeam : CustomTeamHandler<SerpentsHandWave>
             args.Player.CustomInfo = string.Empty;
             args.Player.InfoArea &= ~PlayerInfoArea.CustomInfo;
         }
+    }
+
+    private static void Initialize()
+    {
+        CustomTeamRegistry.Register<SerpentsHandTeam>();
     }
 }
