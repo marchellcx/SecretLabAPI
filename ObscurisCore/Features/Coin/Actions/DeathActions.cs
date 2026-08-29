@@ -4,13 +4,13 @@ using LabExtended.API;
 using LabExtended.Utilities;
 
 using LabExtended.Core.Configs.Objects;
-using ObscurisCore.Features.Effects.Misc;
 using ObscurisCore.Features.Elements.Alerts;
 using ObscurisCore.Utilities.Configs;
 using PlayerRoles;
 
 using ObscurisCore.Extensions;
 using UnityEngine;
+using ObscurisCore.Features.Custom.Effects.Misc;
 
 namespace ObscurisCore.Features.Coin.Actions;
 

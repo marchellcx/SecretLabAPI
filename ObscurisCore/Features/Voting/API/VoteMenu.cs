@@ -2,7 +2,6 @@
 
 using LabExtended.API.Settings.Entries;
 using LabExtended.API.Settings.Entries.Buttons;
-using ObscurisCore.Features.Voting;
 
 namespace ObscurisCore.Features.Voting.API
 {

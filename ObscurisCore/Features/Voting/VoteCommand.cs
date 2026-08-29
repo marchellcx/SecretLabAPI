@@ -2,6 +2,7 @@
 
 using LabExtended.Commands.Attributes;
 using LabExtended.Commands.Interfaces;
+
 using ObscurisCore.Features.Voting.API;
 
 namespace ObscurisCore.Features.Voting

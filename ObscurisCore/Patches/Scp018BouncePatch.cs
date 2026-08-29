@@ -3,7 +3,7 @@
 using InventorySystem.Items.ThrowableProjectiles;
 
 using LabExtended.API.Custom.Items;
-using ObscurisCore.Features.Items.Custom.Grenades;
+using ObscurisCore.Features.Custom.Items.Custom.Grenades;
 using UnityEngine;
 
 namespace ObscurisCore.Patches

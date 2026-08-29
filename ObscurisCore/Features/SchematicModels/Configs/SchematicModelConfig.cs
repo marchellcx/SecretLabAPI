@@ -1,5 +1,7 @@
 using System.ComponentModel;
+
 using LabExtended.Core.Configs.Objects;
+
 using UnityEngine;
 
 namespace ObscurisCore.Features.SchematicModels.Configs;

@@ -3,7 +3,7 @@
 using InventorySystem.Items.Scp1509;
 
 using LabExtended.API.Custom.Items;
-using ObscurisCore.Features.Items.Custom.Weapons;
+using ObscurisCore.Features.Custom.Items.Custom.Weapons;
 
 namespace ObscurisCore.Patches
 {

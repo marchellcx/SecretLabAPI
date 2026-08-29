@@ -2,8 +2,11 @@ using LabExtended.API;
 using LabExtended.Utilities.Update;
 
 using Mirror;
+
 using ObscurisCore.Features.SchematicModels.Configs;
+
 using ProjectMER.Features.Objects;
+
 using UnityEngine;
 
 namespace ObscurisCore.Features.SchematicModels;
@@ -56,24 +59,32 @@ public class SchematicModelInfo
         if (config != null)
         {
             if (config.PositionOffset.X != 0f
-                && config.PositionOffset.Y != 0f
-                && config.PositionOffset.Z != 0f)
+                || config.PositionOffset.Y != 0f
+                || config.PositionOffset.Z != 0f)
                 PositionOffset = config.PositionOffset.Vector;
 
             if (config.RotationOffset.X != 0f
-                && config.RotationOffset.Y != 0f
-                && config.RotationOffset.Z != 0f
-                && config.RotationOffset.W != 0f)
+                || config.RotationOffset.Y != 0f
+                || config.RotationOffset.Z != 0f
+                || config.RotationOffset.W != 0f)
                 RotationOffset = config.RotationOffset.Quaternion;
         }
     }
 
+    /// <summary>
+    /// Starts the schematic position update and sets the fake scale for the player.
+    /// </summary>
     public void Start()
     {
         PlayerUpdateHelper.OnFixedUpdate += Update;
+
         Player.SetFakeScale(Vector3.zero, false, false, RemoveOnRoleChange);
     }
 
+    /// <summary>
+    /// Stops the schematic position update and destroys the schematic object. Optionally, it can also remove the fake scale from the player.
+    /// </summary>
+    /// <param name="syncScale">Indicates whether to remove the fake scale from the player.</param>
     public void Stop(bool syncScale)
     {
         PlayerUpdateHelper.OnFixedUpdate -= Update;
@@ -85,6 +96,9 @@ public class SchematicModelInfo
             Player?.RemoveFakeScale();
     }
 
+    /// <summary>
+    /// Resumes the schematic position update and shows the schematic to the player's view.
+    /// </summary>
     public void Resume()
     {
         if (Paused)
@@ -97,6 +111,9 @@ public class SchematicModelInfo
         }
     }
 
+    /// <summary>
+    /// Pauses the schematic position update and hides the schematic from the player's view.
+    /// </summary>
     public void Pause()
     {
         if (!Paused)

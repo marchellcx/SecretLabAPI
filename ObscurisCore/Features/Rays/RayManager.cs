@@ -7,7 +7,9 @@ using LabExtended.Extensions;
 using LabExtended.Utilities.Update;
 
 using NiveraAPI.IO.Configs;
+
 using ObscurisCore.Features.Rays.Objects;
+
 using UnityEngine;
 
 namespace ObscurisCore.Features.Rays;

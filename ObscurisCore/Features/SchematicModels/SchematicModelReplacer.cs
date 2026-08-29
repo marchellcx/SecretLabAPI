@@ -17,6 +17,7 @@ using ProjectMER.Features.Objects;
 
 using ObscurisCore.Extensions;
 using ObscurisCore.Features.SchematicModels.Configs;
+
 using UnityEngine;
 
 namespace ObscurisCore.Features.SchematicModels;

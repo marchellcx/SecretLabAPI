@@ -3,7 +3,7 @@
 using InventorySystem.Items.Usables;
 
 using LabExtended.API.Custom.Items;
-using ObscurisCore.Features.Items.Custom.ScpItems;
+using ObscurisCore.Features.Custom.Items.Custom.ScpItems;
 
 namespace ObscurisCore.Patches;
 
